@@ -91,6 +91,8 @@ X_matrix = [0,1,1,0]
 X_Gate = Gate("X_Gate", X_matrix)
 Y_matrix = [0,np.complex128(0-1j),np.complex128(0+1j),0]
 Y_Gate = Gate("Y_Gate", Y_matrix)
+Z_matrix = [1,0,0,-1]
+Z_Gate = Gate("Z Gate", Z_matrix)
 Hadamard_matrix = [1,1,1,-1]
 Hadamard = Gate("Hadamard", Hadamard_matrix)
 #print(Hadamard.gate_mult(X_Gate))
@@ -101,6 +103,35 @@ Hadamard = Gate("Hadamard", Hadamard_matrix)
 
 
 class Circuit:
+    def __init__(self, name, circuit_grid):
+        self.name = name
+        self.circuit_grid = np.array(circuit_grid,dtype=np.complex128)
+
+    def __str__(self):
+        return f"{self.name}({self.circuit_grid})"
+    gate_key = {1:X_Gate, 2:Y_Gate, 2:Z_Gate}
 
 
+    def circuit_compiler(self):
+        num_qubits = len(circuit_grid)
+        circuit_length = int(sum(len(p) for p in self.circuit_grid)/num_qubits)
+        g = 0
+        while g < circuit_length:
+            
+
+
+oneqcircuit = [1,2,3]
+twoqcircuit = np.array([[1,2,3],
+                        [1,2,3]])
+
+""" KEY FOR THE CIRCUIT
+    0 = Nothing/Empty
+    1 = X Gate
+    2 = Y Gate
+    3 = Z Gate
+    4 = Hadamard
+    5 = Control X Gate
+    6 = Control Y Gate
+    7 = Control Z Gate
+    8 = The control qubit in the gate """
 
