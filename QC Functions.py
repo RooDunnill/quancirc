@@ -24,6 +24,7 @@ class Gate:
                 for j in range(other_dim):
                     for k in range(other_dim):
                         new_mat[k+j*new_dim+other_dim*i+other_dim*new_dim*m] += self.matrix[i+self_dim*m]*other.matrix[k+other_dim*j]
+        sp.simplify(new_mat)
         return Gate(new_name, np.array(new_mat))
 
     def gate_mult(self, other):
@@ -38,6 +39,7 @@ class Gate:
                     summ[0] += (self.matrix[j+dim*i]*other.matrix[k+j*dim])
                 new_mat[k+dim*i] += summ[0]
                 summ = np.zeros(1,dtype=np.complex128)
+        sp.simplify(new_mat)
         return Gate(new_name, np.array(new_mat))
 
 
@@ -49,11 +51,11 @@ X_matrix = [0,1,1,0]
 X_Gate = Gate("X_Gate", X_matrix)
 Y_matrix = [0,np.complex128(0-1j),np.complex128(0+1j),0]
 Y_Gate = Gate("Y_Gate", Y_matrix)
-Hadamard_matrix = [1,1,1,-1]
+Hadamard_matrix = [1/sp.sqrt(2),1/sp.sqrt(2),1/sp.sqrt(2),-1/sp.sqrt(2)]
 Hadamard = Gate("Hadamard", Hadamard_matrix)
 print(Hadamard.gate_mult(X_Gate))
 print(Hadamard.gate_mult(Y_Gate))
-#print(C_Not.tensor_prod(Hadamard))
+print(C_Not.tensor_prod(Hadamard))
 
 
 
@@ -65,9 +67,22 @@ class Qubit:
     def __str__(self):
         return f"{self.name}({self.vector})"
     
-    def tensor(self, q):
-        pass
+    def tensor_prod(self, other):
+        new_name = f"{self.name} X {other.name}"
+        self_length = len(self.vector)
+        other_length = len(other.vector)
+        new_length = self_length*other_length
+        new_vector = np.zeros(new_length,dtype=np.complex128)
+        for i in range(self_length):
+            for j in range(other_length):
+                new_vector[j+i*other_length] += self.vector[i]*other.vector[j]
+        sp.simplify(new_vector)
+        return Qubit(new_name, np.array(new_vector))
+    
+    def basis_decomp(self):
         
+
+
     def norm(self):
         normalise = sp.sqrt(sum([i*np.conj(i) for i in self.vector]))
         self.vector = sp.simplify(self.vector/normalise)
@@ -76,16 +91,16 @@ class Qubit:
     def measure(self):
 
         pass
-q1_matrix = [1,2]      
+q1_matrix = [1,0]      
 q2_matrix = [0,1]
 
 q1 = Qubit("q1",q1_matrix)
 q2 = Qubit("q2",q2_matrix)
 q1.norm()
 q2.norm()
+q3 = q1.tensor_prod(q2)
 print(q1,q2)
-
-
+print(q3)
 
 
 
