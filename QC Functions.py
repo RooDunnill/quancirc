@@ -22,6 +22,7 @@ of other matrices. This is used within the tensor products when
 a Qubit has no gate action, but the others do.
 """
     Identity_matrix = [1,0,0,1]
+    operation_error = "This is not a valid operation"
     
 
 
@@ -47,13 +48,15 @@ class Qubit:
                     new_vector[j+i*other.dim] += self.vector[i]*other.vector[j]
             sp.simplify(new_vector)
             return Qubit(new_name, np.array(new_vector))
+        else:
+            Print(Gate_data.operation_error)
 
 
     def norm(self):
         normalise = sp.sqrt(sum([i*np.conj(i) for i in self.vector]))
         self.vector = sp.simplify(self.vector/normalise)
 
-    def Qubit_info(self):
+    def qubit_info(self):
 
         pass
 
@@ -85,6 +88,7 @@ class Gate:
 
     def __matmul__(self, other):
         if isinstance(other, Gate):
+            new_info = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
             new_name = f"{self.name} X {other.name}"
             new_length = self.length*other.length
             new_dim = sp.sqrt(new_length)
@@ -95,21 +99,27 @@ class Gate:
                         for k in range(other.dim):
                             new_mat[k+j*new_dim+other.dim*i+other.dim*new_dim*m] += self.matrix[i+self.dim*m]*other.matrix[k+other.dim*j]
             sp.simplify(new_mat)
-        return Gate(new_name, self.info, np.array(new_mat))
+            return Gate(new_name, new_info, np.array(new_mat))
+        else:
+            print(Gate_data.operation_error)
 
     def __mul__(self, other):
         summ = np.zeros(1,dtype=np.complex128)
         if isinstance(other, Gate):
-            new_name = f"{self.name} * {other.name}"
-            new_mat = np.zeros(self.length,dtype=np.complex128)
-            for i in range(self.dim):
-                for k in range(self.dim):
-                    for j in range(self.dim):
-                        summ[0] += (self.matrix[j+self.dim*i]*other.matrix[k+j*self.dim])
-                    new_mat[k+self.dim*i] += summ[0]
-                    summ = np.zeros(1,dtype=np.complex128)
-            sp.simplify(new_mat)
-            return Gate(new_name, self.info, np.array(new_mat))
+            if self.dim == other.dim:
+                new_info = "This is a matrix multiplication of gates: "f"{self.name}"" and "f"{other.name}"
+                new_name = f"{self.name} * {other.name}"
+                new_mat = np.zeros(self.length,dtype=np.complex128)
+                for i in range(self.dim):
+                    for k in range(self.dim):
+                        for j in range(self.dim):
+                            summ[0] += (self.matrix[j+self.dim*i]*other.matrix[k+j*self.dim])
+                        new_mat[k+self.dim*i] += summ[0]
+                        summ = np.zeros(1,dtype=np.complex128)
+                sp.simplify(new_mat)
+                return Gate(new_name, new_info, np.array(new_mat))
+            else:
+                print(Gate_data.operation_error)
         elif isinstance(other, Qubit):
             new_name = f"[{self.name}] {other.name}"
             new_mat = np.zeros(self.dim,dtype=np.complex128)
@@ -119,11 +129,26 @@ class Gate:
                     new_mat[i] += summ[0]
                     summ = np.zeros(1,dtype=np.complex128)
             return Qubit(new_name, np.array(new_mat))
+        else:
+            print(Gate_data.operation_error)
     
     def __add__(self, other):
+        if isinstance(other, Gate):
+            new_info = "This is a direct sum of gates: "f"{self.name}"" and "f"{other.name}"
+            new_name = f"{self.name} * {other.name}"
+            new_dim = self.dim + other.dim
+            new_length = new_dim**2
+            new_mat = np.zeros(new_length,dtype=np.complex128)
+            for i in range(self.dim):
+                for j in range(self.dim):
+                    new_mat[j+new_dim*i] += self.matrix[j+self.dim*i]
+            for i in range(other.dim):
+                for j in range(other.dim):
+                    new_mat[self.dim+j+self.dim*new_dim+new_dim*i] += other.matrix[j+other.dim*i]
+            return Gate(new_name, new_info, np.array(new_mat))
+        else:
+            print(Gate_data.operation_error)
 
-        pass
-    
     def gate_info(self):
         print(
     """Gates are used to apply an operation to a Qubit.
@@ -141,7 +166,6 @@ class print_array:
             np.set_printoptions(precision=prec,linewidth=20,suppress=True,floatmode="fixed")
             print(array)
         elif isinstance(array, Gate):
-            
             np.set_printoptions(precision=prec,linewidth=(3+2*(3+prec))*array.dim,suppress=True,floatmode="fixed")
             print(array)
         else:
@@ -172,8 +196,5 @@ def Test_Alg(Qubit):
     alg = gate3 * gate2 * gate1
     result = alg * Qubit
 Test_Alg(q1 @ q1 @ q0)
-print_array(Identity @ Hadamard @ Identity)
-print_array(Hadamard)
-print_array(Hadamard @ Hadamard)
-print_array(q1 @ q1)
-print_array(Hadamard * q0)
+print_array(Hadamard @ C_Not)
+print_array(Hadamard @ X_Gate * C_Not)
