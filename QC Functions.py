@@ -4,7 +4,24 @@ import random as rm
 sp.init_printing(use_unicode=True)
 
 class Gate_data:
-    pass
+    C_Not_info = "test"
+    C_Not_matrix = [1,0,0,0,0,1,0,0,0,0,0,1,0,0,1,0]
+    X_Gate_info = "test"
+    X_matrix = [0,1,1,0]
+    Y_Gate_info = "test"
+    Y_matrix = [0,np.complex128(0-1j),np.complex128(0+1j),0]
+    n = 1/sp.sqrt(2)
+    Hadamard_info = "test"
+    Hadamard_matrix = [n,n,n,-n]
+    Z_Gate_info = "test"
+    Z_matrix = [1,0,0,-1]
+    Identity_info = """
+Identity Matrix: This matrix leaves the product invariant after multiplication.
+It is mainly used in this program to increase the dimension
+of other matrices. This is used within the tensor products when
+a Qubit has no gate action, but the others do.
+"""
+    Identity_matrix = [1,0,0,1]
     
 
 
@@ -23,13 +40,11 @@ class Qubit:
     def __matmul__(self, other):
         if isinstance(other, Qubit):
             new_name = f"{self.name} X {other.name}"
-            self_length = len(self.vector)
-            other_length = len(other.vector)
-            new_length = self_length*other_length
+            new_length = self.dim*other.dim
             new_vector = np.zeros(new_length,dtype=np.complex128)
-            for i in range(self_length):
-                for j in range(other_length):
-                    new_vector[j+i*other_length] += self.vector[i]*other.vector[j]
+            for i in range(self.dim):
+                for j in range(other.dim):
+                    new_vector[j+i*other.dim] += self.vector[i]*other.vector[j]
             sp.simplify(new_vector)
             return Qubit(new_name, np.array(new_vector))
 
@@ -61,7 +76,9 @@ class Gate:
         self.name = name
         self.matrix = np.array(matrix,dtype=np.complex128)
         self.info = info
-        self.dim = int(sp.sqrt(len(matrix)))
+        self.length = len(matrix)
+        self.dim = int(sp.sqrt(self.length))
+        
 
     def __str__(self):
         return f"{self.name}\n{self.matrix}"
@@ -69,46 +86,44 @@ class Gate:
     def __matmul__(self, other):
         if isinstance(other, Gate):
             new_name = f"{self.name} X {other.name}"
-            self_length = len(self.matrix)
-            self_dim = sp.sqrt(self_length)
-            other_length = len(other.matrix)
-            other_dim = sp.sqrt(other_length)
-            new_length = self_length*other_length
+            new_length = self.length*other.length
             new_dim = sp.sqrt(new_length)
             new_mat = np.zeros(new_length,dtype=np.complex128)
-            for m in range(self_dim):
-                for i in range(self_dim):
-                    for j in range(other_dim):
-                        for k in range(other_dim):
-                            new_mat[k+j*new_dim+other_dim*i+other_dim*new_dim*m] += self.matrix[i+self_dim*m]*other.matrix[k+other_dim*j]
+            for m in range(self.dim):
+                for i in range(self.dim):
+                    for j in range(other.dim):
+                        for k in range(other.dim):
+                            new_mat[k+j*new_dim+other.dim*i+other.dim*new_dim*m] += self.matrix[i+self.dim*m]*other.matrix[k+other.dim*j]
             sp.simplify(new_mat)
         return Gate(new_name, self.info, np.array(new_mat))
 
     def __mul__(self, other):
-        length = len(self.matrix)
-        dim = int(sp.sqrt(len(self.matrix)))
         summ = np.zeros(1,dtype=np.complex128)
         if isinstance(other, Gate):
             new_name = f"{self.name} * {other.name}"
-            new_mat = np.zeros(length,dtype=np.complex128)
-            for i in range(dim):
-                for k in range(dim):
-                    for j in range(dim):
-                        summ[0] += (self.matrix[j+dim*i]*other.matrix[k+j*dim])
-                    new_mat[k+dim*i] += summ[0]
+            new_mat = np.zeros(self.length,dtype=np.complex128)
+            for i in range(self.dim):
+                for k in range(self.dim):
+                    for j in range(self.dim):
+                        summ[0] += (self.matrix[j+self.dim*i]*other.matrix[k+j*self.dim])
+                    new_mat[k+self.dim*i] += summ[0]
                     summ = np.zeros(1,dtype=np.complex128)
             sp.simplify(new_mat)
             return Gate(new_name, self.info, np.array(new_mat))
         elif isinstance(other, Qubit):
             new_name = f"[{self.name}] {other.name}"
-            
-            new_mat = np.zeros(dim,dtype=np.complex128)
-            for i in range(dim):
-                    for j in range(dim):
-                        summ[0] += (self.matrix[j+dim*i]*other.vector[j])
+            new_mat = np.zeros(self.dim,dtype=np.complex128)
+            for i in range(self.dim):
+                    for j in range(self.dim):
+                        summ[0] += (self.matrix[j+self.dim*i]*other.vector[j])
                     new_mat[i] += summ[0]
                     summ = np.zeros(1,dtype=np.complex128)
             return Qubit(new_name, np.array(new_mat))
+    
+    def __add__(self, other):
+
+        pass
+    
     def gate_info(self):
         print(
     """Gates are used to apply an operation to a Qubit.
@@ -137,33 +152,13 @@ class print_array:
 
 
 
-C_Not_info = "test"
-C_Not_matrix = [1,0,0,0,0,1,0,0,0,0,0,1,0,0,1,0]
-C_Not = Gate("C_Not", C_Not_info, C_Not_matrix)
-X_Gate_info = "test"
-X_matrix = [0,1,1,0]
-X_Gate = Gate("X", X_Gate_info, X_matrix)
-Y_Gate_info = "test"
-Y_matrix = [0,np.complex128(0-1j),np.complex128(0+1j),0]
-Y_Gate = Gate("Y",Y_Gate_info, Y_matrix)
-Z_Gate_info = "test"
-Z_matrix = [1,0,0,-1]
-Z_Gate = Gate("Z",Z_Gate_info, Z_matrix)
-Identity_info = """
-Identity Matrix: This matrix leaves the product invariant after multiplication.
-It is mainly used in this program to increase the dimension
-of other matrices. This is used within the tensor products when
-a Qubit has no gate action, but the others do.
-"""
-Identity_matrix = [1,0,0,1]
-Identity = Gate("I",Identity_info, Identity_matrix)
-n = 1/sp.sqrt(2)
-Hadamard_info = "test"
-Hadamard_matrix = [n,n,n,-n]
-Hadamard = Gate("H",Hadamard_info, Hadamard_matrix)
-#print(Hadamard.gate_mult(X_Gate))
-#print(Hadamard.gate_mult(Y_Gate))
-#print(C_Not.tensor_prod(Hadamard))
+
+C_Not = Gate("C_Not", Gate_data.C_Not_info, Gate_data.C_Not_matrix)
+X_Gate = Gate("X", Gate_data.X_Gate_info, Gate_data.X_matrix)
+Y_Gate = Gate("Y",Gate_data.Y_Gate_info, Gate_data.Y_matrix)
+Z_Gate = Gate("Z",Gate_data.Z_Gate_info, Gate_data.Z_matrix)
+Identity = Gate("I",Gate_data.Identity_info, Gate_data.Identity_matrix)
+Hadamard = Gate("H",Gate_data.Hadamard_info, Gate_data.Hadamard_matrix)
 #print(Hadamard @ X_Gate @ X_Gate)
 #print(Hadamard * X_Gate * X_Gate)
 #print(Hadamard*q1)
@@ -181,3 +176,4 @@ print_array(Identity @ Hadamard @ Identity)
 print_array(Hadamard)
 print_array(Hadamard @ Hadamard)
 print_array(q1 @ q1)
+print_array(Hadamard * q0)
