@@ -40,7 +40,7 @@ class Qubit:
     
     def __matmul__(self, other):
         if isinstance(other, Qubit):
-            new_name = f"{self.name} X {other.name}"
+            new_name = f"{self.name} @ {other.name}"
             new_length = self.dim*other.dim
             new_vector = np.zeros(new_length,dtype=np.complex128)
             for i in range(self.dim):
@@ -61,18 +61,34 @@ class Qubit:
         pass
 
 
-    def measure(self):
+    def measure(self, qubit):
+        if qubit <= self.dim:
+            qubit_choice = [0,1]
+            a = np.complex128(self.vector[2*qubit-2]*np.conj(self.vector[2*qubit-2]))
+            b = np.complex128(self.vector[2*qubit-1]*np.conj(self.vector[2*qubit-1]))
+            print(a)
+            print(b)
+            prob_mat = np.array([a,b],dtype=np.complex128)
+            measurement = rm.choices(qubit_choice,weights = prob_mat)
+            return measurement
+        else:
+            print(Gate_data.operation_error)
+
 
         pass
 
 q0_matrix = [1,0]      
 q1_matrix = [0,1]
-
+qplus_matrix = [1,1]
+qminus_matrix = [1,-1]
 q0 = Qubit("q0",q0_matrix)
 q1 = Qubit("q1",q1_matrix)
+qplus = Qubit("q+",qplus_matrix)
+qminus = Qubit("q-",qminus_matrix)
 q0.norm()
 q1.norm()
-
+qplus.norm()
+qminus.norm()
 
 class Gate:
     def __init__(self, name, info, matrix):
@@ -89,7 +105,7 @@ class Gate:
     def __matmul__(self, other):
         if isinstance(other, Gate):
             new_info = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
-            new_name = f"{self.name} X {other.name}"
+            new_name = f"{self.name} @ {other.name}"
             new_length = self.length*other.length
             new_dim = sp.sqrt(new_length)
             new_mat = np.zeros(new_length,dtype=np.complex128)
@@ -135,7 +151,7 @@ class Gate:
     def __add__(self, other):
         if isinstance(other, Gate):
             new_info = "This is a direct sum of gates: "f"{self.name}"" and "f"{other.name}"
-            new_name = f"{self.name} * {other.name}"
+            new_name = f"{self.name} + {other.name}"
             new_dim = self.dim + other.dim
             new_length = new_dim**2
             new_mat = np.zeros(new_length,dtype=np.complex128)
@@ -196,5 +212,8 @@ def Test_Alg(Qubit):
     alg = gate3 * gate2 * gate1
     result = alg * Qubit
 Test_Alg(q1 @ q1 @ q0)
-print_array(Hadamard @ C_Not)
-print_array(Hadamard @ X_Gate * C_Not)
+test_qubit = qplus @ qminus @ q0
+test_state = Y_Gate @ Hadamard + Y_Gate
+test_measure = test_state * test_qubit
+print(test_measure)
+print(test_measure.measure(2))
