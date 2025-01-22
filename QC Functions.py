@@ -228,7 +228,7 @@ class C_Gate(Gate):
                 print(Gate_data.operation_error)
         else:
             print(Gate_data.operation_error)
-        self.matrix = new_mat
+        self.matrix = new_mat.matrix
         self.dim = int(abs(qubit_dist)*Identity.dim+gate_action.dim)
         self.length = self.dim*self.dim
                 
@@ -263,7 +263,7 @@ class print_array:    #made to try to make matrices look prettier
             print("Not applicable")
 
 
-C_Not = Gate("C_Not", Gate_data.C_Not_info, Gate_data.C_Not_matrix)
+#C_Not = Gate("C_Not", Gate_data.C_Not_info, Gate_data.C_Not_matrix)
 X_Gate = Gate("X", Gate_data.X_Gate_info, Gate_data.X_matrix)
 Y_Gate = Gate("Y",Gate_data.Y_Gate_info, Gate_data.Y_matrix)
 Z_Gate = Gate("Z",Gate_data.Z_Gate_info, Gate_data.Z_matrix)
@@ -273,16 +273,20 @@ U_Gate_X = U_Gate("Universal X", Gate_data.U_Gate_info, np.pi, 0, np.pi)
 U_Gate_H = U_Gate("Universal H", Gate_data.U_Gate_info, np.pi/2, 0, np.pi)
 CNot_flip = C_Gate("CNot", Gate_data.C_Not_matrix, X_Gate, 2, 1)
 CNot = C_Gate("CNot", Gate_data.C_Not_matrix, X_Gate, 1, 2)
-
+qubit_mix = q1 @ q1 @ qplus @ q0
 def Test_Alg(Qubit):         #make sure to mat mult the correct order
-    gate1 = X_Gate @ C_Not
+    gate1 = X_Gate @ CNot
     gate2 = Hadamard @ Hadamard @ X_Gate
-    gate3 = C_Not @ X_Gate
-    alg = gate3 * gate2 * gate1
+    gate3 = CNot @ X_Gate
+    gate4 = CNot @ Hadamard
+    alg = gate4 * gate3 * gate2 * gate1
     result = alg * Qubit
+    return result
+Test_Alg(qubit_mix)
 
 Hadamard @ Hadamard
 Hadamard @ Hadamard @ Hadamard
 Hadamard @ Hadamard @ Hadamard @ Hadamard
 Hadamard @ Hadamard @ Hadamard @ Hadamard @ Hadamard
+CNot @ CNot
 timer.timer(0)
