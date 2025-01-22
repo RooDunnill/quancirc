@@ -79,7 +79,9 @@ class Gate_data:                    #defines a class to store variables in to re
     n = 1/sp.sqrt(2)
     Hadamard_info = "test"
     Hadamard_matrix = [n,n,n,-n]
-    
+    U_Gate_info = """This is a gate that can be transformed into most elementary gates using the constants a,b and c.
+    For example a Hadamard gate can be defined with a = pi, b = 0 and c = pi while an X Gate can be defined by
+     a = pi/2 b = 0 and c = pi. """
     Identity_info = """
 Identity Matrix: This matrix leaves the product invariant after multiplication.
 It is mainly used in this program to increase the dimension
@@ -99,7 +101,6 @@ class Qubit:
         self.vector = np.array(vector,dtype=np.complex128)
         self.dim = len(vector)                    #used constantly in all calcs so defined it universally
         
-
     def __str__(self):
         return f"{self.name}\n{self.vector}"   #did this so that the matrix prints neatly
     
@@ -125,7 +126,6 @@ class Qubit:
     def qubit_info(self):           #will get to it one day
 
         pass
-
 
     def measure(self, qubit):
         if qubit <= self.dim:    
@@ -161,7 +161,6 @@ class Gate:
         self.info = info
         self.length = len(matrix)          #naming these matrices and qubits vectors was a stupid idea XD
         self.dim = int(sp.sqrt(self.length))
-        
 
     def __str__(self):
         return f"{self.name}\n{self.matrix}"
@@ -236,6 +235,15 @@ class Gate:
             return Gate(new_name, new_info, np.array(new_mat))
         else:
             print(Gate_data.operation_error)
+    
+    def __iadd__(self, other):
+        if isinstance(other, Gate):
+            self = self + other
+            return self
+        else:
+            print(Gate_data.operation_error)
+        
+        
 
     def gate_info(self):
         print(
@@ -245,7 +253,55 @@ class Gate:
     at one time instance together to create one unitary matrix.
     Then we can matrix multiply successive gates together to creat one
     universal matrix that we can apply to the Qubit before measuring""")
+class C_Gate(Gate):
+    def __init__(self, name, info, gate_action, qubit1, qubit2):
+        self.name = name
+        self.info = info
+        self.qubit1 = qubit1   #qubit 1 is the control qubit ie the identity matrix
+        self.qubit2 = qubit2   #qubit 2 is the gate qubit, ie x for cnot gate
+        self.gate_action = gate_action
+        qubit_dist = int(qubit1 - qubit2)
+        if qubit1 == 1 or qubit2 == 1:
+            if qubit_dist < 0:
+                i = 0
+                Id = Identity
+                while i < int(abs(qubit_dist) - 1):
+                    Id += Identity
+                    i += 1
+                new_mat = Id + self.gate_action
+            elif qubit_dist > 0:
+                i = 0
+                Id = self.gate_action
+                print("test")
+                while i < int(abs(qubit_dist)):
+                    Id += Identity
+                    i += 1
+                new_mat = Id
+            else:
+                print(Gate_data.operation_error)
+        else:
+            print(Gate_data.operation_error)
+        self.matrix = new_mat
+        self.dim = int(abs(qubit_dist)*Identity.dim+gate_action.dim)
+        self.length = self.dim*self.dim
+                
 
+class U_Gate(Gate):
+    def __init__(self, name, info, a, b, c):
+        self.name = name
+        self.info = info
+        self.a = a
+        self.b = b
+        self.c = c
+        self.matrix = np.array([[np.cos(self.a/2)],
+                               [-np.exp(np.complex128(0-1j)*self.c)*np.sin(self.a/2)],
+                               [np.exp(np.complex128(0+1j)*self.b)*np.sin(self.a/2)],
+                               [np.exp(np.complex128(0+1j)*(self.b+self.c))*np.cos(self.a/2)]],dtype=np.complex128)
+        self.length = len(self.matrix)
+        self.dim = int(sp.sqrt(len(self.matrix)))
+        
+        
+    
 class print_array:    #made to try to make matrices look prettier
     def __init__(self, array):         #probs could have used sp.pretty or whatever but didnt wanna confuse
         self.array = array             #sp and np matrices and get confused
@@ -260,12 +316,16 @@ class print_array:    #made to try to make matrices look prettier
             print("Not applicable")
 
 
-C_Not = Gate("C_Not", Gate_data.C_Not_info, Gate_data.C_Not_matrix)
+#C_Not = Gate("C_Not", Gate_data.C_Not_info, Gate_data.C_Not_matrix)
 X_Gate = Gate("X", Gate_data.X_Gate_info, Gate_data.X_matrix)
 Y_Gate = Gate("Y",Gate_data.Y_Gate_info, Gate_data.Y_matrix)
 Z_Gate = Gate("Z",Gate_data.Z_Gate_info, Gate_data.Z_matrix)
 Identity = Gate("I",Gate_data.Identity_info, Gate_data.Identity_matrix)
 Hadamard = Gate("H",Gate_data.Hadamard_info, Gate_data.Hadamard_matrix)
+U_Gate_X = U_Gate("Universal X", Gate_data.U_Gate_info, np.pi, 0, np.pi)
+U_Gate_H = U_Gate("Universal H", Gate_data.U_Gate_info, np.pi/2, 0, np.pi)
+CNot = C_Gate("CNot", Gate_data.C_Not_matrix, X_Gate, 3, 1)
+CNot_flip = C_Gate("CNot", Gate_data.C_Not_matrix, X_Gate, 1, 3)
 #print(Hadamard @ X_Gate @ X_Gate)
 #print(Hadamard * X_Gate * X_Gate)
 #print(Hadamard*q1)
@@ -278,8 +338,3 @@ def Test_Alg(Qubit):         #make sure to mat mult the correct order
     gate3 = C_Not @ X_Gate
     alg = gate3 * gate2 * gate1
     result = alg * Qubit
-
-
-test = Hadamard @ Hadamard @ Hadamard @ Hadamard @ Hadamard
-
-print(test)
