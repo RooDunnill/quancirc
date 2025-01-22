@@ -4,7 +4,7 @@ import random as rm                                             #used for measur
 from time import perf_counter
 sp.init_printing(use_unicode=True)                              #pretty much useless i think
 
-timer_switch = 0            #wanted tyo be able to turn it off after testing is done but not remove from code fully
+timer_switch = 0            #wanted to be able to turn it off after testing is done but not remove from code fully
 class timer:
     def __init__(self, state):
         self.state = state
