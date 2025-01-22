@@ -2,8 +2,11 @@ import numpy as np                                                            #m
 import sympy as sp                                              #mostly used for sqrt function, and simplify
 import random as rm                                             #used for measuring
 import time
-sp.init_printing(use_unicode=True)                              #pretty much useless i think
+import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 
+sp.init_printing(use_unicode=True)                              #pretty much useless i think
+plot_counter = 0
 timer_switch = 1            #wanted to be able to turn it off after testing is done but not remove from code fully
 class timer:
     def __init__(self, state):
@@ -55,6 +58,7 @@ class Gate_data:                    #defines a class to store variables in to re
     error_value = "the value selected is outside the correct range of options"
     error_qubit_num = "you can't select the same qubit for both inputs of the operation gate and control gate"
     error_qubit_pos = "one of the selected qubits must be 1 which represents the top left of the matrix rather than qubit 1"
+    Density_matrix_info = "test"
     
 
 
@@ -102,8 +106,35 @@ class Qubit:
         else:
             print(Gate_data.error_value)
 
+    def density_mat(self):
+        new_name =f"Density matrix of qubit {self.name}"
+        new_mat = np.zeros(self.dim*self.dim,dtype=np.complex128)
+        qubit_conj = np.conj(self.vector)
+        for i in range(self.dim):
+            for j in range(self.dim):
+                new_mat[j+i*self.dim] += qubit_conj[i]*self.vector[j]
+        return Density(new_name, Gate_data.Density_matrix_info, new_mat)
 
-        pass
+
+    def bloch_plot(self, qubit):
+        global plot_counter, ax
+        if qubit <= self.dim:
+            
+            vals = np.zeros(2,dtype=np.complex128)
+            vals[0] = self.vector[2*qubit-2]
+            vals[1] = self.vector[2*qubit-1]
+            plotted_qubit = Qubit("", vals)
+            print(vals)
+            den_mat = plotted_qubit.density_mat()
+            x = 2*np.real(den_mat.matrix[1])
+            y = 2*np.imag(den_mat.matrix[2])
+            z = den_mat.matrix[0] - den_mat.matrix[3]
+            if plot_counter == 0:
+                ax = plt.axes(projection="3d")
+            ax.quiver(0,0,0,x,y,z)
+            plot_counter += 1
+        else:
+            print(Gate_data.error_value)
 
 q0_matrix = [1,0]
 q1_matrix = [0,1]
@@ -256,9 +287,16 @@ class U_Gate(Gate):
                                [np.exp(np.complex128(0+1j)*self.b)*np.sin(self.a/2)],
                                [np.exp(np.complex128(0+1j)*(self.b+self.c))*np.cos(self.a/2)]],dtype=np.complex128)
         self.length = len(self.matrix)
-        self.dim = int(sp.sqrt(len(self.matrix)))
+        self.dim = int(sp.sqrt(self.length))
         
-        
+class Density(Gate):
+    def __init__(self, name, info, matrix):
+        self.name = name
+        self.info = info
+        self.matrix = matrix
+        self.length = len(self.matrix)
+        self.dim = int(sp.sqrt(self.length))
+
     
 class print_array:    #made to try to make matrices look prettier
     def __init__(self, array):         #probs could have used sp.pretty or whatever but didnt wanna confuse
@@ -292,3 +330,18 @@ def Test_Alg(Qubit):         #make sure to mat mult the correct order
     alg = gate4 * gate3 * gate2 * gate1
     result = alg * Qubit
     return result
+q1.bloch_plot(1)
+qplus.bloch_plot(1)
+timer.timer(0)
+if plot_counter > 0:
+    u, v = np.mgrid[0:2*np.pi:50j, 0:np.pi:50j]
+    x_sp = np.cos(u)*np.sin(v)
+    y_sp = np.sin(u)*np.sin(v)
+    z_sp = np.cos(v)
+    ax.set_xlabel("X_Axis")
+    ax.set_ylabel("Y Axis")
+    ax.set_zlabel("Z Axis")
+    ax.set_title("Bloch Sphere")
+    ax.plot_surface(x_sp, y_sp, z_sp, color="g", alpha=0.3)
+    ax.legend()
+    plt.show()
