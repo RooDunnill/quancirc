@@ -6,7 +6,7 @@ sp.init_printing(use_unicode=True)                              #pretty much use
 class Gate_data:                    #defines a class to store variables in to recall from so that its all
     C_Not_info = "test"                                          #in one neat area
     C_Not_matrix = [1,0,0,0,0,1,0,0,0,0,0,1,0,0,1,0]#2 Qubit CNot gate in one configuration, need to add more
-    X_Gate_info = "test"
+    X_Gate_info = "test"              #test
     X_matrix = [0,1,1,0]                           
     Y_Gate_info = "test"
     Y_matrix = [0,np.complex128(0-1j),np.complex128(0+1j),0]           
