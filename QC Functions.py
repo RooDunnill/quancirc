@@ -1,12 +1,64 @@
 import numpy as np                                                            #mostly used to make 1D arrays
 import sympy as sp                                              #mostly used for sqrt function, and simplify
 import random as rm                                             #used for measuring
+from time import perf_counter
 sp.init_printing(use_unicode=True)                              #pretty much useless i think
+
+timer_switch = 1
+class timer:
+    def __init__(self, state):
+        self.state = state
+
+    def timer_gen(initial):
+        global start_time, stop_time, interval
+        if timer_switch == 1:
+            if initial == 1:
+                start_time = perf_counter()
+            elif initial == 0:
+                stop_time = perf_counter()
+                interval = (stop_time - start_time) * 1000
+                interval = "{:.3f}".format(interval)
+                stop_time = 0
+                start_time = 0
+        elif timer_switch == 0:
+            pass
+    
+    def qmatmul_timer(initial):
+        timer.timer_gen(initial)
+        if initial == 0:
+            print("time taken for qubit tensor product is: " + str(interval) + " seconds")
+
+    def gmatmul_timer(initial):
+        timer.timer_gen(initial)
+        if initial == 0:
+            print("time taken for gate tensor product is: " + str(interval) + " seconds")
+
+    def mul_timer(initial):
+        timer.timer_gen(initial)
+        if initial == 0:
+            print("time taken for matrix multiplication is: " + str(interval) + " seconds")
+
+    def qmul_timer(initial):
+        timer.timer_gen(initial)
+        if initial == 0:
+            print("time taken for gate application on qubit state is: " + str(interval) + " seconds")
+
+    def add_timer(initial):
+        timer.timer_gen(initial)
+        if initial == 0:
+            print("time taken for direct sum is: " + str(interval) + " seconds")
+
+
+
+
+
+        
+    
 
 class Gate_data:                    #defines a class to store variables in to recall from so that its all
     C_Not_info = "test"                                          #in one neat area
     C_Not_matrix = [1,0,0,0,0,1,0,0,0,0,0,1,0,0,1,0]#2 Qubit CNot gate in one configuration, need to add more
-    X_Gate_info = "test"              #test
+    X_Gate_info = "test"             
     X_matrix = [0,1,1,0]                           
     Y_Gate_info = "test"
     Y_matrix = [0,np.complex128(0-1j),np.complex128(0+1j),0]           
@@ -41,6 +93,7 @@ class Qubit:
     
     def __matmul__(self, other):               #this is an n x n tensor product function
         if isinstance(other, Qubit):           #although this tensors are all 1D
+            timer.qmatmul_timer(1)
             new_name = f"{self.name} @ {other.name}"     #no tensor symbol so this will do
             new_length = self.dim*other.dim
             new_vector = np.zeros(new_length,dtype=np.complex128)
@@ -48,10 +101,10 @@ class Qubit:
                 for j in range(other.dim):          #iterates up and down the second ket
                     new_vector[j+i*other.dim] += self.vector[i]*other.vector[j] #adds the values into
             sp.simplify(new_vector)                           #a new matrix in order
+            timer.qmatmul_timer(0)
             return Qubit(new_name, np.array(new_vector))    #returns a new Object with a new name too
         else:
-            Print(Gate_data.operation_error)
-
+            print(Gate_data.operation_error)
 
     def norm(self):                 #dunno why this is here ngl, just one of the first functions i tried
         normalise = sp.sqrt(sum([i*np.conj(i) for i in self.vector]))
@@ -76,7 +129,7 @@ class Qubit:
 
         pass
 
-q0_matrix = [1,0]      
+q0_matrix = [1,0]
 q1_matrix = [0,1]
 qplus_matrix = [1,1]
 qminus_matrix = [1,-1]
@@ -103,6 +156,7 @@ class Gate:
 
     def __matmul__(self, other):
         if isinstance(other, Gate):
+            timer.gmatmul_timer(1)
             new_info = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
             new_name = f"{self.name} @ {other.name}"
             new_length = self.length*other.length
@@ -113,7 +167,8 @@ class Gate:
                     for j in range(other.dim):
                         for k in range(other.dim):   #honestly, this works but is trash and looks like shit
                             new_mat[k+j*new_dim+other.dim*i+other.dim*new_dim*m] += self.matrix[i+self.dim*m]*other.matrix[k+other.dim*j]
-            sp.simplify(new_mat)                     #will try to impliment a XOR operation for this which should be a lot fater
+            sp.simplify(new_mat)                     #will try to impliment a XOR operation for this which should be a lot faster
+            timer.gmatmul_timer(0)
             return Gate(new_name, new_info, np.array(new_mat))
         else:
             print(Gate_data.operation_error)
@@ -122,6 +177,7 @@ class Gate:
         summ = np.zeros(1,dtype=np.complex128)  #could delete summ and make more elegant
         if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
             if self.dim == other.dim:
+                timer.mul_timer(1)
                 new_info = "This is a matrix multiplication of gates: "f"{self.name}"" and "f"{other.name}"
                 new_name = f"{self.name} * {other.name}"
                 new_mat = np.zeros(self.length,dtype=np.complex128)
@@ -132,10 +188,12 @@ class Gate:
                         new_mat[k+self.dim*i] += summ[0]
                         summ = np.zeros(1,dtype=np.complex128)
                 sp.simplify(new_mat)
+                timer.mul_timer(0)
                 return Gate(new_name, new_info, np.array(new_mat))
             else:
                 print(Gate_data.operation_error)
         elif isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
+            timer.qmul_timer(1)
             new_name = f"[{self.name}] {other.name}"
             new_mat = np.zeros(self.dim,dtype=np.complex128)
             for i in range(self.dim):
@@ -143,12 +201,14 @@ class Gate:
                         summ[0] += (self.matrix[j+self.dim*i]*other.vector[j])
                     new_mat[i] += summ[0]
                     summ = np.zeros(1,dtype=np.complex128)
+            timer.qmul_timer(0)
             return Qubit(new_name, np.array(new_mat))
         else:
             print(Gate_data.operation_error)
     
     def __add__(self, other):         #direct sum
         if isinstance(other, Gate):
+            timer.add_timer(1)
             new_info = "This is a direct sum of gates: "f"{self.name}"" and "f"{other.name}"
             new_name = f"{self.name} + {other.name}"
             new_dim = self.dim + other.dim
@@ -160,6 +220,7 @@ class Gate:
             for i in range(other.dim):     #although would be faster if i made a function to apply straight
                 for j in range(other.dim):    #to individual qubits instead
                     new_mat[self.dim+j+self.dim*new_dim+new_dim*i] += other.matrix[j+other.dim*i]
+            timer.add_timer(0)
             return Gate(new_name, new_info, np.array(new_mat))
         else:
             print(Gate_data.operation_error)
@@ -187,11 +248,6 @@ class print_array:    #made to try to make matrices look prettier
             print("Not applicable")
 
 
-
-
-
-
-
 C_Not = Gate("C_Not", Gate_data.C_Not_info, Gate_data.C_Not_matrix)
 X_Gate = Gate("X", Gate_data.X_Gate_info, Gate_data.X_matrix)
 Y_Gate = Gate("Y",Gate_data.Y_Gate_info, Gate_data.Y_matrix)
@@ -210,9 +266,7 @@ def Test_Alg(Qubit):         #make sure to mat mult the correct order
     gate3 = C_Not @ X_Gate
     alg = gate3 * gate2 * gate1
     result = alg * Qubit
-Test_Alg(q1 @ q1 @ q0)
-test_qubit = qplus @ qminus @ q0
-test_state = Y_Gate @ Hadamard + Y_Gate
-test_measure = test_state * test_qubit
-print(test_measure)
-print(test_measure.measure(2))
+print(q0 @ q1)
+print(Hadamard @ Hadamard)
+
+
