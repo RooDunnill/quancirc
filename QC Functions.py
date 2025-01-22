@@ -4,12 +4,12 @@ import random as rm                                             #used for measur
 from time import perf_counter
 sp.init_printing(use_unicode=True)                              #pretty much useless i think
 
-timer_switch = 1
+timer_switch = 0            #wanted tyo be able to turn it off after testing is done but not remove from code fully
 class timer:
     def __init__(self, state):
         self.state = state
 
-    def timer_gen(initial):
+    def timer_gen(initial):          #errrrrrrrrrr doesnt work fully dont trust
         global start_time, stop_time, interval
         if timer_switch == 1:
             if initial == 1:
@@ -17,36 +17,48 @@ class timer:
             elif initial == 0:
                 stop_time = perf_counter()
                 interval = (stop_time - start_time) * 1000
-                interval = "{:.3f}".format(interval)
+                interval = "{:.3f}".format(interval)        #makes it a little neater
                 stop_time = 0
                 start_time = 0
         elif timer_switch == 0:
             pass
-    
-    def qmatmul_timer(initial):
-        timer.timer_gen(initial)
-        if initial == 0:
-            print("time taken for qubit tensor product is: " + str(interval) + " seconds")
+    if timer_switch == 1:
+        def qmatmul_timer(initial):
+            timer.timer_gen(initial)
+            if initial == 0:
+                print("time taken for qubit tensor product is: " + str(interval) + " seconds")
 
-    def gmatmul_timer(initial):
-        timer.timer_gen(initial)
-        if initial == 0:
-            print("time taken for gate tensor product is: " + str(interval) + " seconds")
+        def gmatmul_timer(initial):    #todo, make this into one function that takes the instance type to make print text
+            timer.timer_gen(initial)
+            if initial == 0:
+                print("time taken for gate tensor product is: " + str(interval) + " seconds")
 
-    def mul_timer(initial):
-        timer.timer_gen(initial)
-        if initial == 0:
-            print("time taken for matrix multiplication is: " + str(interval) + " seconds")
+        def mul_timer(initial):
+            timer.timer_gen(initial)
+            if initial == 0:
+                print("time taken for matrix multiplication is: " + str(interval) + " seconds")
 
-    def qmul_timer(initial):
-        timer.timer_gen(initial)
-        if initial == 0:
-            print("time taken for gate application on qubit state is: " + str(interval) + " seconds")
+        def qmul_timer(initial):
+            timer.timer_gen(initial)
+            if initial == 0:
+                print("time taken for gate application on qubit state is: " + str(interval) + " seconds")
 
-    def add_timer(initial):
-        timer.timer_gen(initial)
-        if initial == 0:
-            print("time taken for direct sum is: " + str(interval) + " seconds")
+        def add_timer(initial):
+            timer.timer_gen(initial)
+            if initial == 0:
+                print("time taken for direct sum is: " + str(interval) + " seconds")
+    elif timer_switch == 0:
+        def qmatmul_timer(initial):
+            pass
+        def gmatmul_timer(initial):    #todo, make this into one function that takes the instance type to make print text
+            pass
+        def mul_timer(initial):
+            pass
+        def qmul_timer(initial):
+            pass
+        def add_timer(initial):  #what a shit show
+            pass
+        
 
 
 
@@ -266,7 +278,8 @@ def Test_Alg(Qubit):         #make sure to mat mult the correct order
     gate3 = C_Not @ X_Gate
     alg = gate3 * gate2 * gate1
     result = alg * Qubit
-print(q0 @ q1)
-print(Hadamard @ Hadamard)
 
 
+test = Hadamard @ Hadamard @ Hadamard @ Hadamard @ Hadamard
+
+print(test)
