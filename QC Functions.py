@@ -26,28 +26,35 @@ class timer:
 timer.timer(1)
 
 class Gate_data:                    #defines a class to store variables in to recall from so that its all
-    C_Not_info = "test"                                          #in one neat area
+    C_Not_info = """This gate is used to change the behaviour of one qubit based on another. 
+    This sepecific function is mostly obselete now, it is preferred to use the C Gate class instead"""       #C_Not is mostly obsolete due to new C Gate class       #in one neat area
     C_Not_matrix = [1,0,0,0,0,1,0,0,0,0,0,1,0,0,1,0]#2 Qubit CNot gate in one configuration, need to add more
-    X_Gate_info = "test"             
+    X_Gate_info = "Used to flip the Qubit in the X basis. Often seen in the CNot gate."             
     X_matrix = [0,1,1,0]                           
-    Y_Gate_info = "test"
+    Y_Gate_info = "Used to flip the Qubit in the Y basis."
     Y_matrix = [0,np.complex128(0-1j),np.complex128(0+1j),0]           
-    Z_Gate_info = "test"
+    Z_Gate_info = "Used to flip the Qubit in the Z basis. This gate flips from 1 to 0 in the computational basis."
     Z_matrix = [1,0,0,-1]                                      
     n = 1/sp.sqrt(2)
-    Hadamard_info = "test"
+    Hadamard_info = """The Hadamard gate is one of the most useful gates, used to convert the Qubit from
+    the computation basis to the plus, minus basis. When applied twice, it can lead back to its original value/
+    acts as an Identity matrix."""
     Hadamard_matrix = [n,n,n,-n]
     U_Gate_info = """This is a gate that can be transformed into most elementary gates using the constants a,b and c.
     For example a Hadamard gate can be defined with a = pi, b = 0 and c = pi while an X Gate can be defined by
      a = pi/2 b = 0 and c = pi. """
     Identity_info = """
-Identity Matrix: This matrix leaves the product invariant after multiplication.
-It is mainly used in this program to increase the dimension
-of other matrices. This is used within the tensor products when
-a Qubit has no gate action, but the others do.
+    Identity Matrix: This matrix leaves the product invariant after multiplication.
+    It is mainly used in this program to increase the dimension
+    of other matrices. This is used within the tensor products when
+    a Qubit has no gate action, but the others do.
 """
     Identity_matrix = [1,0,0,1]
-    operation_error = "This is not a valid operation"
+    error_class = "the operation is not with the correct class"
+    error_mat_dim = "the dimensions of the matrices do not share the same value"
+    error_value = "the value selected is outside the correct range of options"
+    error_qubit_num = "you can't select the same qubit for both inputs of the operation gate and control gate"
+    error_qubit_pos = "one of the selected qubits must be 1 which represents the top left of the matrix rather than qubit 1"
     
 
 
@@ -73,15 +80,16 @@ class Qubit:
             sp.simplify(new_vector)                           #a new matrix in order
             return Qubit(new_name, np.array(new_vector))    #returns a new Object with a new name too
         else:
-            print(Gate_data.operation_error)
+            print(Gate_data.error_class)
 
     def norm(self):                 #dunno why this is here ngl, just one of the first functions i tried
         normalise = sp.sqrt(sum([i*np.conj(i) for i in self.vector]))
         self.vector = sp.simplify(self.vector/normalise)
 
-    def qubit_info(self):           #will get to it one day
-
-        pass
+    def qubit_info(self):      
+        print("""The Qubit is the quantum equivalent to the bit. However, due to the nature of 
+        Quantum Mechanics, it can take any value rather than just two. However, by measuring the state
+        in which it is in, you collapse the wavefunction and the Qubit becomes 1 of two values, 1 or 0.""")
 
     def measure(self, qubit):
         if qubit <= self.dim:    
@@ -92,7 +100,7 @@ class Qubit:
             measurement = rm.choices(qubit_choice,weights = prob_mat)     #returned an error
             return measurement
         else:
-            print(Gate_data.operation_error)
+            print(Gate_data.error_value)
 
 
         pass
@@ -136,7 +144,7 @@ class Gate:
             sp.simplify(new_mat)                     #will try to impliment a XOR operation for this which should be a lot faster
             return Gate(new_name, new_info, np.array(new_mat))
         else:
-            print(Gate_data.operation_error)
+            print(Gate_data.error_class)
 
     def __mul__(self, other):       #matrix multiplication
         summ = np.zeros(1,dtype=np.complex128)  #could delete summ and make more elegant
@@ -154,18 +162,21 @@ class Gate:
                 sp.simplify(new_mat)
                 return Gate(new_name, new_info, np.array(new_mat))
             else:
-                print(Gate_data.operation_error)
+                print(Gate_data.error_mat_dim)
         elif isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
-            new_name = f"[{self.name}] {other.name}"
-            new_mat = np.zeros(self.dim,dtype=np.complex128)
-            for i in range(self.dim):
-                    for j in range(self.dim):
-                        summ[0] += (self.matrix[j+self.dim*i]*other.vector[j])
-                    new_mat[i] += summ[0]
-                    summ = np.zeros(1,dtype=np.complex128)
-            return Qubit(new_name, np.array(new_mat))
+            if self.dim == other.dim:
+                new_name = f"[{self.name}] {other.name}"
+                new_mat = np.zeros(self.dim,dtype=np.complex128)
+                for i in range(self.dim):
+                        for j in range(self.dim):
+                            summ[0] += (self.matrix[j+self.dim*i]*other.vector[j])
+                        new_mat[i] += summ[0]
+                        summ = np.zeros(1,dtype=np.complex128)
+                return Qubit(new_name, np.array(new_mat))
+            else:
+                print(Gate_data.error_mat_dim)
         else:
-            print(Gate_data.operation_error)
+            print(Gate_data.error_class)
     
     def __add__(self, other):         #direct sum
         if isinstance(other, Gate):
@@ -182,14 +193,14 @@ class Gate:
                     new_mat[self.dim+j+self.dim*new_dim+new_dim*i] += other.matrix[j+other.dim*i]
             return Gate(new_name, new_info, np.array(new_mat))
         else:
-            print(Gate_data.operation_error)
+            print(Gate_data.error_class)
     
     def __iadd__(self, other):
         if isinstance(other, Gate):
             self = self + other
             return self
         else:
-            print(Gate_data.operation_error)
+            print(Gate_data.error_class)
         
         
 
@@ -225,9 +236,9 @@ class C_Gate(Gate):
                     i += 1
                 new_mat = Id
             else:
-                print(Gate_data.operation_error)
+                print(Gate_data.error_qubit_num)
         else:
-            print(Gate_data.operation_error)
+            print(Gate_data.error_qubit_pos)
         self.matrix = new_mat.matrix
         self.dim = int(abs(qubit_dist)*Identity.dim+gate_action.dim)
         self.length = self.dim*self.dim
@@ -260,10 +271,9 @@ class print_array:    #made to try to make matrices look prettier
             np.set_printoptions(precision=prec,linewidth=(3+2*(3+prec))*array.dim,suppress=True,floatmode="fixed")
             print(array)
         else:
-            print("Not applicable")
+            print(Gate_data.error_class)
 
 
-#C_Not = Gate("C_Not", Gate_data.C_Not_info, Gate_data.C_Not_matrix)
 X_Gate = Gate("X", Gate_data.X_Gate_info, Gate_data.X_matrix)
 Y_Gate = Gate("Y",Gate_data.Y_Gate_info, Gate_data.Y_matrix)
 Z_Gate = Gate("Z",Gate_data.Z_Gate_info, Gate_data.Z_matrix)
@@ -273,7 +283,7 @@ U_Gate_X = U_Gate("Universal X", Gate_data.U_Gate_info, np.pi, 0, np.pi)
 U_Gate_H = U_Gate("Universal H", Gate_data.U_Gate_info, np.pi/2, 0, np.pi)
 CNot_flip = C_Gate("CNot", Gate_data.C_Not_matrix, X_Gate, 2, 1)
 CNot = C_Gate("CNot", Gate_data.C_Not_matrix, X_Gate, 1, 2)
-qubit_mix = q1 @ q1 @ qplus @ q0
+qubit_mix = q1 @ q1 @ qplus
 def Test_Alg(Qubit):         #make sure to mat mult the correct order
     gate1 = X_Gate @ CNot
     gate2 = Hadamard @ Hadamard @ X_Gate
@@ -282,11 +292,3 @@ def Test_Alg(Qubit):         #make sure to mat mult the correct order
     alg = gate4 * gate3 * gate2 * gate1
     result = alg * Qubit
     return result
-Test_Alg(qubit_mix)
-
-Hadamard @ Hadamard
-Hadamard @ Hadamard @ Hadamard
-Hadamard @ Hadamard @ Hadamard @ Hadamard
-Hadamard @ Hadamard @ Hadamard @ Hadamard @ Hadamard
-CNot @ CNot
-timer.timer(0)
