@@ -95,16 +95,7 @@ class Qubit:
         Quantum Mechanics, it can take any value rather than just two. However, by measuring the state
         in which it is in, you collapse the wavefunction and the Qubit becomes 1 of two values, 1 or 0.""")
 
-    def measure(self, qubit):
-        if qubit <= self.dim:    
-            qubit_choice = [0,1]   #this array is for the random.choice to pick an outcome
-            a = np.complex128(self.vector[2*qubit-2]*np.conj(self.vector[2*qubit-2]))
-            b = np.complex128(self.vector[2*qubit-1]*np.conj(self.vector[2*qubit-1]))
-            prob_mat = np.array([a,b],dtype=np.complex128) #couldnt put straight into matrix as 
-            measurement = rm.choices(qubit_choice,weights = prob_mat)     #returned an error
-            return measurement
-        else:
-            print(Gate_data.error_value)
+    
 
     def density_mat(self):
         new_name =f"Density matrix of qubit {self.name}"
@@ -115,11 +106,20 @@ class Qubit:
                 new_mat[j+i*self.dim] += qubit_conj[i]*self.vector[j]
         return Density(new_name, Gate_data.Density_matrix_info, new_mat)
 
+    def measure(self, qubit):  #this is just flat out wrong atm
+        if qubit <= self.dim:    
+            qubit_choice = [0,1]   #this array is for the random.choice to pick an outcome
+            a = np.complex128(self.vector[2*qubit-2]*np.conj(self.vector[2*qubit-2]))
+            b = np.complex128(self.vector[2*qubit-1]*np.conj(self.vector[2*qubit-1]))
+            prob_mat = np.array([a,b],dtype=np.complex128) #couldnt put straight into matrix as 
+            measurement = rm.choices(qubit_choice,weights = prob_mat)     #returned an error
+            return measurement
+        else:
+            print(Gate_data.error_value)
 
     def bloch_plot(self, qubit):
         global plot_counter, ax
         if qubit <= self.dim:
-            
             vals = np.zeros(2,dtype=np.complex128)
             vals[0] = self.vector[2*qubit-2]
             vals[1] = self.vector[2*qubit-1]
@@ -320,7 +320,6 @@ U_Gate_X = U_Gate("Universal X", Gate_data.U_Gate_info, np.pi, 0, np.pi)
 U_Gate_H = U_Gate("Universal H", Gate_data.U_Gate_info, np.pi/2, 0, np.pi)
 CNot_flip = C_Gate("CNot", Gate_data.C_Not_matrix, X_Gate, 2, 1)
 CNot = C_Gate("CNot", Gate_data.C_Not_matrix, X_Gate, 1, 2)
-qubit_mix = q1 @ q1 @ qplus
 def Test_Alg(Qubit):         #make sure to mat mult the correct order
     gate1 = X_Gate @ CNot
     gate2 = Hadamard @ Hadamard @ X_Gate
@@ -343,4 +342,14 @@ if plot_counter > 0:
     ax.set_title("Bloch Sphere")
     ax.plot_surface(x_sp, y_sp, z_sp, color="g", alpha=0.3)
     ax.legend()
+    ax.axes.grid(axis="x")
+    ax.text(0,0,1,"|0>")
+    ax.text(0,0,-1,"|1>")
+    ax.text(1,0,0,"|+>")
+    ax.text(-1,0,0,"|->")
+    ax.text(0,1,0,"|i>")
+    ax.text(0,-1,0,"|-i>")
+    ax.plot([-1,1],[0,0],color="black")
+    ax.plot([0,0],[-1,1],color="black")
+    ax.plot([0,0],[-1,1],zdir="y",color="black")
     plt.show()
