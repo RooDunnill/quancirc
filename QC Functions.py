@@ -79,8 +79,7 @@ class qc_dat:                    #defines a class to store variables in to recal
     Identity Matrix: This matrix leaves the product invariant after multiplication.
     It is mainly used in this program to increase the dimension
     of other matrices. This is used within the tensor products when
-    a Qubit has no gate action, but the others do.
-"""
+    a Qubit has no gate action, but the others do."""
     Identity_matrix = [1,0,0,1]
     error_class = "the operation is not with the correct class"
     error_mat_dim = "the dimensions of the matrices do not share the same value"
@@ -91,6 +90,15 @@ class qc_dat:                    #defines a class to store variables in to recal
     prob_dist_info = "this is a matrix of the probability of each measurement occuring within a group of qubits"
     error_trace = "the trace does not equal 1 and so the calculation has gone wrong somewhere"
     error_imag_prob = "the probability must be all real values"
+    qubit_info = """The Qubit is the quantum equivalent to the bit. However, due to the nature of 
+        Quantum Mechanics, it can take any value rather than just two. However, by measuring the state
+        in which it is in, you collapse the wavefunction and the Qubit becomes 1 of two values, 1 or 0."""
+    gate_info = """Gates are used to apply an operation to a Qubit. 
+    They are normally situated on a grid of n Qubits.
+    Using tensor products, we can combine all the gates 
+    at one time instance together to create one unitary matrix.
+    Then we can matrix multiply successive gates together to creat one
+    universal matrix that we can apply to the Qubit before measuring"""
     
 
 def trace(matrix):
@@ -138,11 +146,7 @@ class Qubit:
         self.vector = sp.simplify(self.vector/normalise)
 
     def qubit_info(self):      
-        print("""The Qubit is the quantum equivalent to the bit. However, due to the nature of 
-        Quantum Mechanics, it can take any value rather than just two. However, by measuring the state
-        in which it is in, you collapse the wavefunction and the Qubit becomes 1 of two values, 1 or 0.""")
-
-    
+        print(qc_dat.qubit_info)
 
     def density_mat(self):
         new_name =f"Density matrix of qubit {self.name}"
@@ -329,13 +333,7 @@ class Gate:
         
 
     def gate_info(self):
-        print(
-    """Gates are used to apply an operation to a Qubit.
-    They are normally situated on a grid of n Qubits.
-    Using tensor products, we can combine all the gates 
-    at one time instance together to create one unitary matrix.
-    Then we can matrix multiply successive gates together to creat one
-    universal matrix that we can apply to the Qubit before measuring""")
+        print(qc_dat.gate_info)
 class C_Gate(Gate):
     def __init__(self, name, info, gate_action, qubit1, qubit2):
         self.name = name
