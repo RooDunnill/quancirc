@@ -1,4 +1,8 @@
 # QC-Simulator
+TODO: FIX MEASUREMENT FUNCTION (TENSOR PRODUCTS NOT DIRECT SUMS)
+N X N DENSITY MATRIX
+N X N MEASUREMENT OF MULTIPLE QUBITS
+ENTANGLEMENT VARIABLE? AFTER CNOT GATES
 Hi and welcome to my Quantum Computing Simulator! I am currently a masters student studying Theoretical Physics but have a passion for quantum computing and wanted to grasp a more fundamental understandings of quantum circuitry so made this. Also it helped me practice coding. Any feedback would be great! Please find a list of instructions below. P.S. This is still a work in progress
 
 Classes:
