@@ -84,12 +84,13 @@ class qc_dat:                    #defines a class to store variables in to recal
     error_class = "the operation is not with the correct class"
     error_mat_dim = "the dimensions of the matrices do not share the same value"
     error_value = "the value selected is outside the correct range of options"
-    error_qubit_num = "you can't select the same qubit for both inputs of the operation gate and control gate"
-    error_qubit_pos = "one of the selected qubits must be 1 which represents the top left of the matrix rather than qubit 1"
+    error_qubit_num = "you can't select the same qubit for both inputs of the operation gate and control gate."
+    error_qubit_pos = "one of the selected qubits must be 1 which represents the top left of the matrix rather than qubit 1."
     Density_matrix_info = "test"
-    prob_dist_info = "this is a matrix of the probability of each measurement occuring within a group of qubits"
-    error_trace = "the trace does not equal 1 and so the calculation has gone wrong somewhere"
-    error_imag_prob = "the probability must be all real values"
+    prob_dist_info = "this is a matrix of the probability of each measurement occuring within a group of qubits."
+    error_trace = "the trace does not equal 1 and so the calculation has gone wrong somewhere."
+    error_imag_prob = "the probability must be all real values."
+    error_norm = "the sum of these values must equal 1 to preserve probability."
     qubit_info = """The Qubit is the quantum equivalent to the bit. However, due to the nature of 
         Quantum Mechanics, it can take any value rather than just two. However, by measuring the state
         in which it is in, you collapse the wavefunction and the Qubit becomes 1 of two values, 1 or 0."""
@@ -100,6 +101,13 @@ class qc_dat:                    #defines a class to store variables in to recal
     Then we can matrix multiply successive gates together to creat one
     universal matrix that we can apply to the Qubit before measuring"""
     
+class QC_error(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return f"{self.message}"
 
 def trace(matrix):
     if isinstance(matrix, Gate):
@@ -140,6 +148,9 @@ class Qubit:
             return Qubit(new_name, np.array(new_vector))    #returns a new Object with a new name too
         else:
             raise QC_error(qc_dat.error_class)
+
+        
+
 
     def norm(self):                 #dunno why this is here ngl, just one of the first functions i tried
         normalise = sp.sqrt(sum([i*np.conj(i) for i in self.vector]))
@@ -201,9 +212,29 @@ class Qubit:
                     new_mat[i] = self.prob_state(meas_state)
                     norm += self.prob_state(meas_state)      
             if np.isclose(norm, 1.0, atol=1e-5):
-                return Prob_dist(new_name, qc_dat.prob_dist_info, new_mat)
+                return Prob_dist(new_name, qc_dat.prob_dist_info, np.array(new_mat))
             else:
-                print("error")
+                raise QC_error(qc_dat.error_norm)
+
+    def measure(self, final_gate=None):
+        if isinstance(self, Qubit):
+            sequence = np.arange(0,self.dim)
+            if final_gate:
+                if isinstance(final_gate, Gate):
+                    PD = self.prob_dist(final_gate)
+                    measurement = rm.choices(sequence, weights=PD.matrix)
+                else:
+                    raise QC_error(qc_dat.error_class)
+            else:
+                PD = self.prob_dist()
+                measurement = rm.choices(sequence, weights=PD.matrix)
+            print(measurement)
+            measurement = bin(measurement[0])
+            return measurement
+
+    
+
+
 
     def bloch_plot(self):
         global plot_counter, ax
@@ -234,14 +265,6 @@ q1.norm()
 qplus.norm()
 qminus.norm()
 
-class QC_error(Exception):
-    def __init__(self, message):
-        self.message = message
-        super().__init__(self.message)
-
-    def __str__(self):
-        return f"Error: {self.message}"
-
 class Gate:
     def __init__(self, name, info, matrix):
         self.name = name
@@ -271,7 +294,7 @@ class Gate:
             raise QC_error(qc_dat.error_class)
 
     def __mul__(self, other):       #matrix multiplication
-        summ = np.zeros(1,dtype=np.complex128)  #could delete summ and make more elegant
+        _summ = np.zeros(1,dtype=np.complex128)  #could delete summ and make more elegant
         if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
             if self.dim == other.dim:
                 new_info = "This is a matrix multiplication of gates: "f"{self.name}"" and "f"{other.name}"
@@ -280,9 +303,9 @@ class Gate:
                 for i in range(self.dim):
                     for k in range(self.dim):
                         for j in range(self.dim):    #again a mess and done in a different manner to tensor product
-                            summ[0] += (self.matrix[j+self.dim*i]*other.matrix[k+j*self.dim])
-                        new_mat[k+self.dim*i] += summ[0]
-                        summ = np.zeros(1,dtype=np.complex128)
+                            _summ[0] += (self.matrix[j+self.dim*i]*other.matrix[k+j*self.dim])
+                        new_mat[k+self.dim*i] += _summ[0]
+                        _summ = np.zeros(1,dtype=np.complex128)
                 sp.simplify(new_mat)
                 if isinstance(other, Density):
                     new_info = "This is the density matrix of: "f"{self.name}"" and "f"{other.name}"
@@ -297,15 +320,18 @@ class Gate:
                 new_mat = np.zeros(self.dim,dtype=np.complex128)
                 for i in range(self.dim):
                         for j in range(self.dim):
-                            summ[0] += (self.matrix[j+self.dim*i]*other.vector[j])
-                        new_mat[i] += summ[0]
-                        summ = np.zeros(1,dtype=np.complex128)
+                            _summ[0] += (self.matrix[j+self.dim*i]*other.vector[j])
+                        new_mat[i] += _summ[0]
+                        _summ = np.zeros(1,dtype=np.complex128)
                 return Qubit(new_name, np.array(new_mat))
             else:
                 raise QC_error(qc_dat.error_mat_dim)
         else:
             raise QC_error(qc_dat.error_class)
     
+        
+
+
     def __add__(self, other):         #direct sum
         if isinstance(other, Gate):
             new_info = "This is a direct sum of gates: "f"{self.name}"" and "f"{other.name}"
@@ -388,12 +414,28 @@ class Density(Gate):
         self.length = len(self.matrix)
         self.dim = int(sp.sqrt(self.length))
 
+    def __str__(self):
+        return f"{self.name}\n{self.matrix}"
+    
+    def __and__(self, other):
+        new_name = f"{self.name} + {other.name}"
+        new_mat = np.zeros(self.length,dtype=np.complex128)
+        if isinstance(self, Density) and isinstance(other, Density):
+            for i in range(self.length):
+                new_mat[i] = self.matrix[i] + other.matrix[i]
+            return Density(new_name, qc_dat.Density_matrix_info, np.array(new_mat))
+        else:
+            raise QC_error(qc_dat.error_class)
+
 class Prob_dist(Gate):
     def __init__(self, name, info, matrix):
         self.name = name
         self.info = info
         self.matrix = matrix
         self.dim = len(self.matrix)
+    
+    def __str__(self):
+        return f"{self.name}\n{self.matrix}"
 
         
 
@@ -407,8 +449,10 @@ class print_array:    #made to try to make matrices look prettier
         elif isinstance(array, Gate):           #so janky
             np.set_printoptions(precision=prec,linewidth=(3+2*(3+prec))*array.dim,suppress=True,floatmode="fixed")
             print(array)
+        elif isinstance(array, Prob_dist):
+            np.set_printoptions(precision=prec,linewidth=20,suppress=True,floatmode="fixed")
         else:
-            raise QC_error(qc_dat.error_class)
+            print(array)
 
 
 X_Gate = Gate("X", qc_dat.X_Gate_info, qc_dat.X_matrix)
@@ -420,28 +464,25 @@ U_Gate_X = U_Gate("Universal X", qc_dat.U_Gate_info, np.pi, 0, np.pi)
 U_Gate_H = U_Gate("Universal H", qc_dat.U_Gate_info, np.pi/2, 0, np.pi)
 CNot_flip = C_Gate("CNot", qc_dat.C_Not_matrix, X_Gate, 2, 1)
 CNot = C_Gate("CNot", qc_dat.C_Not_matrix, X_Gate, 1, 2)
-def Test_Alg(Qubit):         #make sure to mat mult the correct order
+def alg_template(Qubit):         #make sure to mat mult the correct order
     gate1 = X_Gate @ CNot
-    gate2 = Hadamard @ Hadamard @ X_Gate
-    gate3 = CNot @ X_Gate
+    gate2 = Z_Gate @ X_Gate @ X_Gate
+    gate3 = Hadamard @ Hadamard @ X_Gate
     gate4 = CNot @ Hadamard
-    alg = gate4 * gate3 * gate2 * gate1
-    result = alg * Qubit
-    return result
-test= q0.density_mat()
-test2 = Hadamard * test
-meas_state = q0 @ q0 @ q1 @ q1
-qub = q1 @ qminus @ q0 @ qplus
-gate_1 = X_Gate @ CNot @ Z_Gate
-gate_2 = Y_Gate @ Z_Gate @ Hadamard @ Hadamard
-gate_final = gate_2 * gate_1
-print_array(gate_final)
-print(qub.prob_state(meas_state, gate_final))
-print(qub.prob_dist(gate_final))
-print(qub.prob_dist())
-print(qub.prob_state(meas_state))
-q1.bloch_plot()
+    gate5 = CNot @ Hadamard
+    alg = gate5 * gate4 * gate3 * gate2 * gate1
+    _pd_result = Qubit.prob_dist(alg)
+    result = Qubit.measure(alg)
+    print_array(result)
+    print_array(_pd_result)
+q0_den = q0.density_mat()
+q1_den = q1.density_mat()
+print_array(q0_den)
+print_array(q1_den)
+print_array(q1_den & q0_den)
 
 
 
+qub = q0 @ q0 @ q0
+#alg_template(qub)
 prog_end()

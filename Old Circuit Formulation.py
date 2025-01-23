@@ -33,3 +33,13 @@ class Circuit:
 oneqcircuit_mat_array = [X_Gate.matrix,Hadamard.matrix,X_Gate.matrix]
 oneqcircuit = Circuit("1 Qubit Circuit", oneqcircuit_mat_array)
 print(oneqcircuit.gate_mult())
+
+def __and__(self, other):
+        new_name = "f{self.name} + {other.name}"
+        new_vector = np.zeros(self.dim,dtype=np.complex128)
+        if isinstance(self, De) and isinstance(other, Qubit):
+            for i in range(self.dim):
+                new_vector[i] = self.vector[i] + other.vector[i]
+            return Qubit(new_name, np.array(new_vector))
+        else:
+            raise QC_error(qc_dat.error_class)

@@ -2,7 +2,6 @@
 TODO: FIX MEASUREMENT FUNCTION, (i believe it is fixed?)
 MIXED STATE DENSITY MATRIX (NOT ENOUGH KNOWLEDGE YET)
 ENTANGLEMENT VARIABLE? AFTER CNOT GATES
-MEASUREMENT FUNCTION
 A CIRCUIT COMPILER OF SOME SORT
 Hi and welcome to my Quantum Computing Simulator! I am currently a masters student studying Theoretical Physics but have a passion for quantum computing and wanted to grasp a more fundamental understandings of quantum circuitry so made this. Also it helped me practice coding. Any feedback would be great! Please find a list of instructions below. P.S. This is still a work in progress
 
@@ -45,4 +44,5 @@ QC_error: Used to make custom error messages
 qc_dat: Used to store lots of strings and pre-existing matrix values.
 
 
-print_array
+
+Credits
