@@ -62,7 +62,14 @@ class Gate_data:                    #defines a class to store variables in to re
     
 
 
-
+def trace(matrix):
+    if isinstance(matrix, Gate):
+        tr = 0
+        for i in range(matrix.dim-1):
+            tr += matrix.matrix[i+i*matrix.dim]
+        return tr
+    else:
+        print(Gate_data.error_class)
 
 class Qubit:                        
     def __init__(self, name, vector):
@@ -106,16 +113,15 @@ class Qubit:
                 new_mat[j+i*self.dim] += qubit_conj[i]*self.vector[j]
         return Density(new_name, Gate_data.Density_matrix_info, new_mat)
 
-    def measure(self, qubit):  #this is just flat out wrong atm
-        if qubit <= self.dim:    
-            qubit_choice = [0,1]   #this array is for the random.choice to pick an outcome
-            a = np.complex128(self.vector[2*qubit-2]*np.conj(self.vector[2*qubit-2]))
-            b = np.complex128(self.vector[2*qubit-1]*np.conj(self.vector[2*qubit-1]))
-            prob_mat = np.array([a,b],dtype=np.complex128) #couldnt put straight into matrix as 
-            measurement = rm.choices(qubit_choice,weights = prob_mat)     #returned an error
-            return measurement
+    def prob_state(self, state, final_gate):  #this is just flat out wrong atm p(i) = Tr[Pi rho Pi+]
+        if isinstance(self and state, Qubit)  and isinstance(final_gate, Gate):
+            Pi = state.density_mat()
+            den = self.density_mat()
+            rho = final_gate * den
+            probability = trace(Pi * rho)
+            return probability
         else:
-            print(Gate_data.error_value)
+            Print(Gate_data.error_class)
 
     def bloch_plot(self, qubit):
         global plot_counter, ax
@@ -190,6 +196,9 @@ class Gate:
                         new_mat[k+self.dim*i] += summ[0]
                         summ = np.zeros(1,dtype=np.complex128)
                 sp.simplify(new_mat)
+                if isinstance(other, Density):
+                    new_info = "This is the density matrix of: "f"{self.name}"" and "f"{other.name}"
+                    return Density(new_name, new_info, new_mat)
                 return Gate(new_name, new_info, np.array(new_mat))
             else:
                 print(Gate_data.error_mat_dim)
@@ -297,6 +306,9 @@ class Density(Gate):
         self.dim = int(sp.sqrt(self.length))
 
     
+        
+
+    
 class print_array:    #made to try to make matrices look prettier
     def __init__(self, array):         #probs could have used sp.pretty or whatever but didnt wanna confuse
         self.array = array             #sp and np matrices and get confused
@@ -328,8 +340,16 @@ def Test_Alg(Qubit):         #make sure to mat mult the correct order
     alg = gate4 * gate3 * gate2 * gate1
     result = alg * Qubit
     return result
-q1.bloch_plot(1)
-qplus.bloch_plot(1)
+test= q0.density_mat()
+test2 = Hadamard * test
+
+meas_state = q1 @ q0
+qub = qplus @ qplus
+gate_final = Z_Gate @ X_Gate
+print_array(gate_final)
+print(qub.prob_state(meas_state, gate_final))
+
+
 timer.timer(0)
 if plot_counter > 0:
     u, v = np.mgrid[0:2*np.pi:50j, 0:np.pi:50j]
