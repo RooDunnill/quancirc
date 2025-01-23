@@ -4,10 +4,39 @@ import random as rm                                             #used for measur
 import time
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
+          #wanted to be able to turn it off after testing is done but not remove from code fully
+def prog_init():
+    global timer_switch, plot_counter
+    plot_counter = 0
+    timer_switch = 1 
+    sp.init_printing(use_unicode=True)
+prog_init()
+def prog_end():
+    timer.timer(0)
+    if plot_counter > 0:
+        u, v = np.mgrid[0:2*np.pi:50j, 0:np.pi:50j]
+        x_sp = np.cos(u)*np.sin(v)
+        y_sp = np.sin(u)*np.sin(v)
+        z_sp = np.cos(v)
+        ax.set_xlabel("X_Axis")
+        ax.set_ylabel("Y Axis")
+        ax.set_zlabel("Z Axis")
+        ax.set_title("Bloch Sphere")
+        ax.plot_surface(x_sp, y_sp, z_sp, color="g", alpha=0.3)
+        ax.legend()
+        ax.axes.grid(axis="x")
+        ax.text(0,0,1,"|0>")
+        ax.text(0,0,-1,"|1>")
+        ax.text(1,0,0,"|+>")
+        ax.text(-1,0,0,"|->")
+        ax.text(0,1,0,"|i>")
+        ax.text(0,-1,0,"|-i>")
+        ax.plot([-1,1],[0,0],color="black")
+        ax.plot([0,0],[-1,1],color="black")
+        ax.plot([0,0],[-1,1],zdir="y",color="black")
+        plt.show()
+    
 
-sp.init_printing(use_unicode=True)                              #pretty much useless i think
-plot_counter = 0
-timer_switch = 1            #wanted to be able to turn it off after testing is done but not remove from code fully
 class timer:
     def __init__(self, state):
         self.state = state
@@ -172,24 +201,22 @@ class Qubit:
             else:
                 print("error")
 
-    def bloch_plot(self, qubit):
+    def bloch_plot(self):
         global plot_counter, ax
-        if qubit <= self.dim:
-            vals = np.zeros(2,dtype=np.complex128)
-            vals[0] = self.vector[2*qubit-2]
-            vals[1] = self.vector[2*qubit-1]
-            plotted_qubit = Qubit("", vals)
-            print(vals)
-            den_mat = plotted_qubit.density_mat()
-            x = 2*np.real(den_mat.matrix[1])
-            y = 2*np.imag(den_mat.matrix[2])
-            z = den_mat.matrix[0] - den_mat.matrix[3]
-            if plot_counter == 0:
-                ax = plt.axes(projection="3d")
-            ax.quiver(0,0,0,x,y,z)
-            plot_counter += 1
-        else:
-            raise QC_error(qc_dat.error_value)
+        vals = np.zeros(2,dtype=np.complex128)
+        vals[0] = self.vector[0]
+        vals[1] = self.vector[1]
+        plotted_qubit = Qubit("", vals)
+        print(vals)
+        den_mat = plotted_qubit.density_mat()
+        x = 2*np.real(den_mat.matrix[1])
+        y = 2*np.imag(den_mat.matrix[2])
+        z = den_mat.matrix[0] - den_mat.matrix[3]
+        if plot_counter == 0:
+            ax = plt.axes(projection="3d")
+        ax.quiver(0,0,0,x,y,z)
+        plot_counter += 1
+
 q0_matrix = [1,0]
 q1_matrix = [0,1]
 qplus_matrix = [1,1]
@@ -415,29 +442,8 @@ print(qub.prob_state(meas_state, gate_final))
 print(qub.prob_dist(gate_final))
 print(qub.prob_dist())
 print(qub.prob_state(meas_state))
+q1.bloch_plot()
 
 
 
-timer.timer(0)
-if plot_counter > 0:
-    u, v = np.mgrid[0:2*np.pi:50j, 0:np.pi:50j]
-    x_sp = np.cos(u)*np.sin(v)
-    y_sp = np.sin(u)*np.sin(v)
-    z_sp = np.cos(v)
-    ax.set_xlabel("X_Axis")
-    ax.set_ylabel("Y Axis")
-    ax.set_zlabel("Z Axis")
-    ax.set_title("Bloch Sphere")
-    ax.plot_surface(x_sp, y_sp, z_sp, color="g", alpha=0.3)
-    ax.legend()
-    ax.axes.grid(axis="x")
-    ax.text(0,0,1,"|0>")
-    ax.text(0,0,-1,"|1>")
-    ax.text(1,0,0,"|+>")
-    ax.text(-1,0,0,"|->")
-    ax.text(0,1,0,"|i>")
-    ax.text(0,-1,0,"|-i>")
-    ax.plot([-1,1],[0,0],color="black")
-    ax.plot([0,0],[-1,1],color="black")
-    ax.plot([0,0],[-1,1],zdir="y",color="black")
-    plt.show()
+prog_end()
