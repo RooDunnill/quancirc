@@ -59,7 +59,7 @@ class qc_dat:                    #defines a class to store variables in to recal
     error_qubit_num = "you can't select the same qubit for both inputs of the operation gate and control gate"
     error_qubit_pos = "one of the selected qubits must be 1 which represents the top left of the matrix rather than qubit 1"
     Density_matrix_info = "test"
-    prob_dist_info = "test"
+    prob_dist_info = "this is a matrix of the probability of each measurement occuring within a group of qubits"
     error_trace = "the trace does not equal 1 and so the calculation has gone wrong somewhere"
     error_imag_prob = "the probability must be all real values"
     
@@ -124,11 +124,17 @@ class Qubit:
                 new_mat[j+i*self.dim] += qubit_conj[i]*self.vector[j]
         return Density(new_name, qc_dat.Density_matrix_info, new_mat)
 
-    def prob_state(self, meas_state, final_gate):  #this is just flat out wrong atm p(i) = Tr[Pi rho Pi+]
+    def prob_state(self, meas_state, final_gate=None):  #this is just flat out wrong atm p(i) = Tr[Pi rho Pi+]
         global is_real
-        if isinstance(self and meas_state, Qubit)  and isinstance(final_gate, Gate):
+        if isinstance(self, Qubit) and isinstance(meas_state, Qubit):
             projector = meas_state.density_mat()
-            final_state = final_gate * self
+            if final_gate:
+                if isinstance(final_gate, Gate):
+                    final_state = final_gate * self
+                else:
+                    raise QC_error(qc_dat.error_class)
+            else:
+                final_state = self
             den = final_state.density_mat()
             probability = trace(projector * den)
             is_real = np.isreal(probability)
@@ -139,22 +145,29 @@ class Qubit:
                     return probability
                 else:
                     raise QC_error(qc_dat.error_imag_prob)
-                
         else:
             raise QC_error(qc_dat.error_class)
 
-    def prob_dist(self, final_gate):
-        if isinstance(self, Qubit) and isinstance(final_gate, Gate):
+    def prob_dist(self, final_gate=None):
+        if isinstance(self, Qubit):
             new_mat = np.zeros(self.dim,dtype=np.float64)
-            new_name = f"PD for ({self.name})"
             norm = 0
             for i in range(self.dim):
                 meas_state_vector = np.zeros(self.dim,dtype=np.complex128)
                 meas_state_vector[i] += 1
                 meas_state = Qubit("f|{i}",meas_state_vector)
-                new_mat[i] = self.prob_state(meas_state, final_gate)
-                norm += self.prob_state(meas_state, final_gate)
-            if norm == 1:
+                if final_gate:
+                    if isinstance(final_gate, Gate):
+                        new_name = f"PD for ({self.name}) applied to ({final_gate.name})"
+                        new_mat[i] = self.prob_state(meas_state, final_gate)
+                        norm += self.prob_state(meas_state, final_gate)
+                    else:
+                        raise QC_error(qc_dat.error_class)
+                else:
+                    new_name = f"PD for ({self.name})"
+                    new_mat[i] = self.prob_state(meas_state)
+                    norm += self.prob_state(meas_state)      
+            if np.isclose(norm, 1.0, atol=1e-5):
                 return Prob_dist(new_name, qc_dat.prob_dist_info, new_mat)
             else:
                 print("error")
@@ -400,6 +413,8 @@ gate_final = gate_2 * gate_1
 print_array(gate_final)
 print(qub.prob_state(meas_state, gate_final))
 print(qub.prob_dist(gate_final))
+print(qub.prob_dist())
+print(qub.prob_state(meas_state))
 
 
 
