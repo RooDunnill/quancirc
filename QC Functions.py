@@ -62,15 +62,23 @@ class Gate_data:                    #defines a class to store variables in to re
     error_trace = "the trace does not equal 1 and so the calculation has gone wrong somewhere"
     
 
-
 def trace(matrix):
     if isinstance(matrix, Gate):
         tr = 0
-        for i in range(matrix.dim-1):
+        for i in range(matrix.dim):
             tr += matrix.matrix[i+i*matrix.dim]
         return tr
     else:
         print(Gate_data.error_class)
+
+def is_real(obj):
+    if isinstance(obj, complex):
+        return obj.imag == 0
+    elif isinstance(obj, (int, float)):
+        return True
+    else:
+        return False
+
 
 class Qubit:                        
     def __init__(self, name, vector):
@@ -115,6 +123,7 @@ class Qubit:
         return Density(new_name, Gate_data.Density_matrix_info, new_mat)
 
     def prob_state(self, meas_state, final_gate):  #this is just flat out wrong atm p(i) = Tr[Pi rho Pi+]
+        global is_real
         if isinstance(self and meas_state, Qubit)  and isinstance(final_gate, Gate):
             projector = meas_state.density_mat()
             final_state = final_gate * self
@@ -124,7 +133,11 @@ class Qubit:
             if is_real is True:
                 return probability
             else:
-                print("test imag error")
+                if np.imag(probability) < 1e-5:
+                    return probability
+                else:
+                    print("test imag error")
+                
         else:
             print(Gate_data.error_class)
 
@@ -214,7 +227,8 @@ class Gate:
                 if isinstance(other, Density):
                     new_info = "This is the density matrix of: "f"{self.name}"" and "f"{other.name}"
                     return Density(new_name, new_info, new_mat)
-                return Gate(new_name, new_info, np.array(new_mat))
+                else:
+                    return Gate(new_name, new_info, np.array(new_mat))
             else:
                 print(Gate_data.error_mat_dim)
         elif isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
@@ -332,7 +346,7 @@ class print_array:    #made to try to make matrices look prettier
             np.set_printoptions(precision=prec,linewidth=20,suppress=True,floatmode="fixed")
             print(array)
         elif isinstance(array, Gate):           #so janky
-            np.set_printoptions(precision=prec,linewidth=(2+2*(3+prec))*array.dim,suppress=True,floatmode="fixed")
+            np.set_printoptions(precision=prec,linewidth=(3+2*(3+prec))*array.dim,suppress=True,floatmode="fixed")
             print(array)
         else:
             print(Gate_data.error_class)
@@ -358,14 +372,16 @@ def Test_Alg(Qubit):         #make sure to mat mult the correct order
 test= q0.density_mat()
 test2 = Hadamard * test
 
-meas_state = q0 @ q0 @ q0
-qub = q1 @ q1 @ q0
-gate_1 = X_Gate @ X_Gate @ X_Gate
-gate_2 = Hadamard @ Y_Gate @ Z_Gate
+meas_state = q0 @ q0
+qub = q1 @ q1
+gate_1 = X_Gate @ X_Gate
+gate_2 = Hadamard @ Y_Gate
 gate_final = gate_2 * gate_1
 print_array(gate_final)
 print(qub.prob_state(meas_state, gate_final))
 print(qub.prob_dist(gate_final))
+
+
 
 timer.timer(0)
 if plot_counter > 0:
