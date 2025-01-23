@@ -135,7 +135,6 @@ class Qubit:
             plot_counter += 1
         else:
             print(Gate_data.error_value)
-
 q0_matrix = [1,0]
 q1_matrix = [0,1]
 qplus_matrix = [1,1]

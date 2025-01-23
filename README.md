@@ -1,14 +1,19 @@
 # QC-Simulator
-This is my first attempt at making a Quantum computer simulator
-So far I have commands that can tensor product, matrix multiply and direct sum and have added most needed gates
-My next few goals are to add a universal gate U, add toffoli gates, maybe implement a time evolution.
-Currently, to use you must combine the gates and vectors together.
-Key:
-@: tensor product
-X: matrix multiply
-+: direct sum
-H: Hadamard
-X: X gate
-Z: Z gate
-C_Not: C_Not gate
+Hi and welcome to my Quantum Computing Simulator! I am currently a masters student studying Theoretical Physics but have a passion for quantum computing and wanted to grasp a more fundamental understandings of quantum circuitry so made this. Also it helped me practice coding. Any feedback would be great! Please find a list of instructions below. P.S. This is still a work in progress
 
+Classes:
+timer - used mostly as debugging to see the time elapsed to improve performance
+gate_data - used to store mostly pre-existing matrix values and long strings of information
+Qubits - i have made 4 pre-existing qubits q0,q1,q+,q-
+        Functions:
+            Tensor Product:used with the @ symbol between two qubit types
+            Normaliser: .norm() to normalise a qubit, mostly used for making custom qubits
+            Qubit Info: .qubit() just background info
+            Measure: .measure(qubit_number) measures a specific qubit value
+            Density Matrix: .density_mat() computes the density matrix for a given qubit TODO: make for n qubits or superposition of qubits
+            Bloch Sphere Plot: bloch_plot() can be used to plot as many qubits on the bloch sphere as desired TODO: again make superposition states
+            
+Gates
+U_Gates
+C_Gates
+print_array
