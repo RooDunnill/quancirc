@@ -59,6 +59,7 @@ class Gate_data:                    #defines a class to store variables in to re
     error_qubit_num = "you can't select the same qubit for both inputs of the operation gate and control gate"
     error_qubit_pos = "one of the selected qubits must be 1 which represents the top left of the matrix rather than qubit 1"
     Density_matrix_info = "test"
+    error_trace = "the trace does not equal 1 and so the calculation has gone wrong somewhere"
     
 
 
@@ -113,15 +114,29 @@ class Qubit:
                 new_mat[j+i*self.dim] += qubit_conj[i]*self.vector[j]
         return Density(new_name, Gate_data.Density_matrix_info, new_mat)
 
-    def prob_state(self, state, final_gate):  #this is just flat out wrong atm p(i) = Tr[Pi rho Pi+]
-        if isinstance(self and state, Qubit)  and isinstance(final_gate, Gate):
-            Pi = state.density_mat()
-            den = self.density_mat()
-            rho = final_gate * den
-            probability = trace(Pi * rho)
-            return probability
+    def prob_state(self, meas_state, final_gate):  #this is just flat out wrong atm p(i) = Tr[Pi rho Pi+]
+        if isinstance(self and meas_state, Qubit)  and isinstance(final_gate, Gate):
+            projector = meas_state.density_mat()
+            final_state = final_gate * self
+            den = final_state.density_mat()
+            probability = trace(projector * den)
+            is_real = np.isreal(probability)
+            if is_real is True:
+                return probability
+            else:
+                print("test imag error")
         else:
-            Print(Gate_data.error_class)
+            print(Gate_data.error_class)
+
+    def prob_dist(self, final_gate):
+        if isinstance(self, Qubit) and isinstance(final_gate, Gate):
+            new_mat = np.zeros(self.dim,dtype=np.float64)
+            for i in range(self.dim):
+                meas_state_vector = np.zeros(self.dim,dtype=np.complex128)
+                meas_state_vector[i] += 1
+                meas_state = Qubit("f|{i}",meas_state_vector)
+                new_mat[i] = self.prob_state(meas_state, final_gate)
+            return new_mat
 
     def bloch_plot(self, qubit):
         global plot_counter, ax
@@ -317,7 +332,7 @@ class print_array:    #made to try to make matrices look prettier
             np.set_printoptions(precision=prec,linewidth=20,suppress=True,floatmode="fixed")
             print(array)
         elif isinstance(array, Gate):           #so janky
-            np.set_printoptions(precision=prec,linewidth=(3+2*(3+prec))*array.dim,suppress=True,floatmode="fixed")
+            np.set_printoptions(precision=prec,linewidth=(2+2*(3+prec))*array.dim,suppress=True,floatmode="fixed")
             print(array)
         else:
             print(Gate_data.error_class)
@@ -343,12 +358,14 @@ def Test_Alg(Qubit):         #make sure to mat mult the correct order
 test= q0.density_mat()
 test2 = Hadamard * test
 
-meas_state = q1 @ q0
-qub = qplus @ qplus
-gate_final = Z_Gate @ X_Gate
+meas_state = q0 @ q0 @ q0
+qub = q1 @ q1 @ q0
+gate_1 = X_Gate @ X_Gate @ X_Gate
+gate_2 = Hadamard @ Y_Gate @ Z_Gate
+gate_final = gate_2 * gate_1
 print_array(gate_final)
 print(qub.prob_state(meas_state, gate_final))
-
+print(qub.prob_dist(gate_final))
 
 timer.timer(0)
 if plot_counter > 0:
