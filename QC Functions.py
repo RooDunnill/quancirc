@@ -28,7 +28,7 @@ class timer:
             pass
 timer.timer(1)
 
-class Gate_data:                    #defines a class to store variables in to recall from so that its all
+class qc_dat:                    #defines a class to store variables in to recall from so that its all
     C_Not_info = """This gate is used to change the behaviour of one qubit based on another. 
     This sepecific function is mostly obselete now, it is preferred to use the C Gate class instead"""       #C_Not is mostly obsolete due to new C Gate class       #in one neat area
     C_Not_matrix = [1,0,0,0,0,1,0,0,0,0,0,1,0,0,1,0]#2 Qubit CNot gate in one configuration, need to add more
@@ -71,7 +71,7 @@ def trace(matrix):
             tr += matrix.matrix[i+i*matrix.dim]
         return tr
     else:
-        raise QC_error(Gate_data.error_class)
+        raise QC_error(qc_dat.error_class)
 
 def is_real(obj):
     if isinstance(obj, complex):
@@ -102,7 +102,7 @@ class Qubit:
             sp.simplify(new_vector)                           #a new matrix in order
             return Qubit(new_name, np.array(new_vector))    #returns a new Object with a new name too
         else:
-            raise QC_error(Gate_data.error_class)
+            raise QC_error(qc_dat.error_class)
 
     def norm(self):                 #dunno why this is here ngl, just one of the first functions i tried
         normalise = sp.sqrt(sum([i*np.conj(i) for i in self.vector]))
@@ -122,7 +122,7 @@ class Qubit:
         for i in range(self.dim):
             for j in range(self.dim):
                 new_mat[j+i*self.dim] += qubit_conj[i]*self.vector[j]
-        return Density(new_name, Gate_data.Density_matrix_info, new_mat)
+        return Density(new_name, qc_dat.Density_matrix_info, new_mat)
 
     def prob_state(self, meas_state, final_gate):  #this is just flat out wrong atm p(i) = Tr[Pi rho Pi+]
         global is_real
@@ -138,10 +138,10 @@ class Qubit:
                 if np.imag(probability) < 1e-5:
                     return probability
                 else:
-                    raise QC_error(Gate_data.error_imag_prob)
+                    raise QC_error(qc_dat.error_imag_prob)
                 
         else:
-            raise QC_error(Gate_data.error_class)
+            raise QC_error(qc_dat.error_class)
 
     def prob_dist(self, final_gate):
         if isinstance(self, Qubit) and isinstance(final_gate, Gate):
@@ -155,7 +155,7 @@ class Qubit:
                 new_mat[i] = self.prob_state(meas_state, final_gate)
                 norm += self.prob_state(meas_state, final_gate)
             if norm == 1:
-                return Prob_dist(new_name, Gate_data.prob_dist_info, new_mat)
+                return Prob_dist(new_name, qc_dat.prob_dist_info, new_mat)
             else:
                 print("error")
 
@@ -176,7 +176,7 @@ class Qubit:
             ax.quiver(0,0,0,x,y,z)
             plot_counter += 1
         else:
-            raise QC_error(Gate_data.error_value)
+            raise QC_error(qc_dat.error_value)
 q0_matrix = [1,0]
 q1_matrix = [0,1]
 qplus_matrix = [1,1]
@@ -224,7 +224,7 @@ class Gate:
             sp.simplify(new_mat)                     #will try to impliment a XOR operation for this which should be a lot faster
             return Gate(new_name, new_info, np.array(new_mat))
         else:
-            raise QC_error(Gate_data.error_class)
+            raise QC_error(qc_dat.error_class)
 
     def __mul__(self, other):       #matrix multiplication
         summ = np.zeros(1,dtype=np.complex128)  #could delete summ and make more elegant
@@ -246,7 +246,7 @@ class Gate:
                 else:
                     return Gate(new_name, new_info, np.array(new_mat))
             else:
-                raise QC_error(Gate_data.error_mat_dim)
+                raise QC_error(qc_dat.error_mat_dim)
         elif isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
             if self.dim == other.dim:
                 new_name = f"[{self.name}] {other.name}"
@@ -258,9 +258,9 @@ class Gate:
                         summ = np.zeros(1,dtype=np.complex128)
                 return Qubit(new_name, np.array(new_mat))
             else:
-                raise QC_error(Gate_data.error_mat_dim)
+                raise QC_error(qc_dat.error_mat_dim)
         else:
-            raise QC_error(Gate_data.error_class)
+            raise QC_error(qc_dat.error_class)
     
     def __add__(self, other):         #direct sum
         if isinstance(other, Gate):
@@ -277,14 +277,14 @@ class Gate:
                     new_mat[self.dim+j+self.dim*new_dim+new_dim*i] += other.matrix[j+other.dim*i]
             return Gate(new_name, new_info, np.array(new_mat))
         else:
-            raise QC_error(Gate_data.error_class)
+            raise QC_error(qc_dat.error_class)
     
     def __iadd__(self, other):
         if isinstance(other, Gate):
             self = self + other
             return self
         else:
-            raise QC_error(Gate_data.error_class)
+            raise QC_error(qc_dat.error_class)
         
         
 
@@ -320,9 +320,9 @@ class C_Gate(Gate):
                     i += 1
                 new_mat = Id
             else:
-                raise QC_error(Gate_data.error_qubit_num)
+                raise QC_error(qc_dat.error_qubit_num)
         else:
-            raise QC_error(Gate_data.error_qubit_pos)
+            raise QC_error(qc_dat.error_qubit_pos)
         self.matrix = new_mat.matrix
         self.dim = int(abs(qubit_dist)*Identity.dim+gate_action.dim)
         self.length = self.dim*self.dim
@@ -370,18 +370,18 @@ class print_array:    #made to try to make matrices look prettier
             np.set_printoptions(precision=prec,linewidth=(3+2*(3+prec))*array.dim,suppress=True,floatmode="fixed")
             print(array)
         else:
-            raise QC_error(Gate_data.error_class)
+            raise QC_error(qc_dat.error_class)
 
 
-X_Gate = Gate("X", Gate_data.X_Gate_info, Gate_data.X_matrix)
-Y_Gate = Gate("Y",Gate_data.Y_Gate_info, Gate_data.Y_matrix)
-Z_Gate = Gate("Z",Gate_data.Z_Gate_info, Gate_data.Z_matrix)
-Identity = Gate("I",Gate_data.Identity_info, Gate_data.Identity_matrix)
-Hadamard = Gate("H",Gate_data.Hadamard_info, Gate_data.Hadamard_matrix)
-U_Gate_X = U_Gate("Universal X", Gate_data.U_Gate_info, np.pi, 0, np.pi)
-U_Gate_H = U_Gate("Universal H", Gate_data.U_Gate_info, np.pi/2, 0, np.pi)
-CNot_flip = C_Gate("CNot", Gate_data.C_Not_matrix, X_Gate, 2, 1)
-CNot = C_Gate("CNot", Gate_data.C_Not_matrix, X_Gate, 1, 2)
+X_Gate = Gate("X", qc_dat.X_Gate_info, qc_dat.X_matrix)
+Y_Gate = Gate("Y",qc_dat.Y_Gate_info, qc_dat.Y_matrix)
+Z_Gate = Gate("Z",qc_dat.Z_Gate_info, qc_dat.Z_matrix)
+Identity = Gate("I",qc_dat.Identity_info, qc_dat.Identity_matrix)
+Hadamard = Gate("H",qc_dat.Hadamard_info, qc_dat.Hadamard_matrix)
+U_Gate_X = U_Gate("Universal X", qc_dat.U_Gate_info, np.pi, 0, np.pi)
+U_Gate_H = U_Gate("Universal H", qc_dat.U_Gate_info, np.pi/2, 0, np.pi)
+CNot_flip = C_Gate("CNot", qc_dat.C_Not_matrix, X_Gate, 2, 1)
+CNot = C_Gate("CNot", qc_dat.C_Not_matrix, X_Gate, 1, 2)
 def Test_Alg(Qubit):         #make sure to mat mult the correct order
     gate1 = X_Gate @ CNot
     gate2 = Hadamard @ Hadamard @ X_Gate
