@@ -1,7 +1,16 @@
 import numpy as np                                                            #mostly used to make 1D arrays
 import random as rm                                             #used for measuring
 import time
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt 
+from rich import print
+from rich.console import Console 
+from rich.theme import Theme
+custom_theme = Theme({"info":"grey78",
+                      "error":"red",
+                      "measure":"green1",
+                      "matrix":"green3"})
+console = Console(theme=custom_theme)
+
 start = time.time()
           #wanted to be able to turn it off after testing is done but not remove from code fully
 
@@ -409,7 +418,7 @@ class Prob_dist(Gate):
 
         
 
-class print_array:    #made to try to make matrices look prettier
+class print_array(print):    #made to try to make matrices look prettier
     def __init__(self, array):         #probs could have used sp.pretty or whatever but didnt wanna confuse
         self.array = array             #sp and np matrices and get confused
         prec = 3
@@ -439,6 +448,7 @@ U_Gate_H = U_Gate("Universal H", qc_dat.U_Gate_info, np.pi/2, 0, np.pi)
 CNot_flip = C_Gate("CNot", qc_dat.C_Not_matrix, X_Gate, 2, 1)
 CNot = C_Gate("CNot", qc_dat.C_Not_matrix, X_Gate, 1, 2)
 def alg_template(Qubit):         #make sure to mat mult the correct order
+    console.rule(f"Algorithm acting on {Qubit.name} state", style="magenta")
     gate1 = X_Gate @ CNot
     gate2 = Z_Gate @ X_Gate @ X_Gate
     gate3 = Hadamard @ Hadamard @ X_Gate
@@ -463,6 +473,4 @@ Hadamard + Hadamard
 CNot * (Hadamard @ Hadamard)
 qub = q0 @ q0 @ q0
 alg_template(qub)
-q0.bloch_plot()
-q1.bloch_plot()
 prog_end()
