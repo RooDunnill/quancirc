@@ -1,8 +1,12 @@
 # QC-Simulator
 TODO: FIX MEASUREMENT FUNCTION, (i believe it is fixed?)
-MIXED STATE DENSITY MATRIX (NOT ENOUGH KNOWLEDGE YET)
+MIXED STATE DENSITY MATRIX (NOT ENOUGH KNOWLEDGE YET) kinda done some
 ENTANGLEMENT VARIABLE? AFTER CNOT GATES
 A CIRCUIT COMPILER OF SOME SORT
+MAKE A MEASUREMENT FUNCTION THAT CAN DEAL WITH MAXIMALLY MIXED QUBITS
+MAKE A UNIVERSAL QUBIT OR QUBIT GENERATOR SO I DONT HAVE TO KEEP TENSOR PRODUCTING THEM
+UPDATE THE BLOCH PLOTTER TO HAVE MORE FUNCTIONALITY AND ALSO BE FAST AND EFFICIENT
+ADD AN INTERACTIVE UI OF SOME KIND AND A WAY TO STORE VALUES IN A SEPERATE FILE. IN INPUT STYLE UI WOULD WORK WELL AND MAYBE HAVE IT WHERE IT CAN OVERWRITE THE TEXT OR SOMETHING
 Hi and welcome to my Quantum Computing Simulator! I am currently a masters student studying Theoretical Physics but have a passion for quantum computing and wanted to grasp a more fundamental understandings of quantum circuitry so made this. Also it helped me practice coding. Any feedback would be great! Please find a list of instructions below. P.S. This is still a work in progress
 
 Classes:

@@ -1,61 +1,17 @@
 import numpy as np                                                            #mostly used to make 1D arrays
-import sympy as sp                                              #mostly used for sqrt function, and simplify
 import random as rm                                             #used for measuring
 import time
 import matplotlib.pyplot as plt
-from mpl_toolkits import mplot3d
+start = time.time()
           #wanted to be able to turn it off after testing is done but not remove from code fully
-def prog_init():
-    global timer_switch, plot_counter
-    plot_counter = 0
-    timer_switch = 1 
-    sp.init_printing(use_unicode=True)
-prog_init()
+
 def prog_end():
-    timer.timer(0)
-    if plot_counter > 0:
-        u, v = np.mgrid[0:2*np.pi:50j, 0:np.pi:50j]
-        x_sp = np.cos(u)*np.sin(v)
-        y_sp = np.sin(u)*np.sin(v)
-        z_sp = np.cos(v)
-        ax.set_xlabel("X_Axis")
-        ax.set_ylabel("Y Axis")
-        ax.set_zlabel("Z Axis")
-        ax.set_title("Bloch Sphere")
-        ax.plot_surface(x_sp, y_sp, z_sp, color="g", alpha=0.3)
-        ax.legend()
-        ax.axes.grid(axis="x")
-        ax.text(0,0,1,"|0>")
-        ax.text(0,0,-1,"|1>")
-        ax.text(1,0,0,"|+>")
-        ax.text(-1,0,0,"|->")
-        ax.text(0,1,0,"|i>")
-        ax.text(0,-1,0,"|-i>")
-        ax.plot([-1,1],[0,0],color="black")
-        ax.plot([0,0],[-1,1],color="black")
-        ax.plot([0,0],[-1,1],zdir="y",color="black")
-        plt.show()
+    stop = time.time()
+    interval = stop - start
+    print(f"{interval:.3f} seconds elapsed")
+    plt.show()
     
-
-class timer:
-    def __init__(self, state):
-        self.state = state
-
-    def timer(initial):      
-        global start_time, stop_time, interval
-        if timer_switch == 1:
-            if initial == 1:
-                start_time = time.time()
-            elif initial == 0:
-                stop_time = time.time()
-                interval = (stop_time - start_time)
-                interval = "{:.3f}".format(interval)        #makes it a little neater
-                stop_time = 0
-                start_time = 0
-                print("Time taken to run entire program is: " + interval)
-        elif timer_switch == 0:
-            pass
-timer.timer(1)
+        
 
 class qc_dat:                    #defines a class to store variables in to recall from so that its all
     C_Not_info = """This gate is used to change the behaviour of one qubit based on another. 
@@ -67,7 +23,7 @@ class qc_dat:                    #defines a class to store variables in to recal
     Y_matrix = [0,np.complex128(0-1j),np.complex128(0+1j),0]           
     Z_Gate_info = "Used to flip the Qubit in the Z basis. This gate flips from 1 to 0 in the computational basis."
     Z_matrix = [1,0,0,-1]                                      
-    n = 1/sp.sqrt(2)
+    n = 1/np.sqrt(2)
     Hadamard_info = """The Hadamard gate is one of the most useful gates, used to convert the Qubit from
     the computation basis to the plus, minus basis. When applied twice, it can lead back to its original value/
     acts as an Identity matrix."""
@@ -120,7 +76,8 @@ def trace(matrix):
 
 def is_real(obj):
     if isinstance(obj, complex):
-        return obj.imag == 0
+        if np.imag(obj) < 1e-5:
+            return True
     elif isinstance(obj, (int, float)):
         return True
     else:
@@ -128,7 +85,7 @@ def is_real(obj):
 
 
 class Qubit:                        
-    def __init__(self, name, vector):
+    def __init__(self, name, vector) -> None:
         self.name = name
         self.vector = np.array(vector,dtype=np.complex128)
         self.dim = len(vector)                    #used constantly in all calcs so defined it universally
@@ -144,7 +101,6 @@ class Qubit:
             for i in range(self.dim):     #multiplies the second ket by each value in the first ket
                 for j in range(other.dim):          #iterates up and down the second ket
                     new_vector[j+i*other.dim] += self.vector[i]*other.vector[j] #adds the values into
-            sp.simplify(new_vector)                           #a new matrix in order
             return Qubit(new_name, np.array(new_vector))    #returns a new Object with a new name too
         else:
             raise QC_error(qc_dat.error_class)
@@ -153,8 +109,8 @@ class Qubit:
 
 
     def norm(self):                 #dunno why this is here ngl, just one of the first functions i tried
-        normalise = sp.sqrt(sum([i*np.conj(i) for i in self.vector]))
-        self.vector = sp.simplify(self.vector/normalise)
+        normalise = np.sqrt(sum([i*np.conj(i) for i in self.vector]))
+        self.vector = self.vector/normalise
 
     def qubit_info(self):      
         print(qc_dat.qubit_info)
@@ -168,7 +124,7 @@ class Qubit:
                 new_mat[j+i*self.dim] += qubit_conj[i]*self.vector[j]
         return Density(new_name, qc_dat.Density_matrix_info, new_mat)
 
-    def prob_state(self, meas_state, final_gate=None):  #this is just flat out wrong atm p(i) = Tr[Pi rho Pi+]
+    def prob_state(self, meas_state, final_gate=None) -> float:  #this is just flat out wrong atm p(i) = Tr[Pi rho Pi+]
         global is_real
         if isinstance(self, Qubit) and isinstance(meas_state, Qubit):
             projector = meas_state.density_mat()
@@ -232,25 +188,41 @@ class Qubit:
             measurement = bin(measurement[0])
             return measurement
 
-    
-
-
-
-    def bloch_plot(self):
-        global plot_counter, ax
+    def bloch_plot(self):  #turn this into a class soon
+        plot_counter = 0
         vals = np.zeros(2,dtype=np.complex128)
         vals[0] = self.vector[0]
         vals[1] = self.vector[1]
         plotted_qubit = Qubit("", vals)
-        print(vals)
         den_mat = plotted_qubit.density_mat()
         x = 2*np.real(den_mat.matrix[1])
         y = 2*np.imag(den_mat.matrix[2])
         z = den_mat.matrix[0] - den_mat.matrix[3]
-        if plot_counter == 0:
-            ax = plt.axes(projection="3d")
+        ax = plt.axes(projection="3d")
+            
         ax.quiver(0,0,0,x,y,z)
+        u, v = np.mgrid[0:2*np.pi:50j, 0:np.pi:50j]
+        x_sp = np.cos(u)*np.sin(v)
+        y_sp = np.sin(u)*np.sin(v)
+        z_sp = np.cos(v)
+        ax.set_xlabel("X_Axis")
+        ax.set_ylabel("Y Axis")
+        ax.set_zlabel("Z Axis")
+        ax.set_title("Bloch Sphere")
+        ax.plot_surface(x_sp, y_sp, z_sp, color="g", alpha=0.3)
+        ax.axes.grid(axis="x")
+        ax.text(0,0,1,"|0>")
+        ax.text(0,0,-1,"|1>")
+        ax.text(1,0,0,"|+>")
+        ax.text(-1,0,0,"|->")
+        ax.text(0,1,0,"|i>")
+        ax.text(0,-1,0,"|-i>")
+        ax.plot([-1,1],[0,0],color="black")
+        ax.plot([0,0],[-1,1],color="black")
+        ax.plot([0,0],[-1,1],zdir="y",color="black")
         plot_counter += 1
+        
+        
 
 q0_matrix = [1,0]
 q1_matrix = [0,1]
@@ -271,7 +243,7 @@ class Gate:
         self.matrix = np.array(matrix,dtype=np.complex128)
         self.info = info
         self.length = len(matrix)          #naming these matrices and qubits vectors was a stupid idea XD
-        self.dim = int(sp.sqrt(self.length))
+        self.dim = int(np.sqrt(self.length))
 
     def __str__(self):
         return f"{self.name}\n{self.matrix}"
@@ -281,14 +253,13 @@ class Gate:
             new_info = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
             new_name = f"{self.name} @ {other.name}"
             new_length = self.length*other.length
-            new_dim = sp.sqrt(new_length)
+            new_dim = self.dim*other.dim
             new_mat = np.zeros(new_length,dtype=np.complex128)
             for m in range(self.dim):
                 for i in range(self.dim):
                     for j in range(other.dim):
                         for k in range(other.dim):   #honestly, this works but is trash and looks like shit
                             new_mat[k+j*new_dim+other.dim*i+other.dim*new_dim*m] += self.matrix[i+self.dim*m]*other.matrix[k+other.dim*j]
-            sp.simplify(new_mat)                     #will try to impliment a XOR operation for this which should be a lot faster
             return Gate(new_name, new_info, np.array(new_mat))
         else:
             raise QC_error(qc_dat.error_class)
@@ -306,7 +277,6 @@ class Gate:
                             _summ[0] += (self.matrix[j+self.dim*i]*other.matrix[k+j*self.dim])
                         new_mat[k+self.dim*i] += _summ[0]
                         _summ = np.zeros(1,dtype=np.complex128)
-                sp.simplify(new_mat)
                 if isinstance(other, Density):
                     new_info = "This is the density matrix of: "f"{self.name}"" and "f"{other.name}"
                     return Density(new_name, new_info, new_mat)
@@ -404,7 +374,7 @@ class U_Gate(Gate):
                                [np.exp(np.complex128(0+1j)*self.b)*np.sin(self.a/2)],
                                [np.exp(np.complex128(0+1j)*(self.b+self.c))*np.cos(self.a/2)]],dtype=np.complex128)
         self.length = len(self.matrix)
-        self.dim = int(sp.sqrt(self.length))
+        self.dim = int(np.sqrt(self.length))
         
 class Density(Gate):
     def __init__(self, name, info, matrix):
@@ -412,7 +382,7 @@ class Density(Gate):
         self.info = info
         self.matrix = matrix
         self.length = len(self.matrix)
-        self.dim = int(sp.sqrt(self.length))
+        self.dim = int(np.sqrt(self.length))
 
     def __str__(self):
         return f"{self.name}\n{self.matrix}"
@@ -447,8 +417,12 @@ class print_array:    #made to try to make matrices look prettier
             np.set_printoptions(precision=prec,linewidth=20,suppress=True,floatmode="fixed")
             print(array)
         elif isinstance(array, Gate):           #so janky
-            np.set_printoptions(precision=prec,linewidth=(3+2*(3+prec))*array.dim,suppress=True,floatmode="fixed")
-            print(array)
+            if array.dim < 9:
+                np.set_printoptions(precision=prec,linewidth=(3+2*(3+prec))*array.dim,suppress=True,floatmode="fixed")
+                print(array)
+            else: 
+                np.set_printoptions(precision=prec-1,linewidth=(3+2*(4+prec))*array.dim,suppress=True,floatmode="fixed",edgeitems=8)
+                print(array)
         elif isinstance(array, Prob_dist):
             np.set_printoptions(precision=prec,linewidth=20,suppress=True,floatmode="fixed")
         else:
@@ -477,12 +451,18 @@ def alg_template(Qubit):         #make sure to mat mult the correct order
     print_array(_pd_result)
 q0_den = q0.density_mat()
 q1_den = q1.density_mat()
-print_array(q0_den)
-print_array(q1_den)
-print_array(q1_den & q0_den)
 
-
-
+print_array(Hadamard)
+print_array(Hadamard @ Hadamard)
+print_array(Hadamard @ Hadamard @ Hadamard)
+print_array(Hadamard @ Hadamard @ Hadamard @ Hadamard)
+print_array(Hadamard @ Hadamard @ Hadamard @ Hadamard @ Hadamard)
+q0 @ q1
+Hadamard * q0
+Hadamard + Hadamard
+CNot * (Hadamard @ Hadamard)
 qub = q0 @ q0 @ q0
-#alg_template(qub)
+alg_template(qub)
+q0.bloch_plot()
+q1.bloch_plot()
 prog_end()
