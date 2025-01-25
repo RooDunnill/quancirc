@@ -418,24 +418,28 @@ class Prob_dist(Gate):
 
         
 
-class print_array(print):    #made to try to make matrices look prettier
-    def __init__(self, array):         #probs could have used sp.pretty or whatever but didnt wanna confuse
-        self.array = array             #sp and np matrices and get confused
-        prec = 3
+class print_array:    #made to try to make matrices look prettier
+    def __init__(self, array):
+        self.console = Console()  # Use Rich's Console for rich printing
+        self.array = array
+        self.prec = 3  # Default precision for numpy formatting
+        np.set_printoptions(
+            precision=self.prec,
+            suppress=True,
+            floatmode="fixed")
         if isinstance(array, Qubit):
-            np.set_printoptions(precision=prec,linewidth=20,suppress=True,floatmode="fixed")
-            print(array)
-        elif isinstance(array, Gate):           #so janky
+            console.print(array)
+        elif isinstance(array, Gate):
             if array.dim < 9:
-                np.set_printoptions(precision=prec,linewidth=(3+2*(3+prec))*array.dim,suppress=True,floatmode="fixed")
-                print(array)
-            else: 
-                np.set_printoptions(precision=prec-1,linewidth=(3+2*(4+prec))*array.dim,suppress=True,floatmode="fixed",edgeitems=8)
-                print(array)
+                np.set_printoptions(linewidth=(3 + 2 * (3 + self.prec)) * array.dim)
+            else:
+                np.set_printoptions(linewidth=(3 + 2 * (4 + self.prec)) * array.dim)
+            console.print(array)
         elif isinstance(array, Prob_dist):
-            np.set_printoptions(precision=prec,linewidth=20,suppress=True,floatmode="fixed")
+            console.print(array)
         else:
-            print(array)
+            console.print(array)
+   
 
 
 X_Gate = Gate("X", qc_dat.X_Gate_info, qc_dat.X_matrix)
@@ -469,6 +473,7 @@ print_array(Hadamard @ Hadamard @ Hadamard @ Hadamard)
 print_array(Hadamard @ Hadamard @ Hadamard @ Hadamard @ Hadamard)
 q0 @ q1
 Hadamard * q0
+console.print(Hadamard)
 Hadamard + Hadamard
 CNot * (Hadamard @ Hadamard)
 qub = q0 @ q0 @ q0
