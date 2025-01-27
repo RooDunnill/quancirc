@@ -30,8 +30,10 @@ console.rule(style="headers")
 console.print("""Welcome to my Quantum Computer Simulator,
 here you can simulate a circuit with any amount of gates and qubits.
 You can define your own algorithm in a function and also 
-define any gate with the universal gate class. Now printing
-the values of the computation:""",style="info")
+define any gate with the universal gate class. 
+The current convention of this program, is that the "first"
+gate to be multiplied is at the bottom in a Quantum Circuit.
+Now printing the values of the computation:""",style="info")
 print("\n \n")
 
 
@@ -224,7 +226,8 @@ class Qubit:
             else:
                 PD = self.prob_dist()
                 measurement = int(rm.choices(sequence, weights=PD.matrix)[0])
-            measurement = f"Measured the state: |{bin(measurement)[2:].zfill(3)}>"
+            num_bits = int(np.ceil(np.log2(self.dim)))
+            measurement = f"Measured the state: |{bin(measurement)[2:].zfill(num_bits)}>"
             return measurement
 
     def bloch_plot(self):  #turn this into a class soon
@@ -476,8 +479,12 @@ class print_array:    #made to try to make matrices look prettier
                 np.set_printoptions(linewidth=(3 + 2 * (4 + self.prec)) * array.dim)
             console.print(array,markup=True,style="Density_style")
         elif isinstance(array, Prob_dist):
+            ket_mat = np.arange(0,array.dim)
+            num_bits = int(np.ceil(np.log2(array.dim)))
             np.set_printoptions(linewidth=(10))
-            console.print(array,markup=True, style="Prob_dist_style")
+            console.print(f"{array.name}",markup=True, style="Prob_dist_style")
+            for ket_val, prob_val in zip(ket_mat,array.matrix):
+                console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{3}f}",markup=True, style="Prob_dist_style")
         elif isinstance(array, Gate):
             if array.dim < 9:
                 np.set_printoptions(linewidth=(3 + 2 * (3 + self.prec)) * array.dim)
@@ -516,7 +523,8 @@ def alg_template(Qubit):         #make sure to mat mult the correct order
     gate3 = Hadamard @ Hadamard @ X_Gate
     gate4 = CNot @ Hadamard
     gate5 = CNot @ Hadamard
-    alg = gate5 * gate4 * gate3 * gate2 * gate1
+    gate6 = Identity @ Hadamard @ Identity
+    alg = gate6 * gate5 * gate4 * gate3 * gate2 * gate1
     _pd_result = Qubit.prob_dist(alg)
     result = Qubit.measure(alg)
     print_array(_pd_result)
