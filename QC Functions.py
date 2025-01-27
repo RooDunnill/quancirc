@@ -133,7 +133,7 @@ class Qubit:
         if isinstance(other, Qubit):           #although this tensors are all 1D   
             self_name_size = int(np.log2(self.dim))
             other_name_size = int(np.log2(other.dim))
-            new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>" 
+            new_name = f"|{other.name[1:other_name_size+1]}{self.name[1:self_name_size+1]}>" 
             new_length: int = self.dim*other.dim
             new_vector = np.zeros(new_length,dtype=np.complex128)
             for i in range(self.dim):     #multiplies the second ket by each value in the first ket
@@ -526,6 +526,34 @@ gate_operations = {
     "Z": Z_Gate,
     "I": Identity
 }
+qub = q0 @ q0 @ q1
+def fractional_binary(qub,m):
+    num_bits = int(np.ceil(np.log2(qub.dim)))
+    x_vals = qub.name[1:1+num_bits]
+    frac_bin = ("0." + x_vals)
+    val = 0
+    if m <= num_bits:
+        for i in range(m):
+            val += float(frac_bin[-i-1])*2**-(i+1)
+            print(val)
+        print("new func")
+        return val
+
+def quant_fourier_trans(qub):
+    old_name = qub.name
+    n = int(np.ceil(np.log2(qub.dim)))
+    frac_init = fractional_binary(qub,1)
+    four_qub_init = Qubit("",np.array([np.exp(2*1j*np.pi*frac_init),1]))
+    four_qub_init.norm()
+    four_qub_sum = four_qub_init
+    for j in range(n-1):
+        frac = fractional_binary(qub,j+2)
+        four_qub = Qubit("",np.array([np.exp(2*1j*np.pi*frac),0]))
+        four_qub.norm()
+        four_qub_sum **= four_qub
+    four_qub_sum.name = f"QFT of {old_name}"
+    return four_qub_sum
+print_array(quant_fourier_trans(qub))
 def alg_template(Qubit):         #make sure to mat mult the correct order
     circuit = [["X","H","X"],
                ["H","X","H"],
@@ -542,10 +570,23 @@ def alg_template(Qubit):         #make sure to mat mult the correct order
     result = Qubit.measure(alg)
     print_array(_pd_result)
     print_array(result)
-qub = q0 @ q0 @ q0
-qub_flip = q0 @ q1 @ q1
+qub = q0 @ q0 @ q1
+alg_template(qub)
 
-oracle_values = [0,1,2]
+def alg_template2(Qubit):         #make sure to mat mult the correct order
+    circuit = [["X","H","X"],
+               ["H","X","H"],
+               ["Z","Z","H"]]
+    console.rule(f"Algorithm acting on {Qubit.name} state", style="headers")
+    gate1 = Z_Gate @ Z_Gate @ Z_Gate
+    alg = gate1
+    _pd_result = Qubit.prob_dist(alg)
+    result = Qubit.measure(alg)
+    print_array(_pd_result)
+    print_array(result)
+qub = q0 @ q0 @ q1
+alg_template2(qub)
+oracle_values = [5, 7]
 def phase_oracle(qub, oracle_values):
     flip = np.ones(qub.dim)
     for i in oracle_values:
@@ -554,11 +595,12 @@ def phase_oracle(qub, oracle_values):
         qub.vector[j] = qub.vector[j] * vals        
     return qub
 def grover_alg(oracle_values, n, iterations=None):
+    console.rule(f"Grovers algorithm with values: {oracle_values}", style="headers")
+    op_iter = (np.pi/4)*np.sqrt((2**n)/len(oracle_values)) - 0.5
     if iterations == None:
-        iterations = (np.pi/4)*np.sqrt((n)/len(oracle_values))- 0.5
+        iterations = op_iter
         if iterations < 1:
             iterations = 1
-        
     qub = q0
     had_op = Hadamard
     flip_cond = - np.ones(qub.dim**n)
@@ -576,9 +618,7 @@ def grover_alg(oracle_values, n, iterations=None):
             intermidary_qubit.vector[j] = intermidary_qubit.vector[j] * vals 
         final_state = had_op * intermidary_qubit
         it += 1
-        final_state.name = f"Grover Search with Oracle Values after {iterations} iterations is: {oracle_values}"
-    return final_state
-#print_array(grover_alg(oracle_values,3))
-print_array(grover_alg(oracle_values,3).prob_dist())
+        final_state.name = f"Grover Search with Oracle Values {oracle_values}, after {int(iterations)} iterations is: "
+    final_state = final_state.prob_dist()
+    return final_state, op_iter
 
-    
