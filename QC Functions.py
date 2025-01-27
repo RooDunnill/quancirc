@@ -1,4 +1,4 @@
-import numpy as np                                                            #mostly used to make 1D arrays
+import numpy as np                                              #mostly used to make 1D arrays
 import random as rm                                             #used for measuring
 import time
 import atexit
@@ -11,16 +11,16 @@ custom_theme = Theme({"Qubit_style":"spring_green4",
                       "Prob_dist_style":"green4",
                       "Gate_style":"dark_green",
                       "Density_style":"chartreuse4",
-                      "info":"grey78",
+                      "info":"grey62",
                       "error":"dark_orange",
                       "measure":"green1",
-                      "headers":"dark_sea_green4"})
+                      "headers":"dark_goldenrod"})
 console = Console(style="none",theme=custom_theme, highlight=False)
 start = time.time()
 def prog_end():    #made it to make the code at the end of the program a little neater
     stop = time.time()
     interval: float = stop - start
-    print(f"{interval:.3f} seconds elapsed")
+    console.print(f"{interval:.3f} seconds elapsed",style="info")
     plt.show()
 atexit.register(prog_end)
 
@@ -117,7 +117,7 @@ def is_real(obj):
         return False
 
 
-class Qubit:                      
+class Qubit:              
     def __init__(self, name, vector) -> None:
         self.name = name
         self.vector = np.array(vector,dtype=np.complex128)
@@ -143,7 +143,12 @@ class Qubit:
         else:
             raise QC_error(qc_dat.error_class)
 
-        
+    def __ipow__(self, other):                 #denoted **=
+        if isinstance(self, Qubit):  
+            self = self @ other
+            return self
+        else:
+            raise QC_error(qc_dat.error_class)
 
 
     def norm(self):                 #dunno why this is here ngl, just one of the first functions i tried
@@ -305,6 +310,14 @@ class Gate:
             return Gate(new_name, new_info, np.array(new_mat))
         else:
             raise QC_error(qc_dat.error_class)
+ 
+    def __ipow__(self, other):    #denoted **=
+        if isinstance(self, Gate):  
+            self = self @ other
+            return self
+        else:
+            raise QC_error(qc_dat.error_class)
+        
 
     def __mul__(self, other):       #matrix multiplication
         _summ = np.zeros(1,dtype=np.complex128)  #could delete summ and make more elegant
@@ -532,3 +545,13 @@ def alg_template(Qubit):         #make sure to mat mult the correct order
 qub = q0 @ q0 @ q0
 alg_template(qub)
 
+def Grover(Qubit, n):
+    Qub = Qubit
+    Had = Hadamard
+    for i in range(n-1):
+        Qubit **= Qub
+        Had **= Hadamard
+    init_Qubit = Had * Qubit
+    return init_Qubit
+print(Grover(q0,3))
+    
