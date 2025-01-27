@@ -545,7 +545,7 @@ def alg_template(Qubit):         #make sure to mat mult the correct order
 qub = q0 @ q0 @ q0
 qub_flip = q0 @ q1 @ q1
 
-oracle_values = [0]
+oracle_values = [0,1,2]
 def phase_oracle(qub, oracle_values):
     flip = np.ones(qub.dim)
     for i in oracle_values:
@@ -553,7 +553,12 @@ def phase_oracle(qub, oracle_values):
     for j, vals in enumerate(flip):
         qub.vector[j] = qub.vector[j] * vals        
     return qub
-def grover_alg(oracle_values, n, iterations):
+def grover_alg(oracle_values, n, iterations=None):
+    if iterations == None:
+        iterations = (np.pi/4)*np.sqrt((n)/len(oracle_values))- 0.5
+        if iterations < 1:
+            iterations = 1
+        
     qub = q0
     had_op = Hadamard
     flip_cond = - np.ones(qub.dim**n)
@@ -563,12 +568,15 @@ def grover_alg(oracle_values, n, iterations):
         had_op **= Hadamard
     it = 0
     while it < int(iterations):
-    initialized_qubit = had_op * qub
-    intermidary_qubit = had_op * phase_oracle(initialized_qubit, oracle_values)
-    print(intermidary_qubit)
-    for j, vals in enumerate(flip_cond):
-        intermidary_qubit.vector[j] = intermidary_qubit.vector[j] * vals 
-    final_state = had_op * intermidary_qubit
+        if it != 0:
+            qub = final_state
+        initialized_qubit = had_op * qub
+        intermidary_qubit = had_op * phase_oracle(initialized_qubit, oracle_values)
+        for j, vals in enumerate(flip_cond):
+            intermidary_qubit.vector[j] = intermidary_qubit.vector[j] * vals 
+        final_state = had_op * intermidary_qubit
+        it += 1
+        final_state.name = f"Grover Search with Oracle Values after {iterations} iterations is: {oracle_values}"
     return final_state
 #print_array(grover_alg(oracle_values,3))
 print_array(grover_alg(oracle_values,3).prob_dist())
