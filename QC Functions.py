@@ -543,15 +543,34 @@ def alg_template(Qubit):         #make sure to mat mult the correct order
     print_array(_pd_result)
     print_array(result)
 qub = q0 @ q0 @ q0
-alg_template(qub)
+qub_flip = q0 @ q1 @ q1
 
-def Grover(Qubit, n):
-    Qub = Qubit
-    Had = Hadamard
+oracle_values = [0]
+def phase_oracle(qub, oracle_values):
+    flip = np.ones(qub.dim)
+    for i in oracle_values:
+        flip[i] = flip[i] - 2
+    for j, vals in enumerate(flip):
+        qub.vector[j] = qub.vector[j] * vals        
+    return qub
+def grover_alg(oracle_values, n, iterations):
+    qub = q0
+    had_op = Hadamard
+    flip_cond = - np.ones(qub.dim**n)
+    flip_cond[0] += 2
     for i in range(n-1):
-        Qubit **= Qub
-        Had **= Hadamard
-    init_Qubit = Had * Qubit
-    return init_Qubit
-print(Grover(q0,3))
+        qub **= q0
+        had_op **= Hadamard
+    it = 0
+    while it < int(iterations):
+    initialized_qubit = had_op * qub
+    intermidary_qubit = had_op * phase_oracle(initialized_qubit, oracle_values)
+    print(intermidary_qubit)
+    for j, vals in enumerate(flip_cond):
+        intermidary_qubit.vector[j] = intermidary_qubit.vector[j] * vals 
+    final_state = had_op * intermidary_qubit
+    return final_state
+#print_array(grover_alg(oracle_values,3))
+print_array(grover_alg(oracle_values,3).prob_dist())
+
     
