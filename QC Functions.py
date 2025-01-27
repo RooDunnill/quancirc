@@ -2,13 +2,13 @@ import numpy as np                                                            #m
 import random as rm                                             #used for measuring
 import time
 import matplotlib.pyplot as plt 
-from rich import print
 from rich.console import Console 
 from rich.theme import Theme
+from rich.table import Table
 custom_theme = Theme({"info":"grey78",
                       "error":"red",
                       "measure":"green1",
-                      "matrix":"green3"})
+                      "matrix":"chartreuse3"})
 console = Console(theme=custom_theme)
 
 start = time.time()
@@ -16,13 +16,17 @@ start = time.time()
 
 def prog_end():
     stop = time.time()
-    interval = stop - start
+    interval: float = stop - start
     print(f"{interval:.3f} seconds elapsed")
     plt.show()
     
         
 
 class qc_dat:                    #defines a class to store variables in to recall from so that its all
+    q0_matrix = [1,0]
+    q1_matrix = [0,1]
+    qplus_matrix = [1,1]
+    qminus_matrix = [1,-1]
     C_Not_info = """This gate is used to change the behaviour of one qubit based on another. 
     This sepecific function is mostly obselete now, it is preferred to use the C Gate class instead"""       #C_Not is mostly obsolete due to new C Gate class       #in one neat area
     C_Not_matrix = [1,0,0,0,0,1,0,0,0,0,0,1,0,0,1,0]#2 Qubit CNot gate in one configuration, need to add more
@@ -36,7 +40,7 @@ class qc_dat:                    #defines a class to store variables in to recal
     Hadamard_info = """The Hadamard gate is one of the most useful gates, used to convert the Qubit from
     the computation basis to the plus, minus basis. When applied twice, it can lead back to its original value/
     acts as an Identity matrix."""
-    Hadamard_matrix = [n,n,n,-n]
+    Hadamard_matrix = np.array([n,n,n,-n])
     U_Gate_info = """This is a gate that can be transformed into most elementary gates using the constants a,b and c.
     For example a Hadamard gate can be defined with a = pi, b = 0 and c = pi while an X Gate can be defined by
      a = pi/2 b = 0 and c = pi. """
@@ -102,10 +106,15 @@ class Qubit:
     def __str__(self):
         return f"{self.name}\n{self.vector}"   #did this so that the matrix prints neatly
     
+    def __rich__(self):
+        return f"[orange1 bold]{self.name}[/orange1 bold]\n[orange1 not bold]{self.vector}[/orange1 not bold]"
+    
     def __matmul__(self, other):               #this is an n x n tensor product function
-        if isinstance(other, Qubit):           #although this tensors are all 1D
-            new_name = f"{self.name} @ {other.name}"     #no tensor symbol so this will do
-            new_length = self.dim*other.dim
+        if isinstance(other, Qubit):           #although this tensors are all 1D   
+            self_name_size = int(np.log2(self.dim))
+            other_name_size = int(np.log2(other.dim))
+            new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>" 
+            new_length: int = self.dim*other.dim
             new_vector = np.zeros(new_length,dtype=np.complex128)
             for i in range(self.dim):     #multiplies the second ket by each value in the first ket
                 for j in range(other.dim):          #iterates up and down the second ket
@@ -164,16 +173,16 @@ class Qubit:
             for i in range(self.dim):
                 meas_state_vector = np.zeros(self.dim,dtype=np.complex128)
                 meas_state_vector[i] += 1
-                meas_state = Qubit("f|{i}",meas_state_vector)
+                meas_state = Qubit("f|{i}>",meas_state_vector)
                 if final_gate:
                     if isinstance(final_gate, Gate):
-                        new_name = f"PD for ({self.name}) applied to ({final_gate.name})"
+                        new_name = f"PD for {self.name} applied to ({final_gate.name})"
                         new_mat[i] = self.prob_state(meas_state, final_gate)
                         norm += self.prob_state(meas_state, final_gate)
                     else:
                         raise QC_error(qc_dat.error_class)
                 else:
-                    new_name = f"PD for ({self.name})"
+                    new_name = f"PD for {self.name}"
                     new_mat[i] = self.prob_state(meas_state)
                     norm += self.prob_state(meas_state)      
             if np.isclose(norm, 1.0, atol=1e-5):
@@ -187,14 +196,13 @@ class Qubit:
             if final_gate:
                 if isinstance(final_gate, Gate):
                     PD = self.prob_dist(final_gate)
-                    measurement = rm.choices(sequence, weights=PD.matrix)
+                    measurement = int(rm.choices(sequence, weights=PD.matrix)[0])
                 else:
                     raise QC_error(qc_dat.error_class)
             else:
                 PD = self.prob_dist()
-                measurement = rm.choices(sequence, weights=PD.matrix)
-            print(measurement)
-            measurement = bin(measurement[0])
+                measurement = int(rm.choices(sequence, weights=PD.matrix)[0])
+            measurement = f"[white bold]Measured the state: |{bin(measurement)[2:].zfill(3)}>[/white bold]"
             return measurement
 
     def bloch_plot(self):  #turn this into a class soon
@@ -233,14 +241,11 @@ class Qubit:
         
         
 
-q0_matrix = [1,0]
-q1_matrix = [0,1]
-qplus_matrix = [1,1]
-qminus_matrix = [1,-1]
-q0 = Qubit("q0",q0_matrix)
-q1 = Qubit("q1",q1_matrix)
-qplus = Qubit("q+",qplus_matrix)
-qminus = Qubit("q-",qminus_matrix)
+
+q0 = Qubit("|0>",qc_dat.q0_matrix)
+q1 = Qubit("|1>",qc_dat.q1_matrix)
+qplus = Qubit("|+>",qc_dat.qplus_matrix)
+qminus = Qubit("|->",qc_dat.qminus_matrix)
 q0.norm()
 q1.norm()
 qplus.norm()
@@ -257,6 +262,9 @@ class Gate:
     def __str__(self):
         return f"{self.name}\n{self.matrix}"
 
+    def __rich__(self):
+        return f"[white bold]{self.name}[/white bold]\n[white not bold]{self.matrix}[/white not bold]"
+    
     def __matmul__(self, other):
         if isinstance(other, Gate):
             new_info = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
@@ -295,7 +303,7 @@ class Gate:
                 raise QC_error(qc_dat.error_mat_dim)
         elif isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
             if self.dim == other.dim:
-                new_name = f"[{self.name}] {other.name}"
+                new_name = f"{self.name}{other.name}"
                 new_mat = np.zeros(self.dim,dtype=np.complex128)
                 for i in range(self.dim):
                         for j in range(self.dim):
@@ -396,6 +404,9 @@ class Density(Gate):
     def __str__(self):
         return f"{self.name}\n{self.matrix}"
     
+    def __rich__(self):
+        return f"[purple bold]{self.name}[/purple bold]\n[purple not bold]{self.matrix}[/purple not bold]"
+    
     def __and__(self, other):
         new_name = f"{self.name} + {other.name}"
         new_mat = np.zeros(self.length,dtype=np.complex128)
@@ -415,6 +426,9 @@ class Prob_dist(Gate):
     
     def __str__(self):
         return f"{self.name}\n{self.matrix}"
+    
+    def __rich__(self):
+        return f"[red bold]{self.name}[/red bold]\n[red not bold]{self.matrix}[/red not bold]"
 
         
 
@@ -428,17 +442,20 @@ class print_array:    #made to try to make matrices look prettier
             suppress=True,
             floatmode="fixed")
         if isinstance(array, Qubit):
-            console.print(array)
+            np.set_printoptions(linewidth=(10))
+            console.print(array,markup=True)
+        elif isinstance(array, Prob_dist):
+            np.set_printoptions(linewidth=(10))
+            console.print(array,markup=True)
         elif isinstance(array, Gate):
             if array.dim < 9:
                 np.set_printoptions(linewidth=(3 + 2 * (3 + self.prec)) * array.dim)
             else:
                 np.set_printoptions(linewidth=(3 + 2 * (4 + self.prec)) * array.dim)
-            console.print(array)
-        elif isinstance(array, Prob_dist):
-            console.print(array)
+            console.print(array,markup=True)
+        
         else:
-            console.print(array)
+            console.print(array,markup=True)
    
 
 
@@ -451,7 +468,17 @@ U_Gate_X = U_Gate("Universal X", qc_dat.U_Gate_info, np.pi, 0, np.pi)
 U_Gate_H = U_Gate("Universal H", qc_dat.U_Gate_info, np.pi/2, 0, np.pi)
 CNot_flip = C_Gate("CNot", qc_dat.C_Not_matrix, X_Gate, 2, 1)
 CNot = C_Gate("CNot", qc_dat.C_Not_matrix, X_Gate, 1, 2)
+gate_operations = {
+    "H": Hadamard,
+    "X": X_Gate,
+    "Y": Y_Gate,
+    "Z": Z_Gate,
+    "I": Identity
+}
 def alg_template(Qubit):         #make sure to mat mult the correct order
+    circuit = [["X","H","X"],
+               ["H","X","H"],
+               ["Z","Z","H"]]
     console.rule(f"Algorithm acting on {Qubit.name} state", style="magenta")
     gate1 = X_Gate @ CNot
     gate2 = Z_Gate @ X_Gate @ X_Gate
@@ -465,17 +492,12 @@ def alg_template(Qubit):         #make sure to mat mult the correct order
     print_array(_pd_result)
 q0_den = q0.density_mat()
 q1_den = q1.density_mat()
-
+print_array(q0_den)
 print_array(Hadamard)
 print_array(Hadamard @ Hadamard)
 print_array(Hadamard @ Hadamard @ Hadamard)
-print_array(Hadamard @ Hadamard @ Hadamard @ Hadamard)
-print_array(Hadamard @ Hadamard @ Hadamard @ Hadamard @ Hadamard)
-q0 @ q1
-Hadamard * q0
-console.print(Hadamard)
-Hadamard + Hadamard
-CNot * (Hadamard @ Hadamard)
+print_array(Hadamard * q0)
+print_array(q0 @ q1)
 qub = q0 @ q0 @ q0
 alg_template(qub)
 prog_end()
