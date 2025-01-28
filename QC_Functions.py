@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 from rich.console import Console 
 from rich.theme import Theme
 from rich.table import Table
+import cProfile
+
+
 
 custom_theme = Theme({"Qubit_style":"spring_green4",
                       "Prob_dist_style":"green4",
@@ -122,6 +125,7 @@ class Qubit:
         self.name = name
         self.vector = np.array(vector,dtype=np.complex128)
         self.dim = len(vector)                    #used constantly in all calcs so defined it universally
+        self.shift = self.dim.bit_length() - 1
         
     def __str__(self):
         return f"{self.name}\n{self.vector}"   #did this so that the matrix prints neatly
@@ -136,9 +140,10 @@ class Qubit:
             new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>" 
             new_length: int = self.dim*other.dim
             new_vector = np.zeros(new_length,dtype=np.complex128)
+            other_shift = other.dim.bit_length() - 1
             for i in range(self.dim):     #multiplies the second ket by each value in the first ket
                 for j in range(other.dim):          #iterates up and down the second ket
-                    new_vector[j+i*other.dim] += self.vector[i]*other.vector[j] #adds the values into
+                    new_vector[j+(i << other_shift)] += self.vector[i]*other.vector[j] #adds the values into
             return Qubit(new_name, np.array(new_vector))    #returns a new Object with a new name too
         else:
             raise QC_error(qc_dat.error_class)
@@ -164,60 +169,66 @@ class Qubit:
         qubit_conj = np.conj(self.vector)
         for i in range(self.dim):
             for j in range(self.dim):
-                new_mat[j+i*self.dim] += qubit_conj[i]*self.vector[j]
+                new_mat[j+(i << self.shift)] += qubit_conj[i]*self.vector[j]
         den = Density(new_name, qc_dat.Density_matrix_info, new_mat)
         if abs(1 -trace(den)) < 1e-5:
             return den
         else:
             raise QC_error(qc_dat.error_trace)
 
-    def prob_state(self, meas_state, final_gate=None) -> float:  #this is just flat out wrong atm p(i) = Tr[Pi rho Pi+]
+    def prob_state(self, meas_state=None, final_gate=None) -> float:
         global is_real
-        if isinstance(self, Qubit) and isinstance(meas_state, Qubit):
-            projector = meas_state.density_mat()
-            if final_gate:
-                if isinstance(final_gate, Gate):
-                    final_state = final_gate * self
-                else:
-                    raise QC_error(qc_dat.error_class)
-            else:
-                final_state = self
-            den = final_state.density_mat()
-            probability = trace(projector * den)
-            is_real = np.isreal(probability)
-            if is_real is True:
-                return probability
-            else:
-                if np.imag(probability) < 1e-5:
-                    return probability
-                else:
-                    raise QC_error(qc_dat.error_imag_prob)
-        else:
-            raise QC_error(qc_dat.error_class)
-
-    def prob_dist(self, final_gate=None):
-        if isinstance(self, Qubit):
-            new_mat = np.zeros(self.dim,dtype=np.float64)
-            norm = 0
-            for i in range(self.dim):
-                meas_state_vector = np.zeros(self.dim,dtype=np.complex128)
-                meas_state_vector[i] += 1
-                meas_state = Qubit("f|{i}>",meas_state_vector)
+        if meas_state:
+            if isinstance(self, Qubit) and isinstance(meas_state, Qubit):
+                projector = meas_state.density_mat()
                 if final_gate:
                     if isinstance(final_gate, Gate):
-                        new_name = f"PD for {self.name} applied to Circuit:"
-                        new_mat[i] = self.prob_state(meas_state, final_gate).real
-                        norm += self.prob_state(meas_state, final_gate)
+                        final_state = final_gate * self
                     else:
                         raise QC_error(qc_dat.error_class)
                 else:
-                    new_name = f"PD for {self.name}"
-                    new_mat[i] = self.prob_state(meas_state)
-                    norm += self.prob_state(meas_state)      
+                    final_state = self
+                den = final_state.density_mat()
+                probability = trace(projector * den)
+                is_real = np.isreal(probability)
+                if is_real is True:
+                    return probability
+                else:
+                    if np.imag(probability) < 1e-5:
+                        return probability
+                    else:
+                        raise QC_error(qc_dat.error_imag_prob)
+            else:
+                raise QC_error(qc_dat.error_class)
+
+    def prob_dist(self, final_gate=None):
+        new_mat = np.zeros(self.dim,dtype=np.float64)
+        if isinstance(self, Qubit):
+            norm = 0
+            if final_gate:
+                if isinstance(final_gate, Gate):
+                    new_name = f"PD for {self.name} applied to Circuit:"
+                    new_state = final_gate * self
+                    state_conj = np.conj(new_state.vector)
+                    for i in range(self.dim):
+                        new_mat[i] = new_state.vector[i]*state_conj[i]
+                        norm += new_mat[i]
+                        print(norm)
+                    print_array(f"Array after computing the probs with gate{self}")
+                else:
+                    raise QC_error(qc_dat.error_class)
+            else:
+                qubit_conj = np.conj(self.vector)
+                new_name = f"PD for {self.name}"
+                for i in range(self.dim):
+                    new_mat[i] = self.vector[i]*qubit_conj[i]
+                    norm += new_mat[i]
             if np.isclose(norm, 1.0, atol=1e-5):
                 return Prob_dist(new_name, qc_dat.prob_dist_info, np.array(new_mat))
             else:
                 raise QC_error(qc_dat.error_norm)
+        else:
+            raise QC_error(qc_dat.error_class)
 
     def measure(self, final_gate=None):
         if isinstance(self, Qubit):
@@ -246,7 +257,6 @@ class Qubit:
         y = 2*np.imag(den_mat.matrix[2])
         z = den_mat.matrix[0] - den_mat.matrix[3]
         ax = plt.axes(projection="3d")
-            
         ax.quiver(0,0,0,x,y,z)
         u, v = np.mgrid[0:2*np.pi:50j, 0:np.pi:50j]
         x_sp = np.cos(u)*np.sin(v)
@@ -288,6 +298,7 @@ class Gate:
         self.info = info
         self.length = len(matrix)          #naming these matrices and qubits vectors was a stupid idea XD
         self.dim = int(np.sqrt(self.length))
+        self.shift = self.dim.bit_length() - 1
 
     def __str__(self):
         return f"{self.name}\n{self.matrix}"
@@ -295,23 +306,23 @@ class Gate:
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.matrix}[/not bold]"
     
+
     def __matmul__(self, other):
         if isinstance(other, Gate):
             new_info = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
             new_name = f"{self.name} @ {other.name}"
             new_length = self.length*other.length
-            new_dim = self.dim*other.dim
             new_mat = np.zeros(new_length,dtype=np.complex128)
+            new_shift = (self.dim*other.dim).bit_length() - 1
+            comb_shift = other.shift + new_shift
             for m in range(self.dim):
                 for i in range(self.dim):
-                    for j in range(other.dim):             #4 is 
+                    for j in range(other.dim):             #4 is 100 2 is 10
                         for k in range(other.dim):   #honestly, this works but is trash and looks like shit
-                            new_mat[k+j*new_dim+other.dim*i+other.dim*new_dim*m] += self.matrix[i+self.dim*m]*other.matrix[k+other.dim*j]
+                            new_mat[k+(j << new_shift)+(i << other.shift)+(m << comb_shift)] += self.matrix[i+(m << self.shift)]*other.matrix[k+(j << other.shift)]
             return Gate(new_name, new_info, np.array(new_mat))
         else:
             raise QC_error(qc_dat.error_class)
- 
-    
 
     def __ipow__(self, other):    #denoted **=
         if isinstance(self, Gate):  
@@ -322,7 +333,7 @@ class Gate:
         
 
     def __mul__(self, other):       #matrix multiplication
-        _summ = np.zeros(1,dtype=np.complex128)  #could delete summ and make more elegant
+        _summ = 0
         if isinstance(self, Gate):
             if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
                 if self.dim == other.dim:
@@ -332,9 +343,9 @@ class Gate:
                     for i in range(self.dim):
                         for k in range(self.dim):
                             for j in range(self.dim):    #again a mess and done in a different manner to tensor product
-                                _summ[0] += (self.matrix[j+self.dim*i]*other.matrix[k+j*self.dim])
-                            new_mat[k+self.dim*i] += _summ[0]
-                            _summ = np.zeros(1,dtype=np.complex128)
+                                _summ += (self.matrix[j+(i << other.shift)]*other.matrix[k+(j << self.shift)])
+                            new_mat[k+(i << self.shift)] += _summ
+                            _summ = 0
                     if isinstance(other, Density):
                         new_info = "This is the density matrix of: "f"{self.name}"" and "f"{other.name}"
                         return Density(new_name, new_info, new_mat)
@@ -348,9 +359,9 @@ class Gate:
                     new_mat = np.zeros(self.dim,dtype=np.complex128)
                     for i in range(self.dim):
                             for j in range(self.dim):
-                                _summ[0] += (self.matrix[j+self.dim*i]*other.vector[j])
-                            new_mat[i] += _summ[0]
-                            _summ = np.zeros(1,dtype=np.complex128)
+                                _summ += (self.matrix[j+(i << other.shift)]*other.vector[j])
+                            new_mat[i] += _summ
+                            _summ = 0
                     return Qubit(new_name, np.array(new_mat))
                 else:
                     raise QC_error(qc_dat.error_mat_dim)
@@ -362,8 +373,8 @@ class Gate:
         
 
 
-    def __add__(self, other):         #direct sum
-        if isinstance(other, Gate):
+    def __add__(self, other):         #direct sum                   
+        if isinstance(other, Gate):                   #DONT TOUCH WITH THE BINARY SHIFTS AS THIS ISNT IN POWERS OF 2
             new_info = "This is a direct sum of gates: "f"{self.name}"" and "f"{other.name}"
             new_name = f"{self.name} + {other.name}"
             new_dim = self.dim + other.dim
@@ -420,6 +431,7 @@ class C_Gate(Gate):
         self.matrix = new_mat.matrix
         self.dim = int(abs(qubit_dist)*Identity.dim+gate_action.dim)
         self.length = self.dim*self.dim
+        self.shift = self.dim.bit_length() - 1
                 
 
 class U_Gate(Gate):
@@ -435,6 +447,7 @@ class U_Gate(Gate):
                                [np.exp(np.complex128(0+1j)*(self.b+self.c))*np.cos(self.a/2)]],dtype=np.complex128)
         self.length = len(self.matrix)
         self.dim = int(np.sqrt(self.length))
+        self.shift = self.dim.bit_length() - 1
         
 class Density(Gate):
     def __init__(self, name, info, matrix):
@@ -443,6 +456,7 @@ class Density(Gate):
         self.matrix = matrix
         self.length = len(self.matrix)
         self.dim = int(np.sqrt(self.length))
+        self.shift = self.dim.bit_length() - 1
 
     def __str__(self):
         return f"{self.name}\n{self.matrix}"
@@ -460,7 +474,7 @@ class Density(Gate):
         else:
             raise QC_error(qc_dat.error_class)
 
-class Prob_dist(Gate):
+class Prob_dist(Qubit):
     def __init__(self, name, info, matrix):
         self.name = name
         self.info = info
@@ -484,10 +498,8 @@ class print_array:    #made to try to make matrices look prettier
             precision=self.prec,
             suppress=True,
             floatmode="fixed")
-        if isinstance(array, Qubit):
-            np.set_printoptions(linewidth=(10))
-            console.print(array,markup=True,style="Qubit_style")
-        elif isinstance(array, Density):
+        
+        if isinstance(array, Density):
             if array.dim < 9:
                 np.set_printoptions(linewidth=(3 + 2 * (3 + self.prec)) * array.dim)
             else:
@@ -500,6 +512,9 @@ class print_array:    #made to try to make matrices look prettier
             console.print(f"{array.name}",markup=True, style="Prob_dist_style")
             for ket_val, prob_val in zip(ket_mat,array.matrix):
                 console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{3}f}",markup=True, style="Prob_dist_style")
+        elif isinstance(array, Qubit):
+            np.set_printoptions(linewidth=(10))
+            console.print(array,markup=True,style="Qubit_style")
         elif isinstance(array, Gate):
             if array.dim < 9:
                 np.set_printoptions(linewidth=(3 + 2 * (3 + self.prec)) * array.dim)
@@ -575,7 +590,7 @@ def alg_template(Qubit):         #make sure to mat mult the correct order
     print_array(_pd_result)
     print_array(result)
 qub = q0 @ q0 @ q1
-alg_template(qub)
+#alg_template(qub)
 
 def alg_template2(Qubit):         #make sure to mat mult the correct order
     circuit = [["X","H","X"],
@@ -590,7 +605,29 @@ def alg_template2(Qubit):         #make sure to mat mult the correct order
     print_array(result)
 qub = q0 @ q0 @ q1
 #alg_template2(qub)
-oracle_values = [5, 7]
+oracle_values = [3, 1]
+
+
+def sort(obj, oracle_values=None):
+    if isinstance(obj, Prob_dist):
+        save_probs = np.zeros(len(oracle_values))
+        k = 0
+        print_array(obj)
+        for i in obj.matrix:
+            for j in oracle_values:
+                if i < obj.matrix[j]:
+                    print_array(f"One of the oracle values is: {j}")
+                    save_probs[k] = j
+                    k += 1
+                elif i > obj.matrix[j]:
+                    print_array(f"One of the oracle values may be {i}")
+                else:
+                    print_array(f"Oops")
+        return save_probs
+    else:
+        raise QC_error(qc_dat.error_class)
+
+
 def phase_oracle(qub, oracle_values):
     flip = np.ones(qub.dim)
     for i in oracle_values:
@@ -624,7 +661,7 @@ def grover_alg(oracle_values, n, iterations=None):
             intermidary_qubit.vector[j] = intermidary_qubit.vector[j] * vals 
         final_state = had_op * intermidary_qubit
         it += 1
-        print_array("Iterated once")
+        print_array(f"Iteration number: {it}")
         final_state.name = f"Grover Search with Oracle Values {oracle_values}, after {int(iterations)} iterations is: "
     final_state = final_state.prob_dist()
     return final_state, op_iter
@@ -632,5 +669,9 @@ q00 = q0 @ q0
 q01 = q0 @ q1
 print_array(Hadamard @ Hadamard)
 print_array(Identity @ Identity @ Identity)
-print_array(grover_alg(oracle_values, 5)[0])
-print_array(grover_alg(oracle_values, 6, 10)[0])
+print_array(grover_alg(oracle_values, 3)[0])
+print_array(grover_alg(oracle_values, 3))
+
+print_array(Hadamard * Hadamard)
+#cProfile.run("grover_alg(oracle_values, 9)[0]")
+print_array(CNot)
