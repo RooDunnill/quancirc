@@ -6,9 +6,6 @@ import matplotlib.pyplot as plt
 from rich.console import Console 
 from rich.theme import Theme
 from rich.table import Table
-import cProfile
-
-
 
 custom_theme = Theme({"Qubit_style":"spring_green4",
                       "Prob_dist_style":"green4",
@@ -139,10 +136,9 @@ class Qubit:
             new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>" 
             new_length: int = self.dim*other.dim
             new_vector = np.zeros(new_length,dtype=np.complex128)
-            other_shift = other.dim.bit_length() - 1
             for i in range(self.dim):     #multiplies the second ket by each value in the first ket
                 for j in range(other.dim):          #iterates up and down the second ket
-                    new_vector[j+(i << other_shift)] += self.vector[i]*other.vector[j] #adds the values into
+                    new_vector[j+i*other.dim] += self.vector[i]*other.vector[j] #adds the values into
             return Qubit(new_name, np.array(new_vector))    #returns a new Object with a new name too
         else:
             raise QC_error(qc_dat.error_class)
@@ -299,7 +295,7 @@ class Gate:
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.matrix}[/not bold]"
     
-    #def __matmul__(self, other):
+    def __matmul__(self, other):
         if isinstance(other, Gate):
             new_info = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
             new_name = f"{self.name} @ {other.name}"
@@ -314,26 +310,8 @@ class Gate:
             return Gate(new_name, new_info, np.array(new_mat))
         else:
             raise QC_error(qc_dat.error_class)
-
-    def __matmul__(self, other):
-        if isinstance(other, Gate):
-            new_info = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
-            new_name = f"{self.name} @ {other.name}"
-            new_length = self.length*other.length
-            new_dim = self.dim*other.dim
-            new_mat = np.zeros(new_length,dtype=np.complex128)
-            self_shift = self.dim.bit_length() - 1
-            other_shift = other.dim.bit_length() - 1
-            new_shift = (self.dim*other.dim).bit_length() - 1
-            comb_shift = other_shift + new_shift
-            for m in range(self.dim):
-                for i in range(self.dim):
-                    for j in range(other.dim):             #4 is 100 2 is 10
-                        for k in range(other.dim):   #honestly, this works but is trash and looks like shit
-                            new_mat[k+(j << new_shift)+(i << other_shift)+(m << comb_shift)] += self.matrix[i+(m << self_shift)]*other.matrix[k+(j << other_shift)]
-            return Gate(new_name, new_info, np.array(new_mat))
-        else:
-            raise QC_error(qc_dat.error_class)
+ 
+    
 
     def __ipow__(self, other):    #denoted **=
         if isinstance(self, Gate):  
@@ -345,20 +323,17 @@ class Gate:
 
     def __mul__(self, other):       #matrix multiplication
         _summ = np.zeros(1,dtype=np.complex128)  #could delete summ and make more elegant
-        other_shift = other.dim.bit_length() - 1
-        self_shift = self.dim.bit_length() - 1
         if isinstance(self, Gate):
             if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
                 if self.dim == other.dim:
                     new_info = "This is a matrix multiplication of gates: "f"{self.name}"" and "f"{other.name}"
                     new_name = f"{self.name} * {other.name}"
                     new_mat = np.zeros(self.length,dtype=np.complex128)
-                    
                     for i in range(self.dim):
                         for k in range(self.dim):
                             for j in range(self.dim):    #again a mess and done in a different manner to tensor product
-                                _summ[0] += (self.matrix[j+(i << other_shift)]*other.matrix[k+(j << self_shift)])
-                            new_mat[k+(i << self_shift)] += _summ[0]
+                                _summ[0] += (self.matrix[j+self.dim*i]*other.matrix[k+j*self.dim])
+                            new_mat[k+self.dim*i] += _summ[0]
                             _summ = np.zeros(1,dtype=np.complex128)
                     if isinstance(other, Density):
                         new_info = "This is the density matrix of: "f"{self.name}"" and "f"{other.name}"
@@ -373,7 +348,7 @@ class Gate:
                     new_mat = np.zeros(self.dim,dtype=np.complex128)
                     for i in range(self.dim):
                             for j in range(self.dim):
-                                _summ[0] += (self.matrix[j+(i << other_shift)]*other.vector[j])
+                                _summ[0] += (self.matrix[j+self.dim*i]*other.vector[j])
                             new_mat[i] += _summ[0]
                             _summ = np.zeros(1,dtype=np.complex128)
                     return Qubit(new_name, np.array(new_mat))
@@ -658,5 +633,4 @@ q01 = q0 @ q1
 print_array(Hadamard @ Hadamard)
 print_array(Identity @ Identity @ Identity)
 print_array(grover_alg(oracle_values, 5)[0])
-
-cProfile.run("qub.prob_dist()")
+print_array(grover_alg(oracle_values, 6, 10)[0])
