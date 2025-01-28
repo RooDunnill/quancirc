@@ -295,6 +295,22 @@ class Gate:
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.matrix}[/not bold]"
     
+    #def __matmul__(self, other):
+        if isinstance(other, Gate):
+            new_info = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
+            new_name = f"{self.name} @ {other.name}"
+            new_length = self.length*other.length
+            new_dim = self.dim*other.dim
+            new_mat = np.zeros(new_length,dtype=np.complex128)
+            for m in range(self.dim):
+                for i in range(self.dim):
+                    for j in range(other.dim):             #4 is 
+                        for k in range(other.dim):   #honestly, this works but is trash and looks like shit
+                            new_mat[k+j*new_dim+other.dim*i+other.dim*new_dim*m] += self.matrix[i+self.dim*m]*other.matrix[k+other.dim*j]
+            return Gate(new_name, new_info, np.array(new_mat))
+        else:
+            raise QC_error(qc_dat.error_class)
+ 
     def __matmul__(self, other):
         if isinstance(other, Gate):
             new_info = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
@@ -302,28 +318,15 @@ class Gate:
             new_length = self.length*other.length
             new_dim = self.dim*other.dim
             new_mat = np.zeros(new_length,dtype=np.complex128)
+            self_shift = self.dim.bit_length() - 1
+            other_shift = other.dim.bit_length() - 1
+            new_shift = (self.dim*other.dim).bit_length() - 1
+            comb_shift = other_shift + new_shift
             for m in range(self.dim):
                 for i in range(self.dim):
-                    for j in range(other.dim):
+                    for j in range(other.dim):             #4 is 100 2 is 10
                         for k in range(other.dim):   #honestly, this works but is trash and looks like shit
-                            new_mat[k+j*new_dim+other.dim*i+other.dim*new_dim*m] += self.matrix[i+self.dim*m]*other.matrix[k+other.dim*j]
-            return Gate(new_name, new_info, np.array(new_mat))
-        else:
-            raise QC_error(qc_dat.error_class)
- 
-    #def __matmul__(self, other):
-        if isinstance(other, Gate):
-            
-            new_info = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
-            new_name = f"{self.name} @ {other.name}"
-            new_length = self.length*other.length
-            new_dim = self.dim*other.dim
-            new_mat = np.zeros(new_length,dtype=np.complex128)
-            for m in range(self.dim):
-                for i in range(self.dim):
-                    for j in range(other.dim):
-                        for k in range(other.dim):   #honestly, this works but is trash and looks like shit
-                            new_mat[k+j*new_dim+(i+m<<new_dim.bit_length())*other.dim] += self.matrix[i+self.dim*m]*other.matrix[k+other.dim*j]
+                            new_mat[k+(j << new_shift)+(i << other_shift)+(m << comb_shift)] += self.matrix[i+(m << self_shift)]*other.matrix[k+(j << other_shift)]
             return Gate(new_name, new_info, np.array(new_mat))
         else:
             raise QC_error(qc_dat.error_class)
@@ -590,7 +593,7 @@ def alg_template(Qubit):         #make sure to mat mult the correct order
     print_array(_pd_result)
     print_array(result)
 qub = q0 @ q0 @ q1
-#alg_template(qub)
+alg_template(qub)
 
 def alg_template2(Qubit):         #make sure to mat mult the correct order
     circuit = [["X","H","X"],
@@ -621,6 +624,7 @@ def grover_alg(oracle_values, n, iterations=None):
         iterations = op_iter
         if iterations < 1:
             iterations = 1
+        print_array(f"Optimal amount of iterations are: {iterations}")
     qub = q0
     had_op = Hadamard
     flip_cond = - np.ones(qub.dim**n)
@@ -638,11 +642,12 @@ def grover_alg(oracle_values, n, iterations=None):
             intermidary_qubit.vector[j] = intermidary_qubit.vector[j] * vals 
         final_state = had_op * intermidary_qubit
         it += 1
+        print_array("Iterated once")
         final_state.name = f"Grover Search with Oracle Values {oracle_values}, after {int(iterations)} iterations is: "
     final_state = final_state.prob_dist()
     return final_state, op_iter
 q00 = q0 @ q0 
 q01 = q0 @ q1
-Hadamard @ Hadamard
-print_array(X_Gate@Z_Gate)
-print_array(CNot@Z_Gate)
+print_array(Hadamard @ Hadamard)
+print_array(Identity @ Identity @ Identity)
+#print_array(grover_alg(oracle_values, 5)[0])
