@@ -221,7 +221,7 @@ class Qubit:
                 qubit_conj = np.conj(self.vector)
                 new_name = f"PD for {self.name}"
                 for i in range(self.dim):
-                    new_mat[i] = self.vector[i]*qubit_conj[i]
+                    new_mat[i] = (self.vector[i]*qubit_conj[i]).real
                     norm += new_mat[i]
             if np.isclose(norm, 1.0, atol=1e-5):
                 return Prob_dist(new_name, qc_dat.prob_dist_info, np.array(new_mat))
@@ -637,13 +637,14 @@ def phase_oracle(qub, oracle_values):
     return qub
 
 def grover_alg(oracle_values, n, iterations=None):
-    console.rule(f"Grovers algorithm with values: {oracle_values}", style="headers")
-    op_iter = (np.pi/4)*np.sqrt((2**n)/len(oracle_values)) - 0.5
+    search_space: int = 2**n
+    console.rule(f"Grovers algorithm with values:{oracle_values} and a search space of {search_space}", style="headers")
+    op_iter = (np.pi/4)*np.sqrt((search_space)/len(oracle_values)) - 0.5
     if iterations == None:
         iterations = op_iter
         if iterations < 1:
             iterations = 1
-        print_array(f"Optimal amount of iterations are: {iterations}")
+        print_array(f"Optimal amount of iterations are: {iterations:.4}")
     qub = q0
     had_op = Hadamard
     flip_cond = - np.ones(qub.dim**n)
@@ -664,14 +665,9 @@ def grover_alg(oracle_values, n, iterations=None):
         print_array(f"Iteration number: {it}")
         final_state.name = f"Grover Search with Oracle Values {oracle_values}, after {int(iterations)} iterations is: "
     final_state = final_state.prob_dist()
+    print_array(final_state)
+    console.rule(f"", style="headers")
     return final_state, op_iter
 q00 = q0 @ q0 
 q01 = q0 @ q1
-print_array(Hadamard @ Hadamard)
-print_array(Identity @ Identity @ Identity)
-print_array(grover_alg(oracle_values, 3)[0])
-print_array(grover_alg(oracle_values, 3))
-
-print_array(Hadamard * Hadamard)
-#cProfile.run("grover_alg(oracle_values, 9)[0]")
-print_array(CNot)
+grover_alg(oracle_values, 3)
