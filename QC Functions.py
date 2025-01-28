@@ -203,21 +203,25 @@ class Qubit:
         if isinstance(self, Qubit):
             new_mat = np.zeros(self.dim,dtype=np.float64)
             norm = 0
-            for i in range(self.dim):
-                meas_state_vector = np.zeros(self.dim,dtype=np.complex128)
-                meas_state_vector[i] += 1
-                meas_state = Qubit("f|{i}>",meas_state_vector)
-                if final_gate:
-                    new_name = f"PD for {self.name} applied to Circuit:"
-                    new_mat[i] = self.prob_state(meas_state, final_gate).real
-                    norm += self.prob_state(meas_state, final_gate)
-                else:
-                    new_name = f"PD for {self.name}"
-                    new_mat[i] = self.prob_state(meas_state)
-                    norm += self.prob_state(meas_state)   
             if final_gate:
-                if isinstance(final_gate, Gate) == False:
+                if isinstance(final_gate, Gate):
+                    for i in range(self.dim):
+                        meas_state_vector = np.zeros(self.dim,dtype=np.float64)
+                        meas_state_vector[i] += 1
+                        meas_state = Qubit("f|{i}>",meas_state_vector)
+                        new_name = f"PD for {self.name} applied to Circuit:"
+                        new_mat[i] = self.prob_state(meas_state, final_gate).real
+                        norm += self.prob_state(meas_state, final_gate)
+                else:
                     raise QC_error(qc_dat.error_class)
+            else:
+                for i in range(self.dim):
+                    meas_state_vector = np.zeros(self.dim,dtype=np.float64)
+                    meas_state_vector[i] += 1
+                    meas_state = Qubit("f|{i}>",meas_state_vector)
+                    new_name = f"PD for {self.name}"
+                    new_mat[i] = self.prob_state(meas_state).real
+                    norm += self.prob_state(meas_state) 
             if np.isclose(norm, 1.0, atol=1e-5):
                 return Prob_dist(new_name, qc_dat.prob_dist_info, np.array(new_mat))
             else:
@@ -649,7 +653,7 @@ def grover_alg(oracle_values, n, iterations=None):
             intermidary_qubit.vector[j] = intermidary_qubit.vector[j] * vals 
         final_state = had_op * intermidary_qubit
         it += 1
-        print_array("Iterated once")
+        print_array(f"Iterattion number: {it}")
         final_state.name = f"Grover Search with Oracle Values {oracle_values}, after {int(iterations)} iterations is: "
     final_state = final_state.prob_dist()
     return final_state, op_iter
@@ -657,6 +661,6 @@ q00 = q0 @ q0
 q01 = q0 @ q1
 print_array(Hadamard @ Hadamard)
 print_array(Identity @ Identity @ Identity)
-print_array(grover_alg(oracle_values, 4)[0])
+print_array(grover_alg(oracle_values, 3)[0])
 print_array(Hadamard * Hadamard)
-cProfile.run("grover_alg(oracle_values, 5)[0]")
+cProfile.run("grover_alg(oracle_values, 7)[0]")
