@@ -311,6 +311,23 @@ class Gate:
         else:
             raise QC_error(qc_dat.error_class)
  
+    #def __matmul__(self, other):
+        if isinstance(other, Gate):
+            
+            new_info = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
+            new_name = f"{self.name} @ {other.name}"
+            new_length = self.length*other.length
+            new_dim = self.dim*other.dim
+            new_mat = np.zeros(new_length,dtype=np.complex128)
+            for m in range(self.dim):
+                for i in range(self.dim):
+                    for j in range(other.dim):
+                        for k in range(other.dim):   #honestly, this works but is trash and looks like shit
+                            new_mat[k+j*new_dim+(i+m<<new_dim.bit_length())*other.dim] += self.matrix[i+self.dim*m]*other.matrix[k+other.dim*j]
+            return Gate(new_name, new_info, np.array(new_mat))
+        else:
+            raise QC_error(qc_dat.error_class)
+
     def __ipow__(self, other):    #denoted **=
         if isinstance(self, Gate):  
             self = self @ other
@@ -596,6 +613,7 @@ def phase_oracle(qub, oracle_values):
     for j, vals in enumerate(flip):
         qub.vector[j] = qub.vector[j] * vals        
     return qub
+
 def grover_alg(oracle_values, n, iterations=None):
     console.rule(f"Grovers algorithm with values: {oracle_values}", style="headers")
     op_iter = (np.pi/4)*np.sqrt((2**n)/len(oracle_values)) - 0.5
@@ -625,3 +643,6 @@ def grover_alg(oracle_values, n, iterations=None):
     return final_state, op_iter
 q00 = q0 @ q0 
 q01 = q0 @ q1
+Hadamard @ Hadamard
+print_array(X_Gate@Z_Gate)
+print_array(CNot@Z_Gate)
