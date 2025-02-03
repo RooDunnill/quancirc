@@ -1,14 +1,13 @@
+import time
+start = time.time()
 import numpy as np                                              #mostly used to make 1D arrays
 import random as rm                                             #used for measuring
-import time
 import atexit
 import matplotlib.pyplot as plt
 from rich.console import Console 
 from rich.theme import Theme
 from rich.table import Table
 import cProfile
-
-
 
 custom_theme = Theme({"Qubit_style":"spring_green4",
                       "Prob_dist_style":"green4",
@@ -19,7 +18,7 @@ custom_theme = Theme({"Qubit_style":"spring_green4",
                       "measure":"green1",
                       "headers":"dark_goldenrod"})
 console = Console(style="none",theme=custom_theme, highlight=False)
-start = time.time()
+
 def prog_end():    #made it to make the code at the end of the program a little neater
     stop = time.time()
     interval: float = stop - start
@@ -211,10 +210,8 @@ class Qubit:
                     new_state = final_gate * self
                     state_conj = np.conj(new_state.vector)
                     for i in range(self.dim):
-                        new_mat[i] = new_state.vector[i]*state_conj[i]
+                        new_mat[i] = (new_state.vector[i]*state_conj[i]).real
                         norm += new_mat[i]
-                        print(norm)
-                    print_array(f"Array after computing the probs with gate{self}")
                 else:
                     raise QC_error(qc_dat.error_class)
             else:
@@ -449,6 +446,16 @@ class U_Gate(Gate):
         self.dim = int(np.sqrt(self.length))
         self.shift = self.dim.bit_length() - 1
         
+
+class Phase_Gate(Gate):
+    def __init__(self, name, info, theta):
+        self.name = name
+        self.info = info
+        self.matrix = np.array([1,0,0,np.exp(np.complex128(0-1j)*theta)])
+        self.length = len(self.matrix)
+        self.dim = int(np.sqrt(self.length))
+        self.shift = self.dim.bit_length() - 1
+
 class Density(Gate):
     def __init__(self, name, info, matrix):
         self.name = name
@@ -524,8 +531,6 @@ class print_array:    #made to try to make matrices look prettier
         
         else:
             console.print(array,markup=True,style="White")
-   
-
 
 X_Gate = Gate("X", qc_dat.X_Gate_info, qc_dat.X_matrix)
 Y_Gate = Gate("Y",qc_dat.Y_Gate_info, qc_dat.Y_matrix)
@@ -534,7 +539,7 @@ Identity = Gate("I",qc_dat.Identity_info, qc_dat.Identity_matrix)
 Hadamard = Gate("H",qc_dat.Hadamard_info, qc_dat.Hadamard_matrix)
 U_Gate_X = U_Gate("Universal X", qc_dat.U_Gate_info, np.pi, 0, np.pi)
 U_Gate_H = U_Gate("Universal H", qc_dat.U_Gate_info, np.pi/2, 0, np.pi)
-CNot_flip = C_Gate("CNot", qc_dat.C_Not_matrix, X_Gate, 2, 1)
+CNot_flip = C_Gate("CNot_flip", qc_dat.C_Not_matrix, X_Gate, 2, 1)
 CNot = C_Gate("CNot", qc_dat.C_Not_matrix, X_Gate, 1, 2)
 gate_operations = {
     "H": Hadamard,
@@ -578,19 +583,17 @@ def alg_template(Qubit):         #make sure to mat mult the correct order
                ["H","X","H"],
                ["Z","Z","H"]]
     console.rule(f"Algorithm acting on {Qubit.name} state", style="headers")
-    gate1 = X_Gate @ CNot
-    gate2 = Z_Gate @ X_Gate @ X_Gate
-    gate3 = Hadamard @ Hadamard @ X_Gate
-    gate4 = CNot @ Hadamard
-    gate5 = CNot @ Hadamard
-    gate6 = Identity @ Hadamard @ Identity
-    alg = gate6 * gate5 * gate4 * gate3 * gate2 * gate1
+    gate1 = CNot
+    gate2 = CNot_flip
+    gate3 = CNot
+    alg = gate3 * gate2 * gate1
+    print_array(alg)
     _pd_result = Qubit.prob_dist(alg)
     result = Qubit.measure(alg)
     print_array(_pd_result)
     print_array(result)
-qub = q0 @ q0 @ q1
-#alg_template(qub)
+qub = q0 @ q0
+alg_template(qub)
 
 def alg_template2(Qubit):         #make sure to mat mult the correct order
     circuit = [["X","H","X"],
@@ -605,7 +608,7 @@ def alg_template2(Qubit):         #make sure to mat mult the correct order
     print_array(result)
 qub = q0 @ q0 @ q1
 #alg_template2(qub)
-oracle_values = [3, 1]
+oracle_values = [3, 1, 6]
 
 
 def sort(obj, oracle_values=None):
@@ -643,7 +646,7 @@ def grover_alg(oracle_values, n, iterations=None):
     if iterations == None:
         iterations = op_iter
         if iterations < 1:
-            iterations = 1
+            iterations = 1.0000
         print_array(f"Optimal amount of iterations are: {iterations:.4}")
     qub = q0
     had_op = Hadamard
@@ -670,4 +673,5 @@ def grover_alg(oracle_values, n, iterations=None):
     return final_state, op_iter
 q00 = q0 @ q0 
 q01 = q0 @ q1
-grover_alg(oracle_values, 3)
+print_array(qplus.bloch_plot())
+cProfile.run("grover_alg(oracle_values, 4)")
