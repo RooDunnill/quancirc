@@ -4,9 +4,8 @@ import numpy as np                                              #mostly used to 
 import random as rm                                             #used for measuring
 import atexit
 import matplotlib.pyplot as plt
-from rich.console import Console 
+from rich.console import Console
 from rich.theme import Theme
-from rich.table import Table
 import cProfile
 
 custom_theme = Theme({"Qubit_style":"spring_green4",
@@ -136,7 +135,7 @@ class Qubit:
         if isinstance(other, Qubit):           #although this tensors are all 1D   
             self_name_size = int(np.log2(self.dim))
             other_name_size = int(np.log2(other.dim))
-            new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>" 
+            new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
             new_length: int = self.dim*other.dim
             new_vector = np.zeros(new_length,dtype=np.complex128)
             other_shift = other.dim.bit_length() - 1
@@ -495,7 +494,14 @@ class Prob_dist(Qubit):          #used mostly for isinstance functions
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.matrix}[/not bold]"
 
-        
+class Grover(Gate):
+    def __init__(self, oracle_values, n, results):
+        self.oracle = oracle_values
+        self.qubits = n
+        self.results = results
+
+    def __str__(self):
+        return f"{}"
 
 class print_array:    #made to try to make matrices look prettier
     def __init__(self, array):
@@ -580,9 +586,6 @@ def quant_fourier_trans(qub):          #also for shors although used in other al
     return four_qub_sum
 
 def alg_template(Qubit):         #make sure to mat mult the correct order
-    circuit = [["X","H","X"],
-               ["H","X","H"],
-               ["Z","Z","H"]]
     console.rule(f"Algorithm acting on {Qubit.name} state", style="headers")
     gate1 = CNot
     gate2 = CNot_flip
@@ -597,9 +600,6 @@ qub = q0 @ q0
 #alg_template(qub)
 
 def alg_template2(Qubit):         #make sure to mat mult the correct order
-    circuit = [["X","H","X"],
-               ["H","X","H"],
-               ["Z","Z","H"]]
     console.rule(f"Algorithm acting on {Qubit.name} state", style="headers")
     gate1 = X_Gate @ X_Gate @ X_Gate
     alg = gate1
@@ -609,11 +609,22 @@ def alg_template2(Qubit):         #make sure to mat mult the correct order
     print_array(result)
 qub = q0 @ q0 @ q1
 #alg_template2(qub)
-oracle_values = [3, 1, 6]
+oracle_values = [3, 1, 8, 10]
 
 
-def sort(obj, oracle_values=None):        #doesnt work currently, also not needed for Grovers, will most likely remove
+def sort(obj, oracle_values):        #doesnt work currently, also not needed for Grovers, will most likely remove
     if isinstance(obj, Prob_dist):
+        oracle_ans = np.zeros(len(oracle_values))
+        oracle_states = np.zeros(len(oracle_values))
+        for p, vals in enumerate(obj.matrix):
+            val_ph = vals
+            if p > 0:
+                if val_ph > vals:
+                    pass
+            pass
+
+
+            
         save_probs = np.zeros(len(oracle_values))
         k = 0
         print_array(obj)
@@ -639,6 +650,25 @@ def phase_oracle(qub, oracle_values):          #the Grover phase oracle
     for j, vals in enumerate(flip):
         qub.vector[j] = qub.vector[j] * vals        
     return qub
+
+def top_probs(prob_list, n):
+    top_n = np.array([], dtype=prob_list.dtype)
+    temp_lst = prob_list.copy()  
+    
+    for _ in range(n):
+        max_value = np.max(temp_lst)
+        top_n = np.append(top_n, max_value)
+        temp_lst = np.delete(temp_lst, np.argmax(temp_lst))
+    
+    result = []
+    used_count = {} 
+    
+    for i, num in enumerate(prob_list):
+        if num in top_n and used_count.get(num, 0) < np.count_nonzero(top_n == num):
+            result.append((i, num))
+            used_count[num] = used_count.get(num, 0) + 1
+    
+    return np.array(result, dtype=object)
 
 def grover_alg(oracle_values, n, iterations=None):     #Grovers algorithm, can input the number of qubits and also a custom amount of iterations
     search_space: int = 2**n
@@ -670,9 +700,11 @@ def grover_alg(oracle_values, n, iterations=None):     #Grovers algorithm, can i
         final_state.name = f"Grover Search with Oracle Values {oracle_values}, after {int(iterations)} iterations is: "
     final_state = final_state.prob_dist()
     print_array(final_state)
+    sorted_list = top_probs(final_state.matrix, len(oracle_values))
+    print(sorted_list)
     console.rule(f"", style="headers")
     return final_state, op_iter
 q00 = q0 @ q0 
 q01 = q0 @ q1
 #print_array(qplus.bloch_plot())
-grover_alg(oracle_values, 5)
+grover_alg(oracle_values, 6)
