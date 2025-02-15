@@ -50,7 +50,8 @@ class qc_dat:                    #defines a class to store variables in to recal
     Y_Gate_info = "Used to flip the Qubit in the Y basis."
     Y_matrix = [0,np.complex128(0-1j),np.complex128(0+1j),0]           
     Z_Gate_info = "Used to flip the Qubit in the Z basis. This gate flips from 1 to 0 in the computational basis."
-    Z_matrix = [1,0,0,-1]                                      
+    Z_matrix = [1,0,0,-1] 
+    minusZ_matrix = [-1,0,0,1]                                     
     n = 1/np.sqrt(2)
     Hadamard_info = """The Hadamard gate is one of the most useful gates, used to convert the Qubit from
     the computation basis to the plus, minus basis. When applied twice, it can lead back to its original value/
@@ -75,6 +76,7 @@ class qc_dat:                    #defines a class to store variables in to recal
     error_trace = "the trace does not equal 1 and so the calculation has gone wrong somewhere."
     error_imag_prob = "the probability must be all real values."
     error_norm = "the sum of these values must equal 1 to preserve probability."
+    error_iterations = "to customise the iterations value, you must provide the number of qubits used in the search"
     qubit_info = """The Qubit is the quantum equivalent to the bit. However, due to the nature of 
         Quantum Mechanics, it can take any value rather than just two. However, by measuring the state
         in which it is in, you collapse the wavefunction and the Qubit becomes 1 of two values, 1 or 0."""
@@ -114,11 +116,30 @@ def is_real(obj):
         return False
 
 class Qubit:              
-    def __init__(self, name, vector) -> None:
+    def __init__(self, name, *args, **kwargs) -> None:
+        self.state_type = kwargs.get("type", "pure")
         self.name = name
-        self.vector = np.array(vector,dtype=np.complex128)
-        self.dim = len(vector)                    #used constantly in all calcs so defined it universally
+        self.vector = np.array(kwargs.get("vector",np.array([1,0])),dtype=np.complex128)
+        self.dim = len(self.vector)                    #used constantly in all calcs so defined it universally
         self.shift = self.dim.bit_length() - 1
+        self.density = None
+        if self.state_type == "pure":
+            pass
+        elif self.state_type == "mixed":
+            self.vector = np.array(kwargs.get("vectors",[]),dtype = np.complex128)
+            self.weights = kwargs.get("weights", [])
+            self.density = self.density_mat()
+        elif self.state_type == "seperable":
+            qubit_states = np.array(kwargs.get("vectors",[]),dtype = np.complex128)
+            self.vector = qubit_states[0]
+            for state in qubit_states[1:]:
+                self.vector = self @ state
+                print(self)
+        elif self.state_type == "entangled":
+            pass
+        else:
+            pass
+
         
     def __str__(self):
         return f"{self.name}\n{self.vector}"   #did this so that the matrix prints neatly
@@ -137,7 +158,20 @@ class Qubit:
             for i in range(self.dim):     #multiplies the second ket by each value in the first ket
                 for j in range(other.dim):          #iterates up and down the second ket
                     new_vector[j+(i << other_shift)] += self.vector[i]*other.vector[j] #adds the values into
-            return Qubit(new_name, np.array(new_vector))    #returns a new Object with a new name too
+            return Qubit(new_name, vector=np.array(new_vector))    #returns a new Object with a new name too
+        elif isinstance(other, np.ndarray):
+            other_dim = len(other)
+            self_name_size = int(np.log2(self.dim))
+            other_name_size = int(np.log2(other_dim))
+            new_name = f""
+            new_length: int = self.dim*other_dim
+            new_vector = np.zeros(new_length,dtype=np.complex128)
+            for i in range(self.dim):     #multiplies the second ket by each value in the first ket
+                for j in range(other_dim):          #iterates up and down the second ket
+                    new_vector[j+(i * other_dim)] += self.vector[i]*other[j] #adds the values into
+            return np.array(new_vector)    #returns a new Object with a new name too
+
+            print(test)
         else:
             raise QC_error(qc_dat.error_class)
 
@@ -145,6 +179,8 @@ class Qubit:
         if isinstance(self, Qubit):  
             self = self @ other
             return self
+        elif isinstance(self, Qubit.vector):
+            print(test2)
         else:
             raise QC_error(qc_dat.error_class)
 
@@ -241,7 +277,7 @@ class Qubit:
         vals = np.zeros(2,dtype=np.complex128)
         vals[0] = self.vector[0]
         vals[1] = self.vector[1]
-        plotted_qubit = Qubit("", vals)
+        plotted_qubit = Qubit("", vector=vals)
         den_mat = plotted_qubit.density_mat()
         x = 2*np.real(den_mat.matrix[1])
         y = 2*np.imag(den_mat.matrix[2])
@@ -272,10 +308,10 @@ class Qubit:
         
 
 
-q0 = Qubit("|0>",qc_dat.q0_matrix)
-q1 = Qubit("|1>",qc_dat.q1_matrix)
-qplus = Qubit("|+>",qc_dat.qplus_matrix)
-qminus = Qubit("|->",qc_dat.qminus_matrix)
+q0 = Qubit("|0>",vector=qc_dat.q0_matrix)
+q1 = Qubit("|1>",vector=qc_dat.q1_matrix)
+qplus = Qubit("|+>",vector=qc_dat.qplus_matrix)
+qminus = Qubit("|->",vector=qc_dat.qminus_matrix)
 q0.norm()
 q1.norm()
 qplus.norm()
@@ -353,7 +389,7 @@ class Gate:            #creates a gate class to enable unique properties
                             _summ += (self.matrix[j+(i * other.dim)]*other.vector[j])
                         new_mat[i] += _summ
                         _summ = 0
-                    return Qubit(new_name, np.array(new_mat))
+                    return Qubit(new_name, vector=np.array(new_mat))
                 else:
                     raise QC_error(qc_dat.error_mat_dim)
             else:
@@ -566,18 +602,18 @@ def fractional_binary(qub,m):             #for shors
             print(float(frac_bin[i+2]))
         print("new func")
         return val
-
+qub = q1 @ q1 @ q1 
 def quant_fourier_trans(qub):          #also for shors although used in other algorithms
     old_name = qub.name
     n = int(np.ceil(np.log2(qub.dim)))
     frac_init = fractional_binary(qub,1)
-    four_qub_init = Qubit("",np.array([1,np.exp(2*1j*np.pi*frac_init)]))
+    four_qub_init = Qubit("",vector=np.array([1,np.exp(2*1j*np.pi*frac_init)]))
     print_array(four_qub_init)
     four_qub_init.norm()
     four_qub_sum = four_qub_init
     for j in range(n-1):
         frac = fractional_binary(qub,j+2)
-        four_qub = Qubit("",np.array([1,np.exp(2*1j*np.pi*frac)]))
+        four_qub = Qubit("",vector=np.array([1,np.exp(2*1j*np.pi*frac)]))
         four_qub.norm()
         print_array(four_qub)
         four_qub_sum **= four_qub
@@ -608,7 +644,7 @@ def alg_template2(qub):         #make sure to mat mult the correct order
     print_array(result)
 qub = q0 @ q0 @ q1
 #alg_template2(qub)
-oracle_values = [3, 31, 45]
+oracle_values = [3, 31, 45, 220, 200, 90, 80, 5, 4, 2, 1]
 
 def phase_oracle(qub, oracle_values):          #the Grover phase oracle
     flip = np.ones(qub.dim)
@@ -675,5 +711,87 @@ def grover_alg(oracle_values, n, iterations=None):     #Grovers algorithm, can i
 q00 = q0 @ q0 
 q01 = q0 @ q1
 #print_array(qplus.bloch_plot())
+def grover_alg_op(oracle_values, n=None, iterations=None, **kwargs):     #Grovers algorithm, can input the number of qubits and also a custom amount of iterations
+    console.rule(f"Grovers search with oracle values: {oracle_values}", style="headers")
+    n_cap = int(kwargs.get("qubit_cap",12))
+    spec_had_mat = np.array([1,1,1,-1])
+    spec_had = Gate("Custom Hadamard for Grovers", qc_dat.Hadamard_info, spec_had_mat)
+    if n == None:
+        print_array(f"Using up to {n_cap} Qubits to run the search")
+        if iterations == None:
+            max_oracle = max(oracle_values)
+            n_qubit_min = 1
+            search_space = 2
+            while max_oracle > 2**n_qubit_min:
+                n_qubit_min += 1
+            n_qubit_range = np.arange(n_qubit_min, n_cap + 1, dtype=int)
+            for i in n_qubit_range:
+                search_space = 2**i
+                int_val = 1
+                op_iter = ((np.pi/4)*np.sqrt((search_space)/len(oracle_values)) - 0.5)
+                int_dist = op_iter - np.floor((np.pi/4)*np.sqrt((search_space)/len(oracle_values)) - 0.5)
+                print_array(f"Optimal iterations for {i} Qubits is: {op_iter:.3f}")
+                if int_dist <= int_val:
+                    n = i
+                    search_space: int = 2**n
+                    int_val = int_dist
+            print_array("\n")
+            print_array(f"Using {n} Qubits and a search space of {search_space} to get the best accuracy")
+        else:
+            raise QC_error(qc_dat.error_iterations)
+    else:
+        search_space = 2**n
+        print_array(f"Using {n} Qubits and a search space of {search_space}")
+    op_iter = round((np.pi/4)*np.sqrt((search_space)/len(oracle_values)) - 0.5)
 
-cProfile.run("grover_alg(oracle_values, 12, 16)")
+    if iterations == None:
+        iterations = op_iter
+        if iterations < 1:
+            iterations = 1.0000
+        print_array(f"Optimal number of iterations are: {iterations}")
+    else:
+        print_array(f"Number of iterations to perform are: {iterations}")
+    qub = q0
+    had_op = spec_had
+    had_norm = 1/np.sqrt(2**n)
+    for i in range(n-1):
+        qub **= q0
+        had_op **= spec_had
+    it = 0
+    while it < int(iterations):
+        if it != 0:
+            qub = final_state
+        initialized_qubit = had_op * qub
+        intermidary_qubit = had_op * phase_oracle(initialized_qubit, oracle_values)
+        intermidary_qubit.vector *= -1
+        intermidary_qubit.vector[0] *= -1
+        final_state = had_op * intermidary_qubit
+        it += 1
+        print(f"\rIteration number: {it} ", end="")    #allows to clear line without writing a custom print function in print_array
+    print_array("\n")
+    final_state.vector *= had_norm**(3*int(iterations))
+    final_state = final_state.prob_dist()
+    sorted_arr = top_probs(final_state.matrix, len(oracle_values))
+    output = Grover(final_state.name, oracle_values, n, sorted_arr)
+    output.name = f"The States of the Grover Search with Oracle Values {oracle_values}, after {int(iterations)} iterations is: "
+    print_array(output)
+    console.rule(f"", style="headers")
+    return output
+q00 = q0 @ q0 
+q01 = q0 @ q1
+grover_alg_op(oracle_values,qubit_cap=8)
+#print_array(Qubit("Seperable State",vectors=[[1,0],[0,1],[1,1]],type="seperable"))
+"""
+print_array(CNot)
+Ctrl_Z = C_Gate("Ctrl Z", "random info", Z_Gate, 1, 2)
+neg_z_gate = Gate("Negative Z Gate", "A negative Z Gate", qc_dat.minusZ_matrix)
+Ctrl_Z_neg_flip = C_Gate("Ctrl Z neg Flip", "random info", neg_z_gate, 2, 1)
+Ctrl_Z_Flip = C_Gate("Ctrl Z Flip", "random info", Z_Gate, 2, 1)
+print_array(neg_z_gate)
+print_array(Ctrl_Z)
+print_array(Ctrl_Z_Flip)
+print_array(Ctrl_Z_neg_flip)
+print_array((Identity @ Hadamard)*(Ctrl_Z)*(Identity @ Hadamard))
+print_array((Identity @ Hadamard)*(Ctrl_Z_Flip)*(Identity @ Hadamard))
+print_array((Identity @ Hadamard)*(Ctrl_Z_neg_flip)*(Identity @ Hadamard))
+"""
