@@ -169,6 +169,7 @@ class Qubit:
             for i in range(self.dim):     #multiplies the second ket by each value in the first ket
                 for j in range(other_dim):          #iterates up and down the second ket
                     new_vector[j+(i * other_dim)] += self.vector[i]*other[j] #adds the values into
+            self.dim = new_length
             return np.array(new_vector)    #returns a new Object with a new name too
 
             print(test)
@@ -318,13 +319,40 @@ qplus.norm()
 qminus.norm()
 
 class Gate:            #creates a gate class to enable unique properties
-    def __init__(self, name, info, matrix):
-        self.name = name
-        self.matrix = np.array(matrix,dtype=np.complex128)
-        self.info = info
-        self.length = len(matrix)          #naming these matrices and qubits vectors was a stupid idea XD
+    def __init__(self, **kwargs):
+        self.name = kwargs.get("name", "")
+        self.matrix = np.array(kwargs.get("matrix",[]),dtype=np.complex128)
+        self.info = kwargs.get("info", "")
+        self.length = len(self.matrix)          #naming these matrices and qubits vectors was a stupid idea XD
         self.dim = int(np.sqrt(self.length))
         self.shift = self.dim.bit_length() - 1
+
+    @classmethod
+    def X_Gate(cls):
+        X_matrix = [0,1,1,0]
+        return cls(name="X Gate", matrix=X_matrix,info=qc_dat.X_Gate_info)
+    
+    @classmethod
+    def Y_Gate(cls):
+        Y_matrix = [0,np.complex128(0-1j),np.complex128(0+1j),0]
+        return cls(name="Y Gate", matrix=Y_matrix,info=qc_dat.Y_Gate_info)
+
+    @classmethod
+    def Z_Gate(cls):
+        Z_matrix = [1,0,0,-1]
+        return cls(name="Z Gate", matrix=Z_matrix, info=qc_dat.Z_Gate_info)
+
+    @classmethod
+    def Identity(cls, **kwargs):
+        Id_matrix = [1,0,0,1]
+        return cls(name="Identity Gate", matrix=Id_matrix, info=qc_dat.Identity_info)
+    
+    @classmethod
+    def Hadamard(cls, **kwargs):
+        n = 1/np.sqrt(2)
+        H_matrix = [n,n,n,-n]
+        return cls(name="Hadamard", matrix=H_matrix, info=qc_dat.Hadamard_info)
+
 
     def __str__(self):
         return f"{self.name}\n{self.matrix}"
@@ -346,7 +374,7 @@ class Gate:            #creates a gate class to enable unique properties
                     for j in range(other.dim):             #4 is 100 2 is 10
                         for k in range(other.dim):   #honestly, this works but is trash and looks like shit
                             new_mat[k+(j << new_shift)+(i << other.shift)+(m << comb_shift)] += self.matrix[i+(m << self.shift)]*other.matrix[k+(j << other.shift)]
-            return Gate(new_name, new_info, np.array(new_mat))
+            return Gate(name=new_name, info=new_info, matrix=np.array(new_mat))
         else:
             raise QC_error(qc_dat.error_class)
 
@@ -376,7 +404,7 @@ class Gate:            #creates a gate class to enable unique properties
                         new_info = "This is the density matrix of: "f"{self.name}"" and "f"{other.name}"
                         return Density(new_name, new_info, new_mat)
                     else:
-                        return Gate(new_name, new_info, np.array(new_mat))
+                        return Gate(name=new_name, info=new_info, matrix=np.array(new_mat))
                 else:
                     raise QC_error(qc_dat.error_mat_dim)
             elif isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
@@ -410,7 +438,7 @@ class Gate:            #creates a gate class to enable unique properties
             for i in range(other.dim):     #although would be faster if i made a function to apply straight
                 for j in range(other.dim):    #to individual qubits instead
                     new_mat[self.dim+j+self.dim*new_dim+new_dim*i] += other.matrix[j+other.dim*i]
-            return Gate(new_name, new_info, np.array(new_mat))
+            return Gate(name=new_name, matrix=np.array(new_mat), info=new_info)
         else:
             raise QC_error(qc_dat.error_class)
     
@@ -425,9 +453,9 @@ class Gate:            #creates a gate class to enable unique properties
         print(qc_dat.gate_info)
 
 class C_Gate(Gate):       #for making custom cgates
-    def __init__(self, name, info, gate_action, qubit1, qubit2):
-        self.name = name
-        self.info = info
+    def __init__(self, gate_action, qubit1, qubit2,**kwargs):
+        self.name = kwargs.get("name", "")
+        self.info = kwargs.get("info", "")
         self.qubit1 = qubit1   #qubit 1 is the control qubit ie the identity matrix
         self.qubit2 = qubit2   #qubit 2 is the gate qubit, ie x for cnot gate
         self.gate_action = gate_action
@@ -458,9 +486,9 @@ class C_Gate(Gate):       #for making custom cgates
                 
 
 class U_Gate(Gate): #for making any unitary gate, pretty redundant but useful in niche cases
-    def __init__(self, name, info, a, b, c):
-        self.name = name
-        self.info = info
+    def __init__(self, a, b, c, **kwargs):
+        self.name = kwargs.get("name", "")
+        self.info = kwargs.get("info", "")
         self.a = a
         self.b = b
         self.c = c
@@ -574,22 +602,16 @@ class print_array:    #made to try to make matrices look prettier
         else:
             console.print(array,markup=True,style="White")
 
-X_Gate = Gate("X", qc_dat.X_Gate_info, qc_dat.X_matrix)
-Y_Gate = Gate("Y",qc_dat.Y_Gate_info, qc_dat.Y_matrix)
-Z_Gate = Gate("Z",qc_dat.Z_Gate_info, qc_dat.Z_matrix)
-Identity = Gate("I",qc_dat.Identity_info, qc_dat.Identity_matrix)
-Hadamard = Gate("H",qc_dat.Hadamard_info, qc_dat.Hadamard_matrix)
-U_Gate_X = U_Gate("Universal X", qc_dat.U_Gate_info, np.pi, 0, np.pi)
-U_Gate_H = U_Gate("Universal H", qc_dat.U_Gate_info, np.pi/2, 0, np.pi)
-CNot_flip = C_Gate("CNot_flip", qc_dat.C_Not_matrix, X_Gate, 2, 1)
-CNot = C_Gate("CNot", qc_dat.C_Not_matrix, X_Gate, 1, 2)
-gate_operations = {
-    "H": Hadamard,
-    "X": X_Gate,
-    "Y": Y_Gate,
-    "Z": Z_Gate,
-    "I": Identity
-}
+X_Gate = Gate.X_Gate()
+Y_Gate = Gate.Y_Gate()
+Z_Gate = Gate.Z_Gate()
+Identity = Gate.Identity()
+Hadamard = Gate.Hadamard()
+U_Gate_X = U_Gate(np.pi, 0, np.pi, info=qc_dat.U_Gate_info,name="Universal X")
+U_Gate_H = U_Gate(np.pi/2, 0, np.pi, info=qc_dat.U_Gate_info,name="Universal H")
+CNot_flip = C_Gate(X_Gate, 2, 1, info=qc_dat.C_Not_matrix,name="CNot_flip")
+CNot = C_Gate(X_Gate, 1, 2, info=qc_dat.C_Not_matrix,name="CNot")
+
 qub = q1 @ q1 @ q1
 def fractional_binary(qub,m):             #for shors
     num_bits = int(np.ceil(np.log2(qub.dim)))
@@ -678,7 +700,7 @@ def grover_alg(oracle_values, **kwargs):     #Grovers algorithm, can input the n
     n = kwargs.get("n", None)
     iterations = kwargs.get("iterations", None)
     spec_had_mat = np.array([1,1,1,-1])
-    spec_had = Gate("Custom Hadamard for Grovers", qc_dat.Hadamard_info, spec_had_mat)
+    spec_had = Gate(name="Custom Hadamard for Grovers", info=qc_dat.Hadamard_info, matrix=spec_had_mat)
     if n == None:
         print_array(f"Using up to {n_cap} Qubits to run the search")
         if iterations == None:
@@ -744,15 +766,14 @@ def grover_alg(oracle_values, **kwargs):     #Grovers algorithm, can input the n
     return output
 q00 = q0 @ q0 
 q01 = q0 @ q1
-grover_alg(oracle_values)
-grover_alg(oracle_values, n=10 )
-#print_array(Qubit("Seperable State",vectors=[[1,0],[0,1],[1,1]],type="seperable"))
-"""
+
+print_array(Qubit("Seperable State",vectors=[[1,0],[0,1],[1,1]],type="seperable"))
+
 print_array(CNot)
-Ctrl_Z = C_Gate("Ctrl Z", "random info", Z_Gate, 1, 2)
-neg_z_gate = Gate("Negative Z Gate", "A negative Z Gate", qc_dat.minusZ_matrix)
-Ctrl_Z_neg_flip = C_Gate("Ctrl Z neg Flip", "random info", neg_z_gate, 2, 1)
-Ctrl_Z_Flip = C_Gate("Ctrl Z Flip", "random info", Z_Gate, 2, 1)
+Ctrl_Z = C_Gate(Z_Gate, 1, 2)
+neg_z_gate = Gate(matrix=qc_dat.minusZ_matrix)
+Ctrl_Z_neg_flip = C_Gate(neg_z_gate, 2, 1)
+Ctrl_Z_Flip = C_Gate(Z_Gate, 2, 1)
 print_array(neg_z_gate)
 print_array(Ctrl_Z)
 print_array(Ctrl_Z_Flip)
@@ -760,4 +781,8 @@ print_array(Ctrl_Z_neg_flip)
 print_array((Identity @ Hadamard)*(Ctrl_Z)*(Identity @ Hadamard))
 print_array((Identity @ Hadamard)*(Ctrl_Z_Flip)*(Identity @ Hadamard))
 print_array((Identity @ Hadamard)*(Ctrl_Z_neg_flip)*(Identity @ Hadamard))
-"""
+
+grover_alg(oracle_values)
+print_array(X_Gate)
+print_array(Gate.X_Gate())
+print_array(Hadamard)
