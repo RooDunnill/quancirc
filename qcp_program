@@ -38,25 +38,15 @@ Now printing the values of the computation:""",style="info")
 print("\n \n")
 
 class qc_dat:                    #defines a class to store variables in to recall from so that its all
-    q0_matrix = [1,0]
-    q1_matrix = [0,1]
-    qplus_matrix = [1,1]
-    qminus_matrix = [1,-1]
     C_Not_info = """This gate is used to change the behaviour of one qubit based on another. 
     This sepecific function is mostly obselete now, it is preferred to use the C Gate class instead"""       #C_Not is mostly obsolete due to new C Gate class       #in one neat area
     C_Not_matrix = [1,0,0,0,0,1,0,0,0,0,0,1,0,0,1,0]#2 Qubit CNot gate in one configuration, need to add more
-    X_Gate_info = "Used to flip the Qubit in the X basis. Often seen in the CNot gate."             
-    X_matrix = [0,1,1,0]                           
-    Y_Gate_info = "Used to flip the Qubit in the Y basis."
-    Y_matrix = [0,np.complex128(0-1j),np.complex128(0+1j),0]           
-    Z_Gate_info = "Used to flip the Qubit in the Z basis. This gate flips from 1 to 0 in the computational basis."
-    Z_matrix = [1,0,0,-1] 
-    minusZ_matrix = [-1,0,0,1]                                     
-    n = 1/np.sqrt(2)
+    X_Gate_info = "Used to flip the Qubit in the X basis. Often seen in the CNot gate."                             
+    Y_Gate_info = "Used to flip the Qubit in the Y basis."       
+    Z_Gate_info = "Used to flip the Qubit in the Z basis. This gate flips from 1 to 0 in the computational basis."                           
     Hadamard_info = """The Hadamard gate is one of the most useful gates, used to convert the Qubit from
     the computation basis to the plus, minus basis. When applied twice, it can lead back to its original value/
     acts as an Identity matrix."""
-    Hadamard_matrix = np.array([n,n,n,-n])
     U_Gate_info = """This is a gate that can be transformed into most elementary gates using the constants a,b and c.
     For example a Hadamard gate can be defined with a = pi, b = 0 and c = pi while an X Gate can be defined by
      a = pi/2 b = 0 and c = pi. """
@@ -65,7 +55,6 @@ class qc_dat:                    #defines a class to store variables in to recal
     It is mainly used in this program to increase the dimension
     of other matrices. This is used within the tensor products when
     a Qubit has no gate action, but the others do."""
-    Identity_matrix = [1,0,0,1]
     error_class = "the operation is not with the correct class"
     error_mat_dim = "the dimensions of the matrices do not share the same value"
     error_value = "the value selected is outside the correct range of options"
@@ -78,8 +67,8 @@ class qc_dat:                    #defines a class to store variables in to recal
     error_norm = "the sum of these values must equal 1 to preserve probability."
     error_iterations = "to customise the iterations value, you must provide the number of qubits used in the search"
     qubit_info = """The Qubit is the quantum equivalent to the bit. However, due to the nature of 
-        Quantum Mechanics, it can take any value rather than just two. However, by measuring the state
-        in which it is in, you collapse the wavefunction and the Qubit becomes 1 of two values, 1 or 0."""
+    Quantum Mechanics, it can take any value rather than just two. However, by measuring the state
+    in which it is in, you collapse the wavefunction and the Qubit becomes 1 of two values, 1 or 0."""
     gate_info = """Gates are used to apply an operation to a Qubit. 
     They are normally situated on a grid of n Qubits.
     Using tensor products, we can combine all the gates 
@@ -103,8 +92,15 @@ def trace(matrix):
         for i in range(matrix.dim):
             tr += matrix.matrix[i+i*matrix.dim]
         return tr
+    elif isinstance(matrix, np.ndarray):
+        dim = int(np.sqrt(len(matrix)))
+        tr = 0
+        for i in range(dim):
+            tr += matrix[i+i*dim]
+        return tr
     else:
         raise QC_error(qc_dat.error_class)
+    
 
 def is_real(obj):
     if isinstance(obj, complex):
@@ -161,11 +157,6 @@ class Qubit:
         qm_vector = [n,-n]
         return cls(name="|->", vector=qm_vector)
         
-
-
-
-
-
     def __str__(self):
         return f"{self.name}\n{self.vector}"   #did this so that the matrix prints neatly
     
@@ -196,8 +187,6 @@ class Qubit:
                     new_vector[j+(i * other_dim)] += self.vector[i]*other[j] #adds the values into
             self.dim = new_length
             return np.array(new_vector)    #returns a new Object with a new name too
-
-            print(test)
         else:
             raise QC_error(qc_dat.error_class)
 
@@ -330,7 +319,6 @@ class Qubit:
         ax.plot([0,0],[-1,1],color="black")
         ax.plot([0,0],[-1,1],zdir="y",color="black")
         plot_counter += 1
-        
         
 q0 = Qubit.q0()
 q1 = Qubit.q1()
@@ -521,20 +509,52 @@ class Gate:            #creates a gate class to enable unique properties
         
 
 class Density(Gate):       #makes a matrix of the probabilities, useful for entangled states
-    def __init__(self, name, info, matrix):
-        self.name = name
-        self.info = info
-        self.matrix = matrix
-        self.length = len(self.matrix)
-        self.dim = int(np.sqrt(self.length))
+    def __init__(self, **kwargs):
+        self.name = kwargs.get("name", "")
+        self.qubit = kwargs.get("qubit", "")
+        self.q_vector = self.qubit.vector
+        self.dim = self.qubit.dim
+        self.length = self.dim**2
         self.shift = self.dim.bit_length() - 1
+        self.rho = kwargs.get("rho", self.construct_density_matrix())
+        self.state_type = kwargs.get("type", "pure")
 
     def __str__(self):
-        return f"{self.name}\n{self.matrix}"
+        return f"{self.name}\n{self.rho}"
     
     def __rich__(self):
-        return f"[bold]{self.name}[/bold]\n[not bold]{self.matrix}[/not bold]"
+        return f"[bold]{self.name}[/bold]\n[not bold]{self.rho}[/not bold]"
     
+    def construct_density_matrix(self):
+            return self.pure_state()
+        
+        
+        #     if state_type == "entangled":
+        #    return self.entangled_state()
+        #elif state_type == "mixed":
+        #    return self.mixed_state()
+        #elif state_type == "seperable":
+        #    return self.seperable_state()
+        #else:
+        
+    def pure_state(self):
+        if self.qubit.name != "":
+            self.name =f"Density matrix of qubit {self.qubit.name}"
+        rho = np.zeros(self.dim*self.dim,dtype=np.complex128)
+        qubit_conj = np.conj(self.q_vector)
+        for i in range(self.dim):
+            for j in range(self.dim):
+                rho[j+(i << self.shift)] += qubit_conj[i]*self.q_vector[j]
+        if abs(1 -trace(rho)) < 1e-5:
+            return rho
+        else:
+            raise QC_error(qc_dat.error_trace)
+        
+  
+
+
+
+
     def __and__(self, other):
         new_name = f"{self.name} + {other.name}"
         new_mat = np.zeros(self.length,dtype=np.complex128)
@@ -769,3 +789,4 @@ qub = q0 @ q0 @ q1
 oracle_values = [200, 199, 100,10,1]
 
 Grover(oracle_values).run()
+print_array(Density(qubit=q0))
