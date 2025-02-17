@@ -8,7 +8,7 @@ from rich.console import Console
 from rich.theme import Theme
 import cProfile
 
-custom_theme = Theme({"Qubit_style":"spring_green4",
+custom_theme = Theme({"Qubit_style":"spring_green4",               #creates nice colours for the print out
                       "Prob_dist_style":"green4",
                       "Gate_style":"dark_green",
                       "Density_style":"chartreuse4",
@@ -25,7 +25,7 @@ def prog_end():    #made it to make the code at the end of the program a little 
     plt.show()
 atexit.register(prog_end)
 
-console.rule(style="headers")
+console.rule(style="headers")     #creates the start message
 console.rule(f"Quantum Computer Simulator", style="headers")
 console.rule(style="headers")
 console.print("""Welcome to our Quantum Computer Simulator,
@@ -76,7 +76,7 @@ class qc_dat:                    #defines a class to store variables in to recal
     Then we can matrix multiply successive gates together to creat one
     universal matrix that we can apply to the Qubit before measuring"""
 
-class QC_error(Exception):
+class QC_error(Exception):                 #a custom error class to raise custom errors from qc_dat
     """Creates my own custom errors defined in qc_dat."""
     def __init__(self, message):
         self.message = message
@@ -84,8 +84,8 @@ class QC_error(Exception):
 
     def __str__(self):
         return f"{self.message}"
-
-def trace(matrix):
+ 
+def trace(matrix):                #calculates the trace of a matrix, either for a gate class or for a normal array
     """Just computes the trace of a matrix, mostly used as a checker"""
     if isinstance(matrix, Gate):
         tr = 0
@@ -102,7 +102,7 @@ def trace(matrix):
         raise QC_error(qc_dat.error_class)
     
 
-def is_real(obj):
+def is_real(obj):                 #pretty irrelevant but is used for checking probs are real
     if isinstance(obj, complex):
         if np.imag(obj) < 1e-5:
             return True
@@ -111,15 +111,15 @@ def is_real(obj):
     else:
         return False
 
-class Qubit:              
+class Qubit:                                           #creates the qubit class
     def __init__(self, **kwargs) -> None:
-        self.state_type = kwargs.get("type", "pure")
+        self.state_type = kwargs.get("type", "pure")                   #the default qubit is a single pure qubit |0>
         self.name = kwargs.get("name","|0>")
         self.vector = np.array(kwargs.get("vector",np.array([1,0])),dtype=np.complex128)
         self.dim = len(self.vector)                    #used constantly in all calcs so defined it universally
         self.shift = self.dim.bit_length() - 1
         self.density = None
-        if self.state_type == "pure":
+        if self.state_type == "pure":              #creates the state for a given type
             pass
         elif self.state_type == "mixed":
             self.vector = np.array(kwargs.get("vectors",[]),dtype = np.complex128)
@@ -135,7 +135,7 @@ class Qubit:
         else:
             pass
 
-    @classmethod
+    @classmethod                 #creates the default qubits, using class methods allows you to define an instance within the class
     def q0(cls):
         q0_vector = [1,0]
         return cls(name="|0>", vector=q0_vector)
@@ -173,9 +173,9 @@ class Qubit:
             other_shift = other.dim.bit_length() - 1
             for i in range(self.dim):     #multiplies the second ket by each value in the first ket
                 for j in range(other.dim):          #iterates up and down the second ket
-                    new_vector[j+(i << other_shift)] += self.vector[i]*other.vector[j] #adds the values into
-            return Qubit(name=new_name, vector=np.array(new_vector))    #returns a new Object with a new name too
-        elif isinstance(other, np.ndarray):
+                    new_vector[j+(i << other_shift)] += self.vector[i]*other.vector[j] #adds the values into each element of the vector
+            return Qubit(name=new_name, vector=np.array(new_vector))    #returns a new Qubit instance with a new name
+        elif isinstance(other, np.ndarray):                 #used for when you just need to compute it for a given array, this is for creating seperable states
             other_dim = len(other)
             self_name_size = int(np.log2(self.dim))
             other_name_size = int(np.log2(other_dim))
@@ -206,7 +206,7 @@ class Qubit:
     def qubit_info(self):      
         print(qc_dat.qubit_info)
 
-    def density_mat(self):
+    def density_mat(self):                     #will soon be replaced by the Density_matrix class
         new_name =f"Density matrix of qubit {self.name}"
         new_mat = np.zeros(self.dim*self.dim,dtype=np.complex128)
         qubit_conj = np.conj(self.vector)
@@ -219,7 +219,7 @@ class Qubit:
         else:
             raise QC_error(qc_dat.error_trace)
 
-    def prob_state(self, meas_state=None, final_gate=None) -> float:
+    def prob_state(self, meas_state=None, final_gate=None) -> float:             #find the prob of getting a specific state, will probably be replaced at some point
         global is_real
         if meas_state:
             if isinstance(self, Qubit) and isinstance(meas_state, Qubit):
@@ -277,7 +277,7 @@ class Qubit:
             if final_gate:
                 if isinstance(final_gate, Gate):
                     PD = self.prob_dist(final_gate)
-                    measurement = int(rm.choices(sequence, weights=PD.matrix)[0])
+                    measurement = int(rm.choices(sequence, weights=PD.matrix)[0])   #randomly picks a value based on the weighted probabilities
                 else:
                     raise QC_error(qc_dat.error_class)
             else:
@@ -334,7 +334,7 @@ class Gate:            #creates a gate class to enable unique properties
         self.dim = kwargs.get("dim", int(np.sqrt(self.length)))
         self.shift = self.dim.bit_length() - 1
 
-    @classmethod
+    @classmethod                #again creates some of the default gates, for ease of use and neatness
     def X_Gate(cls):
         X_matrix = [0,1,1,0]
         return cls(name="X Gate", matrix=X_matrix,info=qc_dat.X_Gate_info)
@@ -350,22 +350,22 @@ class Gate:            #creates a gate class to enable unique properties
         return cls(name="Z Gate", matrix=Z_matrix, info=qc_dat.Z_Gate_info)
 
     @classmethod
-    def Identity(cls, **kwargs):
+    def Identity(cls, **kwargs):                     #eventually want to make this so its n dimensional
         Id_matrix = [1,0,0,1]
         return cls(name="Identity Gate", matrix=Id_matrix, info=qc_dat.Identity_info)
     
-    @classmethod
-    def Hadamard(cls, **kwargs):
+    @classmethod          
+    def Hadamard(cls):
         n = 1/np.sqrt(2)
         H_matrix = [n,n,n,-n]
         return cls(name="Hadamard", matrix=H_matrix, info=qc_dat.Hadamard_info)
 
-    @classmethod
+    @classmethod                                        #allows for the making of any phase gate of 2 dimensions
     def P_Gate(cls, theta):
         P_matrix = [1,0,0,np.exp(np.complex128(0-1j)*theta)]
         return cls(name=f"Phase Gate with a phase {theta:.3f}", matrix=P_matrix)
 
-    @classmethod
+    @classmethod                                #allows for any unitary gates with three given variables
     def U_Gate(cls, a, b, c):
         U_matrix = [np.cos(a/2),
                     -np.exp(np.complex128(0-1j)*c)*np.sin(a/2),
@@ -373,15 +373,15 @@ class Gate:            #creates a gate class to enable unique properties
                     np.exp(np.complex128(0+1j)*(b+c))*np.cos(a/2)]
         return cls(name=f"Unitary Gate with values (a:{a:.3f}, b:{b:.3f}, c:{c:.3f})", matrix=U_matrix)
 
-    @classmethod
+    @classmethod                             #creates any specific control gate
     def C_Gate(cls, **kwargs):
         qubit1 = kwargs.get("qubit1", 1)
         qubit2 = kwargs.get("qubit2", 2)
         gate_action = kwargs.get("gate_action", X_Gate)
         qubit_dist = int(qubit1 - qubit2)
-        if qubit1 == 1 or qubit2 == 1:
+        if qubit1 == 1 or qubit2 == 1:                   #either creates an inverted one or a "normal" one
             if qubit_dist < 0:
-                i = 0
+                i = 0                                     #THE INVERTED CONTROL GATE MAY BE IMPLEMENTED WRONG
                 Id = Identity
                 while i < int(abs(qubit_dist) - 1):
                     Id += Identity
@@ -400,11 +400,7 @@ class Gate:            #creates a gate class to enable unique properties
             raise QC_error(qc_dat.error_qubit_pos)
         C_dim = int(abs(qubit_dist)*Identity.dim+gate_action.dim)
         C_length = C_dim*C_dim
-        
         return cls(name=f"Control {gate_action.name}", matrix=new_mat.matrix, dim=C_dim, len=C_length)
-
-
-
 
 
     def __str__(self):
@@ -537,7 +533,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         #    return self.seperable_state()
         #else:
         
-    def pure_state(self):
+    def pure_state(self):       #taken from the old density matrix function
         if self.qubit.name != "":
             self.name =f"Density matrix of qubit {self.qubit.name}"
         rho = np.zeros(self.dim*self.dim,dtype=np.complex128)
@@ -578,18 +574,18 @@ class Prob_dist(Qubit):          #used mostly for isinstance functions
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.matrix}[/not bold]"
 
-class Grover():
+class Grover():                                               #this is the Grover algorithms own class
     def __init__(self, oracle_values, **kwargs):
-        self.n_cap = int(kwargs.get("qubit_cap",10))
+        self.n_cap = int(kwargs.get("qubit_cap",10))             #DONT ALLOW THIS BEYOND 12 DUE TO COMPUTATIONAL ISSUES
         self.n = int(kwargs.get("n", 0))
-        self.it = int(kwargs.get("iterations", 0))
+        self.it = int(kwargs.get("iterations", 0))               #ANY MORE THAN 85ISH CRASHES FOR NOW
         self.oracle_values = oracle_values
         self.results = kwargs.get("results", [])
 
     def __str__(self):
         return f"{self.name}\n{self.results}"
     
-    def __rich__(self):
+    def __rich__(self):           #creates the correct printout so it shows the prob next to the ket written in ket notation
         num_bits = int(np.ceil(self.n))
         print_out = f"[bold]{self.name}[/bold]\n"
         for ket_val, prob_val in zip(self.results[:,0],self.results[:,1]):
@@ -604,7 +600,7 @@ class Grover():
             qub.vector[j] = qub.vector[j] * vals        
         return qub
 
-    def top_probs(self, prob_list, n):
+    def top_probs(self, prob_list, n):             #sorts through the probability distribution and finds the top n probabilities corresponding to the length n or the oracle values
         top_n = np.array([], dtype=prob_list.dtype)
         temp_lst = prob_list.copy()  
         for _ in range(n):
@@ -614,78 +610,77 @@ class Grover():
         result = []
         used_count = {} 
         for i, num in enumerate(prob_list):
-            if num in top_n and used_count.get(num, 0) < np.count_nonzero(top_n == num):
+            if num in top_n and used_count.get(num, 0) < np.count_nonzero(top_n == num):        #this accounts for if you have two numbers with the same value
                 result.append((i, num))
                 used_count[num] = used_count.get(num, 0) + 1
         return np.array(result, dtype=object)
 
     def run(self):     #Grovers algorithm, can input the number of qubits and also a custom amount of iterations
         console.rule(f"Grovers search with oracle values: {self.oracle_values}", style="headers")
-        spec_had_mat = np.array([1,1,1,-1])
+        spec_had_mat = np.array([1,1,1,-1])    #i use this so that all the matrix mults are by an integer value and not a float and then apply the float later
         spec_had = Gate(name="Custom Hadamard for Grovers", info=qc_dat.Hadamard_info, matrix=spec_had_mat)
-        if self.n == 0:
+        if self.n == 0:               #if the number of qubits required is not given then run:
             print_array(f"Using up to {self.n_cap} Qubits to run the search")
-            if self.it == 0:
+            if self.it == 0:           #if an iteration count is not given then run:
                 max_oracle = max(self.oracle_values)
                 n_qubit_min = 1
                 search_space = 2
-                while max_oracle > 2**n_qubit_min:
+                while max_oracle > 2**n_qubit_min:             #when picking the qubits, we need enough to allow the search space to be bigger than all the oracle values
                     n_qubit_min += 1
                 n_qubit_range = np.arange(n_qubit_min, self.n_cap + 1, dtype=int)
                 int_val = 0
-                for i in n_qubit_range:
-                    search_space = 2**i
-                    
-                    op_iter = ((np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5)
-                    int_dist = op_iter - np.floor((np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5)
-                    int_dist = abs(int_dist-0.5)
+                for i in n_qubit_range:   #goes through the range of possible qubit values from the smallest possible for the given oracle values up to the cap
+                    search_space = 2**i   #computes the search space for the given qubit value
+                    op_iter = ((np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5)     #can probs make this not be defined in so many places
+                    int_dist = op_iter - np.floor((np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5)  #finds the float value
+                    int_dist = abs(int_dist-0.5)             #shifts them down so its the distance from any integer
                     print_array(f"Optimal iterations for {i} Qubits is: {op_iter:.3f}")
-                    if int_dist > int_val:
+                    if int_dist > int_val:            #iterates through to find the smallest distance from an integer
                         self.n = i
                         int_val = int_dist
-                search_space: int = 2**self.n
+                search_space: int = 2**self.n       #computes the final search space for the chosen n
                 print_array("\n")
                 print_array(f"Using {self.n} Qubits with a search space of {search_space} to get the best accuracy")
             else:
                 raise QC_error(qc_dat.error_iterations)
         else:
-            search_space = 2**self.n
+            search_space = 2**self.n       #computes the search space for the n provided
             print_array(f"Using {self.n} Qubits and a search space of {search_space}")
         op_iter = round((np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5)
 
-        if self.it == 0:
+        if self.it == 0:     #now picks an iteration value
             self.it = op_iter
-            if self.it < 1:
-                self.it = 1.0000
+            if self.it < 1:    #obviously we cant have no iterations so it atleast does 1 iteration
+                self.it = 1.0000       #more of a failsafe, will almost certainly be wrong as the percentage diff from the it value to 1 will be large?
             print_array(f"Optimal number of iterations are: {self.it}")
         else:
             print_array(f"Number of iterations to perform are: {self.it}")
         qub = q0
         had_op = spec_had
-        had_norm = 1/np.sqrt(2**self.n)
-        for i in range(self.n-1):
+        had_norm = 1/np.sqrt(2**self.n)   #applies the norm afterwards to be more efficient
+        for i in range(self.n-1):    #creates the qubit and also the tensored hadamard for the given qubit size
             qub **= q0
             had_op **= spec_had
         it = 0
-        while it < int(self.it):
+        while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
             if it != 0:
                 qub = final_state
-            initialized_qubit = had_op * qub
-            intermidary_qubit = had_op * self.phase_oracle(initialized_qubit, self.oracle_values)
-            intermidary_qubit.vector *= -1
-            intermidary_qubit.vector[0] *= -1
-            final_state = had_op * intermidary_qubit
-            it += 1
+            initialized_qubit = had_op * qub       #applies a hadamard to every qubit                           STEP 1
+            intermidary_qubit = had_op * self.phase_oracle(initialized_qubit, self.oracle_values)              #STEP 2   phase flips the given oracle values
+            intermidary_qubit.vector *= -1           #inverts all of the phases of the qubit values             STEP 3a
+            intermidary_qubit.vector[0] *= -1              #inverts back the first qubits phase                 STEP 3b
+            final_state = had_op * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 4
+            it += 1                   #adds to the iteration counter
             print(f"\rIteration number: {it} ", end="")    #allows to clear line without writing a custom print function in print_array
         print_array("\n")
-        final_state.vector *= had_norm**(3*int(self.it))
-        final_state = final_state.prob_dist()
-        sorted_arr = self.top_probs(final_state.matrix, len(self.oracle_values))
-        output = Grover(final_state.name, n=self.n, results=sorted_arr)
+        final_state.vector *= had_norm**(3*int(self.it))             #applies the normalisation factor here
+        final_state = final_state.prob_dist()                        #creates the prob distribution of the state
+        sorted_arr = self.top_probs(final_state.matrix, len(self.oracle_values))         #finds the n top probabilities
+        output = Grover(final_state.name, n=self.n, results=sorted_arr)         #creates a Grover instance
         output.name = f"The States of the Grover Search with Oracle Values {oracle_values}, after {int(self.it)} iterations is: "
-        print_array(output)
+        print_array(output)                #prints that Grover instance
         console.rule(f"", style="headers")
-        return output
+        return output              #returns the value
 
 class print_array:    #made to try to make matrices look prettier
     def __init__(self, array):
@@ -724,7 +719,7 @@ class print_array:    #made to try to make matrices look prettier
         else:
             console.print(array,markup=True,style="White")
 
-X_Gate = Gate.X_Gate()
+X_Gate = Gate.X_Gate()             #initialises the default gates
 Y_Gate = Gate.Y_Gate()
 Z_Gate = Gate.Z_Gate()
 Identity = Gate.Identity()
