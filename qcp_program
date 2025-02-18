@@ -75,6 +75,7 @@ class qc_dat:                    #defines a class to store variables in to recal
     at one time instance together to create one unitary matrix.
     Then we can matrix multiply successive gates together to creat one
     universal matrix that we can apply to the Qubit before measuring"""
+    errror_mixed_state = "the mixed states must each have their own probability values"
 
 class QC_error(Exception):                 #a custom error class to raise custom errors from qc_dat
     """Creates my own custom errors defined in qc_dat."""
@@ -119,19 +120,28 @@ class Qubit:                                           #creates the qubit class
         self.dim = len(self.vector)                    #used constantly in all calcs so defined it universally
         self.shift = self.dim.bit_length() - 1
         self.density = None
-        if self.state_type == "pure":              #creates the state for a given type
-            pass
-        elif self.state_type == "mixed":
+        if self.state_type == "mixed":
             self.vector = np.array(kwargs.get("vectors",[]),dtype = np.complex128)
             self.weights = kwargs.get("weights", [])
-            self.density = self.density_mat()
-        elif self.state_type == "seperable":
-            qubit_states = np.array(kwargs.get("vectors",[]),dtype = np.complex128)
-            self.vector = qubit_states[0]
-            for state in qubit_states[1:]:
-                self.vector = self @ state
-        elif self.state_type == "entangled":
-            pass
+            if len(self.weights) != len(self.vector):
+                raise QC_error(qc_dat.errror_mixed_state)
+        elif self.state_type == "seperable":             #creates the seperable states
+            qubit_states = np.array(kwargs.get("vectors",[]))
+            if isinstance(qubit_states[0], np.ndarray):                         #creates the vector for the seperable states for custom vector states
+                qubit_states = np.array(kwargs.get("vectors",[]), dtype = np.complex128)
+                self.vector = qubit_states[0]
+                for state in qubit_states[1:]:
+                    self.vector = self @ state
+                self.name = f"Seperable state of custom states"
+            elif isinstance(qubit_states[0], Qubit):                          #creates a seperable state for the tensor of qubits together
+                self.vector = qubit_states[0].vector
+                for state in qubit_states[1:]:
+                    self.vector = self @ state.vector
+                    self_name_size = int(np.log2(self.dim))
+                    state_name_size = int(np.log2(state.dim))
+                    self.name = f"|{self.name[1:self_name_size]}{state.name[1:state_name_size+1]}>"
+            else:
+                raise QC_error(qc_dat.error_class)
         else:
             pass
 
@@ -508,12 +518,13 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
     def __init__(self, **kwargs):
         self.name = kwargs.get("name", "")
         self.qubit = kwargs.get("qubit", "")
+        self.state_type = kwargs.get("type", "pure")
         self.q_vector = self.qubit.vector
         self.dim = self.qubit.dim
         self.length = self.dim**2
         self.shift = self.dim.bit_length() - 1
         self.rho = kwargs.get("rho", self.construct_density_matrix())
-        self.state_type = kwargs.get("type", "pure")
+        
 
     def __str__(self):
         return f"{self.name}\n{self.rho}"
@@ -522,8 +533,12 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         return f"[bold]{self.name}[/bold]\n[not bold]{self.rho}[/not bold]"
     
     def construct_density_matrix(self):
+        if self.qubit.state_type == "pure":
+            self.state_type == "pure"
             return self.pure_state()
-        
+        elif self.qubit.state_type == "seperable":
+            self.state_type == "seperable"
+            return self.pure_state()
         
         #     if state_type == "entangled":
         #    return self.entangled_state()
@@ -533,20 +548,23 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         #    return self.seperable_state()
         #else:
         
-    def pure_state(self):       #taken from the old density matrix function
-        if self.qubit.name != "":
-            self.name =f"Density matrix of qubit {self.qubit.name}"
-        rho = np.zeros(self.dim*self.dim,dtype=np.complex128)
-        qubit_conj = np.conj(self.q_vector)
-        for i in range(self.dim):
-            for j in range(self.dim):
-                rho[j+(i << self.shift)] += qubit_conj[i]*self.q_vector[j]
-        if abs(1 -trace(rho)) < 1e-5:
-            return rho
-        else:
-            raise QC_error(qc_dat.error_trace)
-        
-  
+    def pure_state(self, **kwargs):       #taken from the old density matrix function
+        if isinstance(self, Density):
+            if self.qubit.name != "":
+                self.name =f"Density matrix of qubit {self.qubit.name}"
+            rho = np.zeros(self.dim*self.dim,dtype=np.complex128)
+            qubit_conj = np.conj(self.q_vector)
+            for i in range(self.dim):
+                for j in range(self.dim):
+                    rho[j+(i << self.shift)] += qubit_conj[i]*self.q_vector[j]
+            if abs(1 -trace(rho)) < 1e-5:
+                return rho
+            else:
+                raise QC_error(qc_dat.error_trace)
+
+    
+
+
 
 
 
@@ -686,7 +704,7 @@ class print_array:    #made to try to make matrices look prettier
     def __init__(self, array):
         self.console = Console()  # Use Rich's Console for rich printing
         self.array = array
-        self.prec = 3  # Default precision for numpy formatting
+        self.prec = 2  # Default precision for numpy formatting
         np.set_printoptions(
             precision=self.prec,
             suppress=True,
@@ -694,9 +712,9 @@ class print_array:    #made to try to make matrices look prettier
         
         if isinstance(array, Density):
             if array.dim < 9:
-                np.set_printoptions(linewidth=(3 + 2 * (3 + self.prec)) * array.dim)
+                np.set_printoptions(linewidth=(8 + 2 * self.prec) * array.dim)
             else:
-                np.set_printoptions(linewidth=(3 + 2 * (4 + self.prec)) * array.dim)
+                np.set_printoptions(linewidth=(7.5 + 2 * self.prec) * array.dim)
             console.print(array,markup=True,style="Density_style")
         elif isinstance(array, Prob_dist):
             ket_mat = np.arange(0,array.dim)
@@ -712,9 +730,9 @@ class print_array:    #made to try to make matrices look prettier
             console.print(array,markup=True,style="Qubit_style")
         elif isinstance(array, Gate):
             if array.dim < 9:
-                np.set_printoptions(linewidth=(3 + 2 * (3 + self.prec)) * array.dim)
+                np.set_printoptions(linewidth=(8 + 2 * self.prec) * array.dim)
             else:
-                np.set_printoptions(linewidth=(3 + 2 * (4 + self.prec)) * array.dim)
+                np.set_printoptions(linewidth=(8 + 2 * self.prec) * array.dim)
             console.print(array,markup=True,style="Gate_style")
         else:
             console.print(array,markup=True,style="White")
@@ -784,4 +802,3 @@ qub = q0 @ q0 @ q1
 oracle_values = [200, 199, 100,10,1]
 
 Grover(oracle_values).run()
-print_array(Density(qubit=q0))
