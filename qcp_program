@@ -75,7 +75,8 @@ class qc_dat:                    #defines a class to store variables in to recal
     at one time instance together to create one unitary matrix.
     Then we can matrix multiply successive gates together to creat one
     universal matrix that we can apply to the Qubit before measuring"""
-    errror_mixed_state = "the mixed states must each have their own probability values"
+    error_mixed_state = "the mixed states must each have their own probability values"
+    error_density_vectors = "either the vectors are the wrong data type, or no vector has been provided to make a density matrix of"
 
 class QC_error(Exception):                 #a custom error class to raise custom errors from qc_dat
     """Creates my own custom errors defined in qc_dat."""
@@ -115,13 +116,20 @@ def is_real(obj):                 #pretty irrelevant but is used for checking pr
 class Qubit:                                           #creates the qubit class
     def __init__(self, **kwargs) -> None:
         self.state_type = kwargs.get("type", "pure")                   #the default qubit is a single pure qubit |0>
-        self.name = kwargs.get("name","|0>")
+        self.name = kwargs.get("name","|Quantum State>")
         self.vector = np.array(kwargs.get("vector",np.array([1,0])),dtype=np.complex128)
-        self.dim = len(self.vector)                    #used constantly in all calcs so defined it universally
+        if self.vector.ndim == 1:
+            self.dim = len(self.vector)                    #used constantly in all calcs so defined it universally
+        else:
+            self.dim = len(self.vector[0])
         self.shift = self.dim.bit_length() - 1
         self.density = None
         if self.state_type == "mixed":
-            self.vector = np.array(kwargs.get("vectors",[]),dtype = np.complex128)
+
+            if isinstance(kwargs.get("vectors")[0], Qubit):
+                self.vector = np.array(kwargs.get("vectors",[]))
+            else:
+                self.vector = np.array(kwargs.get("vectors",[]),dtype=np.complex128)
             self.weights = kwargs.get("weights", [])
             if len(self.weights) != len(self.vector):
                 raise QC_error(qc_dat.errror_mixed_state)
@@ -135,11 +143,12 @@ class Qubit:                                           #creates the qubit class
                 self.name = f"Seperable state of custom states"
             elif isinstance(qubit_states[0], Qubit):                          #creates a seperable state for the tensor of qubits together
                 self.vector = qubit_states[0].vector
+                state_name_size = int(np.log2(qubit_states[0].dim))
+                self.name = qubit_states[0].name
                 for state in qubit_states[1:]:
-                    self.vector = self @ state.vector
                     self_name_size = int(np.log2(self.dim))
-                    state_name_size = int(np.log2(state.dim))
-                    self.name = f"|{self.name[1:self_name_size]}{state.name[1:state_name_size+1]}>"
+                    self.vector = self @ state.vector
+                    self.name = f"|{self.name[1:self_name_size+1]}{state.name[1:state_name_size+1]}>"
             else:
                 raise QC_error(qc_dat.error_class)
         else:
@@ -501,7 +510,7 @@ class Gate:            #creates a gate class to enable unique properties
         else:
             raise QC_error(qc_dat.error_class)
     
-    def __iadd__(self, other):
+    def __iadd__(self, other):                                  #used almost exclusively for the CNot gate creator
         if isinstance(other, Gate):
             self = self + other
             return self
@@ -516,14 +525,16 @@ class Gate:            #creates a gate class to enable unique properties
 
 class Density(Gate):       #makes a matrix of the probabilities, useful for entangled states
     def __init__(self, **kwargs):
-        self.name = kwargs.get("name", "")
         self.qubit = kwargs.get("qubit", "")
-        self.state_type = kwargs.get("type", "pure")
+        self.state_type = kwargs.get("type", self.qubit.state_type)
         self.q_vector = self.qubit.vector
         self.dim = self.qubit.dim
         self.length = self.dim**2
         self.shift = self.dim.bit_length() - 1
         self.rho = kwargs.get("rho", self.construct_density_matrix())
+        if self.qubit.name != "":
+                desc_name =f"Density matrix of {self.state_type} qubit {self.qubit.name}:"
+        self.name = kwargs.get("name", desc_name)
         
 
     def __str__(self):
@@ -534,11 +545,11 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
     
     def construct_density_matrix(self):
         if self.qubit.state_type == "pure":
-            self.state_type == "pure"
             return self.pure_state()
         elif self.qubit.state_type == "seperable":
-            self.state_type == "seperable"
             return self.pure_state()
+        elif self.qubit.state_type == "mixed":
+            return self.mixed_state()
         
         #     if state_type == "entangled":
         #    return self.entangled_state()
@@ -550,8 +561,6 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         
     def pure_state(self, **kwargs):       #taken from the old density matrix function
         if isinstance(self, Density):
-            if self.qubit.name != "":
-                self.name =f"Density matrix of qubit {self.qubit.name}"
             rho = np.zeros(self.dim*self.dim,dtype=np.complex128)
             qubit_conj = np.conj(self.q_vector)
             for i in range(self.dim):
@@ -561,6 +570,41 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 return rho
             else:
                 raise QC_error(qc_dat.error_trace)
+        else:
+            raise QC_error(qc_dat.error_class)
+            
+    def mixed_state(self, **kwargs):
+        if isinstance(self, Density):
+            if isinstance(self.q_vector[0], np.ndarray):
+                rho = np.zeros(self.dim*self.dim,dtype=np.complex128)
+                rho_sub = np.zeros(self.dim*self.dim,dtype=np.complex128)
+                vectors_conj = np.conj(self.q_vector)
+                for k in range(len(self.q_vector)):
+                    for i in range(self.dim):
+                        for j in range(self.dim):
+                            rho_sub[j+(i << self.shift)] += vectors_conj[k][i]*self.q_vector[k][j]
+                    rho += self.qubit.weights[k]*rho_sub
+                    rho_sub = np.zeros(self.dim*self.dim,dtype=np.complex128)
+                rho_trace = trace(rho)
+                if abs(1 - rho_trace) < 1e-5:
+                    return rho
+                else:
+                    print(f"The calculated trace is {rho_trace}")
+                    raise QC_error(qc_dat.error_trace)
+
+            
+            elif isinstance(self.q_vector[0], Qubit):
+                rho = np.zeros(self.dim*self.dim,dtype=np.complex128)
+                rho_sub = np.zeros(self.dim*self.dim,dtype=np.complex128)
+                for k in range(len(self.q_vector)):
+                    den = Density(qubit=self.q_vector[k],type="pure")
+                    rho += den.rho * self.qubit.weights[k]
+                return rho
+            else:
+                raise QC_error(qc_dat.error_class)
+        else:
+                raise QC_error(qc_dat.error_class)
+
 
     
 
@@ -674,7 +718,7 @@ class Grover():                                               #this is the Grove
         else:
             print_array(f"Number of iterations to perform are: {self.it}")
         qub = q0
-        had_op = spec_had
+        had_op = spec_had                      
         had_norm = 1/np.sqrt(2**self.n)   #applies the norm afterwards to be more efficient
         for i in range(self.n-1):    #creates the qubit and also the tensored hadamard for the given qubit size
             qub **= q0
@@ -799,6 +843,14 @@ def alg_template2(qub):         #make sure to mat mult the correct order
     print_array(result)
 qub = q0 @ q0 @ q1
 #alg_template2(qub)
-oracle_values = [200, 199, 100,10,1]
+oracle_values = [10,1,2,3,30]
 
 Grover(oracle_values).run()
+print_array(Identity + X_Gate)
+mixed_test = Qubit(weights=[0.5,0.5],vectors=[[0,1],[1,0]],type="mixed")
+den_mixed = Density(qubit=mixed_test)
+print_array(mixed_test)
+print_array(den_mixed)
+mixed_test = Qubit(weights=[0.5,0.5],vectors=[q1,q0],type="mixed")
+den_mixed = Density(qubit=mixed_test)
+print_array(den_mixed)
