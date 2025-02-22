@@ -78,7 +78,7 @@ class qc_dat:                    #defines a class to store variables in to recal
     universal matrix that we can apply to the Qubit before measuring"""
     error_mixed_state = "the mixed states must each have their own probability values"
     error_density_vectors = "either the vectors are the wrong data type, or no vector has been provided to make a density matrix of"
-
+    error_kwargs = "not enough key word arguments provided"
 class QC_error(Exception):                 #a custom error class to raise custom errors from qc_dat
     """Creates my own custom errors defined in qc_dat."""
     def __init__(self, message):
@@ -132,6 +132,18 @@ def is_real(obj):                 #pretty irrelevant but is used for checking pr
         return True
     else:
         return False
+
+def inner_product(vec_a, vec_b):
+    if len(vec_a) == len(vec_b):
+        dim = len(vec_a)
+        new_mat = np.zeros(dim, dtype=np.complex128)
+        for i in range(dim):
+            new_mat[i] = vec_a[i] * vec_b[i]
+        return new_mat
+    else:
+        raise QC_error(qc_dat.error_mat_dim)
+
+
 
 class Qubit:                                           #creates the qubit class
     def __init__(self, **kwargs) -> None:
@@ -697,6 +709,55 @@ class Prob_dist(Qubit):          #used mostly for isinstance functions
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.matrix}[/not bold]"
 
+
+class Measure(Density):
+    def __init__(self, **kwargs):
+        self.measurement_state = kwargs.get("m_state", "all")
+        self.measure_type = kwargs.get("type", "projective")
+        self.state = kwargs.get("state", "not specified")
+        if self.state != "not specified":
+            self.density = kwargs.get("density", Density(qubit=self.state))
+            self.rho = self.density.rho
+        else:
+            self.density = kwargs.get("density", "not specified")
+            self.rho = kwargs.get("rho", "not specified")
+        self.measurement = self.measure()
+        self.name = kwargs.get("name", f"Measurement of state")
+        self.dim = len(self.measurement)
+        
+
+    def __str__(self):
+        return f"test"
+    
+    def __rich__(self):
+        return f"[bold]{self.name}[/bold]\n[not bold]{self.measurement}[/not bold]"
+    
+
+    def measure(self):
+        if self.measure_type == "projective":
+            return self.proj_measure()
+    
+    def proj_measure(self):
+        if self.measurement_state == "all":
+            if self.density != "not specified":
+                if isinstance(self.rho, np.ndarray):
+                    new_mat = np.zeros(self.density.dim, dtype=np.float64)
+                    new_mat_dim = len(new_mat)
+                    for i in range(new_mat_dim):
+                        new_mat[i] += self.rho[i+i*new_mat_dim]
+                    return new_mat
+                else:
+                    self.rho = self.density.rho
+                    new_mat = np.zeros(self.density.dim, dtype=np.float64)
+                    new_mat_dim = len(new_mat)
+                    for i in range(new_mat_dim):
+                        new_mat[i] += self.rho[i+i*new_mat_dim]
+                    return new_mat
+            else:
+                raise QC_error(qc_dat.error_kwargs)
+        
+            
+
 class Grover():                                               #this is the Grover algorithms own class
     def __init__(self, oracle_values, **kwargs):
         self.n_cap = int(kwargs.get("qubit_cap",10))             #DONT ALLOW THIS BEYOND 12 DUE TO COMPUTATIONAL ISSUES
@@ -814,8 +875,17 @@ class print_array:    #made to try to make matrices look prettier
             precision=self.prec,
             suppress=True,
             floatmode="fixed")
-        
-        if isinstance(array, Density):
+        if isinstance(array, Measure):
+            if array.measure_type == "projective":
+                ket_mat = np.arange(0,array.dim)
+                num_bits = int(np.ceil(np.log2(array.dim)))
+                np.set_printoptions(linewidth=(10))
+                console.print(f"{array.name}",markup=True, style="Prob_dist_style")
+                for ket_val, prob_val in zip(ket_mat,array.measurement):
+                    console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{self.prec}f}",markup=True, style="Prob_dist_style")
+            else:
+                console.print(array,markup=True,style="Density_style")
+        elif isinstance(array, Density):
             if array.dim < 9:
                 np.set_printoptions(linewidth=(8 + 2 * self.prec) * array.dim)
             else:
@@ -827,7 +897,7 @@ class print_array:    #made to try to make matrices look prettier
             np.set_printoptions(linewidth=(10))
             console.print(f"{array.name}",markup=True, style="Prob_dist_style")
             for ket_val, prob_val in zip(ket_mat,array.matrix):
-                console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{3}f}",markup=True, style="Prob_dist_style")
+                console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{self.prec}f}",markup=True, style="Prob_dist_style")
         elif isinstance(array, Grover):
             console.print(array,markup=True, style="Prob_dist_style")
         elif isinstance(array, Qubit):
@@ -917,3 +987,5 @@ den_mixed2 = Density(qubit=mixed_test2)
 print_array(den_mixed2)
 print_array(Density.fidelity(den_mixed1, den_mixed2))
 print_array(Density.trace_distance(den_mixed1, den_mixed2))
+print_array(Measure(state=q0@q0))
+print_array(q0.prob_dist())
