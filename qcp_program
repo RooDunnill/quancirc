@@ -272,73 +272,7 @@ class Qubit:                                           #creates the qubit class
         else:
             raise QC_error(qc_dat.error_trace)
 
-    def prob_state(self, meas_state=None, final_gate=None) -> float:             #find the prob of getting a specific state, will probably be replaced at some point
-        global is_real
-        if meas_state:
-            if isinstance(self, Qubit) and isinstance(meas_state, Qubit):
-                projector = meas_state.density_mat()
-                if final_gate:
-                    if isinstance(final_gate, Gate):
-                        final_state = final_gate * self
-                    else:
-                        raise QC_error(qc_dat.error_class)
-                else:
-                    final_state = self
-                den = final_state.density_mat()
-                probability = trace(projector * den)
-                is_real = np.isreal(probability)
-                if is_real is True:
-                    return probability
-                else:
-                    if np.imag(probability) < 1e-5:
-                        return probability
-                    else:
-                        raise QC_error(qc_dat.error_imag_prob)
-            else:
-                raise QC_error(qc_dat.error_class)
 
-    def prob_dist(self, final_gate=None):            #creates a table with the prob of each state occuring, only works for projective measurements
-        new_mat = np.zeros(self.dim,dtype=np.float64)
-        if isinstance(self, Qubit):
-            norm = 0
-            if final_gate:
-                if isinstance(final_gate, Gate):
-                    new_name = f"PD for {self.name} applied to Circuit:"
-                    new_state = final_gate * self             #creates the new state vector
-                    state_conj = np.conj(new_state.vector)
-                    for i in range(self.dim):             #basically squares the vector components to get the prob of each
-                        new_mat[i] = (new_state.vector[i]*state_conj[i]).real
-                        norm += new_mat[i]
-                else:
-                    raise QC_error(qc_dat.error_class)
-            else:
-                qubit_conj = np.conj(self.vector)
-                new_name = f"PD for {self.name}"
-                for i in range(self.dim):
-                    new_mat[i] = (self.vector[i]*qubit_conj[i]).real        #just does the squaring without any external matrices applied
-                    norm += new_mat[i]
-            if np.isclose(norm, 1.0, atol=1e-5):
-                return Prob_dist(new_name, qc_dat.prob_dist_info, np.array(new_mat))
-            else:
-                raise QC_error(qc_dat.error_norm)
-        else:
-            raise QC_error(qc_dat.error_class)
-
-    def measure(self, final_gate=None):         #randomly picks a state from the weighted probabilities, can also apply the gate within it, which is a bit redundant
-        if isinstance(self, Qubit):
-            sequence = np.arange(0,self.dim)
-            if final_gate:
-                if isinstance(final_gate, Gate):
-                    PD = self.prob_dist(final_gate)
-                    measurement = int(rm.choices(sequence, weights=PD.matrix)[0])   #randomly picks a value based on the weighted probabilities
-                else:
-                    raise QC_error(qc_dat.error_class)
-            else:
-                PD = self.prob_dist()
-                measurement = int(rm.choices(sequence, weights=PD.matrix)[0])
-            num_bits = int(np.ceil(np.log2(self.dim)))
-            measurement = f"Measured the state: |{bin(measurement)[2:].zfill(num_bits)}>"
-            return measurement
 
     def bloch_plot(self):  #turn this into a class soon, pretty useless but might be worth for report or presentation
         plot_counter = 0
@@ -404,8 +338,16 @@ class Gate:            #creates a gate class to enable unique properties
 
     @classmethod
     def Identity(cls, **kwargs):                     #eventually want to make this so its n dimensional
-        Id_matrix = [1,0,0,1]
-        return cls(name="Identity Gate", matrix=Id_matrix, info=qc_dat.Identity_info)
+        n = kwargs.get("n", 2)
+        if isinstance(n, int):
+            dim = 2**n
+            new_mat = np.zeros(dim**2, dtype=np.complex128)
+            for i in range(dim):
+                new_mat[i+ dim * i] += 1
+            return cls(name="Identity Gate", matrix=new_mat, info=qc_dat.Identity_info)
+        else: 
+            Id_matrix = [1,0,0,1]
+            return cls(name="Identity Gate", matrix=Id_matrix, info=qc_dat.Identity_info)
     
     @classmethod          
     def Hadamard(cls):
@@ -696,19 +638,6 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         else:
             raise QC_error(qc_dat.error_class)
 
-class Prob_dist(Qubit):          #used mostly for isinstance functions
-    def __init__(self, name, info, matrix):
-        self.name = name
-        self.info = info
-        self.matrix = matrix
-        self.dim = len(self.matrix)
-    
-    def __str__(self):
-        return f"{self.name}\n{self.matrix}"
-    
-    def __rich__(self):
-        return f"[bold]{self.name}[/bold]\n[not bold]{self.matrix}[/not bold]"
-
 
 class Measure(Density):
     def __init__(self, **kwargs):
@@ -721,23 +650,27 @@ class Measure(Density):
         else:
             self.density = kwargs.get("density", "not specified")
             self.rho = kwargs.get("rho", "not specified")
-        self.measurement = self.measure()
+        self.measurement_probs = self.measure_probs()
         self.name = kwargs.get("name", f"Measurement of state")
-        self.dim = len(self.measurement)
-        
+        self.dim = len(self.measurement_probs)
+        self.measurement = self.measure()
 
     def __str__(self):
         return f"test"
     
     def __rich__(self):
-        return f"[bold]{self.name}[/bold]\n[not bold]{self.measurement}[/not bold]"
+        return f"[bold]{self.name}[/bold]\n[not bold]{self.measurement_probs}[/not bold]"
     
 
     def measure(self):
         if self.measure_type == "projective":
             return self.proj_measure()
+
+    def measure_probs(self):
+        if self.measure_type == "projective":
+            return self.proj_probs()
     
-    def proj_measure(self):
+    def proj_probs(self):
         if self.measurement_state == "all":
             if self.density != "not specified":
                 if isinstance(self.rho, np.ndarray):
@@ -756,9 +689,15 @@ class Measure(Density):
             else:
                 raise QC_error(qc_dat.error_kwargs)
         
-            
+    def proj_measure(self):
+        sequence = np.arange(0,self.state.dim)
+        PD = self.measurement_probs
+        measurement = int(rm.choices(sequence, weights=PD)[0])
+        num_bits = int(np.ceil(np.log2(self.dim)))
+        measurement = f"Measured the state: |{bin(measurement)[2:].zfill(num_bits)}>"
+        return measurement        
 
-class Grover():                                               #this is the Grover algorithms own class
+class Grover:                                               #this is the Grover algorithms own class
     def __init__(self, oracle_values, **kwargs):
         self.n_cap = int(kwargs.get("qubit_cap",10))             #DONT ALLOW THIS BEYOND 12 DUE TO COMPUTATIONAL ISSUES
         self.n = int(kwargs.get("n", 0))
@@ -858,13 +797,56 @@ class Grover():                                               #this is the Grove
             print(f"\rIteration number: {it} ", end="")    #allows to clear line without writing a custom print function in print_array
         print_array("\n")
         final_state.vector *= had_norm**(3*int(self.it))             #applies the normalisation factor here
-        final_state = final_state.prob_dist()                        #creates the prob distribution of the state
-        sorted_arr = self.top_probs(final_state.matrix, len(self.oracle_values))         #finds the n top probabilities
+        #final_state = final_state.prob_dist()                        #creates the prob distribution of the state
+        final_state = Measure(state=final_state)
+        sorted_arr = self.top_probs(final_state.measurement_probs, len(self.oracle_values))         #finds the n top probabilities
         output = Grover(final_state.name, n=self.n, results=sorted_arr)         #creates a Grover instance
         output.name = f"The States of the Grover Search with Oracle Values {oracle_values}, after {int(self.it)} iterations is: "
         print_array(output)                #prints that Grover instance
         console.rule(f"", style="headers")
         return output              #returns the value
+
+
+class Circuit:
+    def __init__(self, **kwargs):
+        self.gates = []
+        self.state = kwargs.get("state", "not specified")
+        if isinstance(self.state, Qubit):
+            self.n_qubits = int(np.log2(self.state.dim))
+        else:
+            self.n_qubits = kwargs.get("n", "not specified")
+            if isinstance(self.n_qubits, int):
+                new_vector = np.zeros(self.n_qubits**2, dtype=np.complex128)
+                new_vector[0] = 1
+                self.state = Qubit(vector=new_vector)
+        print(self.n_qubits)
+        self.start_gate = Gate.Identity(n=self.n_qubits)
+    def add_gate(self, gate):
+        self.gates.append(gate)
+
+    def final_gate(self):
+        for gate in reversed(self.gates):
+            final_gate = gate * self.start_gate
+        return final_gate
+    
+    def apply_final_gate(self):
+        self.final_state = final_gate * self.state
+        return self.final_state
+
+circuit = Circuit(state=q0)
+circuit.add_gate(Gate.Hadamard())
+circuit.final_gate()
+
+
+def alg_template2(qub):         #make sure to mat mult the correct order
+    console.rule(f"Algorithm acting on {qub.name} state", style="headers")
+    gate1 = X_Gate @ X_Gate @ X_Gate
+    alg = gate1
+    _pd_result = qub.prob_dist(alg)
+    result = qub.measure(alg)
+    print_array(_pd_result)
+    print_array(result)
+
 
 class print_array:    #made to try to make matrices look prettier
     def __init__(self, array):
@@ -881,7 +863,7 @@ class print_array:    #made to try to make matrices look prettier
                 num_bits = int(np.ceil(np.log2(array.dim)))
                 np.set_printoptions(linewidth=(10))
                 console.print(f"{array.name}",markup=True, style="Prob_dist_style")
-                for ket_val, prob_val in zip(ket_mat,array.measurement):
+                for ket_val, prob_val in zip(ket_mat,array.measurement_probs):
                     console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{self.prec}f}",markup=True, style="Prob_dist_style")
             else:
                 console.print(array,markup=True,style="Density_style")
@@ -891,13 +873,6 @@ class print_array:    #made to try to make matrices look prettier
             else:
                 np.set_printoptions(linewidth=(7.5 + 2 * self.prec) * array.dim)
             console.print(array,markup=True,style="Density_style")
-        elif isinstance(array, Prob_dist):
-            ket_mat = np.arange(0,array.dim)
-            num_bits = int(np.ceil(np.log2(array.dim)))
-            np.set_printoptions(linewidth=(10))
-            console.print(f"{array.name}",markup=True, style="Prob_dist_style")
-            for ket_val, prob_val in zip(ket_mat,array.matrix):
-                console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{self.prec}f}",markup=True, style="Prob_dist_style")
         elif isinstance(array, Grover):
             console.print(array,markup=True, style="Prob_dist_style")
         elif isinstance(array, Qubit):
@@ -975,7 +950,6 @@ def alg_template2(qub):         #make sure to mat mult the correct order
 qub = q0 @ q0 @ q1
 #alg_template2(qub)
 oracle_values = [10,1,2,3,30]
-
 Grover(oracle_values).run()
 print_array(Identity & X_Gate)
 mixed_test1 = Qubit(weights=[0.25,0.75],vectors=[[0,1],[1,0]],type="mixed")
@@ -988,4 +962,8 @@ print_array(den_mixed2)
 print_array(Density.fidelity(den_mixed1, den_mixed2))
 print_array(Density.trace_distance(den_mixed1, den_mixed2))
 print_array(Measure(state=q0@q0))
-print_array(q0.prob_dist())
+oracle_values = [1,4,3,66,74]
+Grover(oracle_values).run()
+test = Measure(state=qm)
+print_array(test.measurement)
+print_array(Gate.Identity(n=2))
