@@ -830,17 +830,20 @@ class Circuit:
     def add_gate(self, gate, text=True):
         self.gates.append(gate)
         if text:
-            print_array(f"Adding this gate to the circuit:")
-            print_array(gate)
+            if gate.dim < 9:
+                print_array(f"Adding this gate to the circuit:")
+                print_array(gate)
+            else:
+                print_array(f"Adding the {gate.dim} x {gate.dim} gate: {gate.name} to the circuit")
 
     def final_gate(self, text=True):
-        self.start_gate.name = ""
         self.final_gate = self.start_gate
         for gate in reversed(self.gates):
             self.final_gate = self.final_gate * gate
         if text:
             print_array(f"The final Gate is:")
             print_array(self.final_gate)
+        self.final_gate.name = f"Final Gate"
         return self.final_gate
     
     def apply_final_gate(self, text=True):
@@ -874,8 +877,7 @@ class Circuit:
             self.measure_all(text=False)
         return self.__rich__()
     
-
-
+    
 
 class print_array:    #made to try to make matrices look prettier
     def __init__(self, array):
@@ -893,7 +895,7 @@ class print_array:    #made to try to make matrices look prettier
                 np.set_printoptions(linewidth=(10))
                 console.print(f"{array.name}",markup=True, style="measure")
                 for ket_val, prob_val in zip(ket_mat,array.measurement_probs):
-                    console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{self.prec}f}",markup=True, style="measure")
+                    console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{self.prec}f}%",markup=True, style="measure")
             else:
                 console.print(array,markup=True,style="measure")
         elif isinstance(array, Gate):
@@ -923,8 +925,11 @@ Y_Gate = Gate.Y_Gate()
 Z_Gate = Gate.Z_Gate()
 Identity = Gate.Identity()
 Hadamard = Gate.Hadamard()
-CNot_flip = Gate.C_Gate(qubit1=2, qubit2=1, info=qc_dat.C_Not_matrix,name="CNot_flip")
+CNot_flip = Gate.C_Gate(type="inverted" , info=qc_dat.C_Not_matrix,name="CNot_flip")
 CNot = Gate.C_Gate(info=qc_dat.C_Not_matrix,name="CNot")
+Swap = Gate.Swap()
+S_Gate = Gate.P_Gate(theta=np.pi/2)
+T_Gate = Gate.P_Gate(theta=np.pi/4)
 
 qub = q1 @ q1 @ q1
 def fractional_binary(qub,m):             #for shors
@@ -958,8 +963,7 @@ def quant_fourier_trans(qub):          #also for shors although used in other al
     return four_qub_sum
 
 
-circuit = Circuit(state=q0 @ q0)
-circuit.add_gate(Hadamard @ Identity)
-circuit.add_gate(CNot)
-
+circuit = Circuit(state=Qubit.q0(n=4))
+circuit.add_gate(Hadamard @ Hadamard @ Hadamard @ Hadamard)
+circuit.add_gate(CNot @ CNot)
 circuit.run()
