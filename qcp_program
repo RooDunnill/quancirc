@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from rich.console import Console
 from rich.theme import Theme
 from scipy.linalg import sqrtm
+from rich.panel import Panel
 import cProfile
 
 custom_theme = Theme({"Qubit_style":"spring_green4",               #creates nice colours for the print out
@@ -79,6 +80,7 @@ class qc_dat:                    #defines a class to store variables in to recal
     error_mixed_state = "the mixed states must each have their own probability values"
     error_density_vectors = "either the vectors are the wrong data type, or no vector has been provided to make a density matrix of"
     error_kwargs = "not enough key word arguments provided"
+    error_empty_circuit = "the circuit is empty and needs atleast one gate to work"
 
 class QC_error(Exception):                 #a custom error class to raise custom errors from qc_dat
     """Creates my own custom errors defined in qc_dat."""
@@ -260,28 +262,14 @@ class Qubit:                                           #creates the qubit class
     def qubit_info(self):      
         print(qc_dat.qubit_info)
 
-    def density_mat(self):                     #will soon be replaced by the Density_matrix class
-        new_name =f"Density matrix of qubit {self.name}"
-        new_mat = np.zeros(self.dim*self.dim,dtype=np.complex128)
-        qubit_conj = np.conj(self.vector)
-        for i in range(self.dim):
-            for j in range(self.dim):
-                new_mat[j+(i << self.shift)] += qubit_conj[i]*self.vector[j]
-        den = Density(new_name, qc_dat.Density_matrix_info, new_mat)
-        if abs(1 -trace(den)) < 1e-5:
-            return den
-        else:
-            raise QC_error(qc_dat.error_trace)
-
-
-
     def bloch_plot(self):  #turn this into a class soon, pretty useless but might be worth for report or presentation
         plot_counter = 0
         vals = np.zeros(2,dtype=np.complex128)
         vals[0] = self.vector[0]
         vals[1] = self.vector[1]
         plotted_qubit = Qubit(vector=vals)
-        den_mat = plotted_qubit.density_mat()
+        den = Density(qubit=plotted_qubit)
+        den_mat = den.rho
         x = 2*np.real(den_mat.matrix[1])
         y = 2*np.imag(den_mat.matrix[2])
         z = den_mat.matrix[0] - den_mat.matrix[3]
@@ -812,21 +800,69 @@ class Circuit:
                 self.state = Qubit(vector=new_vector)
         print(self.n_qubits)
         self.start_gate = Gate.Identity(n=self.n_qubits)
-    def add_gate(self, gate):
-        self.gates.append(gate)
 
-    def final_gate(self):
-        for gate in reversed(self.gates):
-            final_gate = gate * self.start_gate
-        return final_gate
+    def __str__(self):
+        return f"{self.final_state}"
     
-    def apply_final_gate(self):
-        self.final_state = final_gate * self.state
-        return self.final_state
+    def __rich__(self):
+        console.rule(f"Running Quantum Circuit with {self.n_qubits}:")
+        print_array(f"Final Probability Distribution:")
+        print_array(self.prob_dist)
+        print_array(f"{self.measure_all}")
+        console.rule(f"")
 
-circuit = Circuit(state=q0)
-circuit.add_gate(Gate.Hadamard())
-circuit.final_gate()
+    def print_gates(self):
+        for i in range(len(self.gates)):
+            print_array(self.gates[-i])
+
+    def add_gate(self, gate, text=True):
+        self.gates.append(gate)
+        if text:
+            print_array(f"Adding this gate to the circuit:")
+            print_array(gate)
+
+    def final_gate(self, text=True):
+        self.start_gate.name = ""
+        self.final_gate = self.start_gate
+        for gate in reversed(self.gates):
+            self.final_gate = gate * self.final_gate
+        if text:
+            print_array(f"The final Gate is:")
+            print_array(self.final_gate)
+        return self.final_gate
+    
+    def apply_final_gate(self, text=True):
+        self.final_state = self.final_gate * self.state
+        if text:
+            print_array(f"The final state is:")
+            print_array(self.final_state)
+        return self.final_state
+    
+    def prob_dist(self, text=True):
+        self.prob_dist = Measure(state=self.final_state)
+        if text:
+            print_array(f"The projective probability distribution is:")
+            print_array(self.prob_dist)
+        return self.prob_dist
+    
+    def measure_all(self, text=True):
+        self.measure_all = Measure(state=self.final_state).measurement
+        if text:
+            print_array(f"The measured state is:")
+            print_array(self.measure_all)
+        return self.measure_all
+    
+    def run(self):
+        if self.gates == []:
+            raise QC_error(qc_dat.error_empty_circuit)
+        else:
+            self.final_gate(text=False)
+            self.apply_final_gate(text=False)
+            self.prob_dist(text=False)
+            self.measure_all(text=False)
+        return self.__rich__()
+    
+
 
 
 def alg_template2(qub):         #make sure to mat mult the correct order
@@ -843,7 +879,7 @@ class print_array:    #made to try to make matrices look prettier
     def __init__(self, array):
         self.console = Console()  # Use Rich's Console for rich printing
         self.array = array
-        self.prec = 2  # Default precision for numpy formatting
+        self.prec = 3  # Default precision for numpy formatting
         np.set_printoptions(
             precision=self.prec,
             suppress=True,
@@ -858,23 +894,24 @@ class print_array:    #made to try to make matrices look prettier
                     console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{self.prec}f}",markup=True, style="Prob_dist_style")
             else:
                 console.print(array,markup=True,style="Density_style")
-        elif isinstance(array, Density):
-            if array.dim < 9:
-                np.set_printoptions(linewidth=(8 + 2 * self.prec) * array.dim)
+        elif isinstance(array, Gate):
+            if array.dim < 5:
+                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * array.dim)
+            elif array.dim < 9:
+                self.prec = self.prec - 1
+                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * array.dim, precision=self.prec)
             else:
-                np.set_printoptions(linewidth=(7.5 + 2 * self.prec) * array.dim)
-            console.print(array,markup=True,style="Density_style")
+                self.prec = self.prec - 2
+                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * array.dim, precision=self.prec)
+            if isinstance(array, Density):
+                console.print(array,markup=True,style="Density_style")
+            else:
+                console.print(array,markup=True,style="Gate_style")
         elif isinstance(array, Grover):
             console.print(array,markup=True, style="Prob_dist_style")
         elif isinstance(array, Qubit):
             np.set_printoptions(linewidth=(10))
             console.print(array,markup=True,style="Qubit_style")
-        elif isinstance(array, Gate):
-            if array.dim < 9:
-                np.set_printoptions(linewidth=(8 + 2 * self.prec) * array.dim)
-            else:
-                np.set_printoptions(linewidth=(8 + 2 * self.prec) * array.dim)
-            console.print(array,markup=True,style="Gate_style")
         else:
             console.print(array,markup=True,style="White")
 
@@ -939,28 +976,18 @@ def alg_template2(qub):         #make sure to mat mult the correct order
     result = qub.measure(alg)
     print_array(_pd_result)
     print_array(result)
+
+
+
+
+circuit = Circuit(state=q0)
+circuit.add_gate(Hadamard)
+circuit.add_gate(X_Gate)
+
+circuit.run()
+
+
 qub = q0 @ q0 @ q1
 #alg_template2(qub)
 oracle_values = [10,1,2,3,30]
 Grover(oracle_values).run()
-print_array(Identity & X_Gate)
-mixed_test1 = Qubit(weights=[0.25,0.75],vectors=[[0,1],[1,0]],type="mixed")
-den_mixed1 = Density(qubit=mixed_test1)
-print_array(mixed_test1)
-print_array(den_mixed1)
-mixed_test2 = Qubit(weights=[0.5,0.5],vectors=[q1,q0],type="mixed")
-den_mixed2 = Density(qubit=mixed_test2)
-print_array(den_mixed2)
-print_array(Density.fidelity(den_mixed1, den_mixed2))
-print_array(Density.trace_distance(den_mixed1, den_mixed2))
-print_array(Measure(state=q0@q0))
-oracle_values = [1,4,3,66,74,89, 91]
-Grover(oracle_values).run()
-test = Measure(state=qm)
-print_array(test.measurement)
-print_array(Gate.Identity(n=2))
-print_array(Identity)
-print_array(Gate.C_Gate())
-print_array(Gate.C_Gate(type="inverted"))
-print_array(Gate.C_Gate(gate=Z_Gate))
-print_array(Gate.C_Gate(gate=Z_Gate, type="inverted"))
