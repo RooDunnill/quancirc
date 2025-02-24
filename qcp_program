@@ -113,6 +113,8 @@ def trace(matrix):                #calculates the trace of a matrix, either for 
 def reshape_matrix(matrix):
     length = len(matrix)
     dim = int(np.sqrt(length))
+    if dim**2 != length:
+        QC_error(f"The matrix cannot be reshaped into a perfect square")
     reshaped_matrix = []
     for i in range(dim):
         row = matrix[i * dim : (i + 1) * dim]
@@ -257,7 +259,7 @@ class Qubit:                                           #creates the qubit class
             for i in range(self.dim):     #multiplies the second ket by each value in the first ket
                 for j in range(other.dim):          #iterates up and down the second ket
                     new_vector[j+(i << other_shift)] += self.vector[i]*other.vector[j] #adds the values into each element of the vector
-            return Qubit(name=new_name, vector=np.array(new_vector))    #returns a new Qubit instance with a new name
+            return Qubit(name=new_name, vector=new_vector)    #returns a new Qubit instance with a new name
         elif isinstance(other, np.ndarray):                 #used for when you just need to compute it for a given array, this is for creating seperable states
             other_dim = len(other)
             new_length: int = self.dim*other_dim
@@ -266,7 +268,7 @@ class Qubit:                                           #creates the qubit class
                 for j in range(other_dim):          #iterates up and down the second ket
                     new_vector[j+(i * other_dim)] += self.vector[i]*other[j] #adds the values into
             self.dim = new_length
-            return np.array(new_vector)    #returns a new Object with a new name too
+            return new_vector    #returns a new Object with a new name too
         else:
             raise QC_error(qc_dat.error_class)
 
@@ -418,8 +420,8 @@ class Gate:            #creates a gate class to enable unique properties
                 for i in range(self.dim):
                     for j in range(other.dim):             #4 is 100 2 is 10
                         for k in range(other.dim):   #honestly, this works but is trash and looks like shit
-                            new_mat[k+(j << new_shift)+(i << other.shift)+(m << comb_shift)] += self.matrix[i+(m << self.shift)]*other.matrix[k+(j << other.shift)]
-            return Gate(name=new_name, info=new_info, matrix=np.array(new_mat))
+                            new_mat[k+(j << new_shift)+(i << other.shift)+(m << comb_shift)] = self.matrix[i+(m << self.shift)]*other.matrix[k+(j << other.shift)]
+            return Gate(name=new_name, info=new_info, matrix=new_mat)
         else:
             raise QC_error(qc_dat.error_class)
 
@@ -433,41 +435,32 @@ class Gate:            #creates a gate class to enable unique properties
     def __mul__(self, other):       #matrix multiplication
         if isinstance(self, Gate):
             if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
-                _summ = 0
                 if self.dim == other.dim:
                     new_info = "This is a matrix multiplication of gates: "f"{self.name}"" and "f"{other.name}"
                     new_name = f"{self.name} * {other.name}"
-                    new_mat = np.zeros(self.length,dtype=np.complex128)
+                    new_mat = [0] * self.length
                     for i in range(self.dim):
                         for k in range(self.dim):
-                            for j in range(self.dim):    #again a mess and done in a different manner to tensor product
-                                _summ += (self.matrix[j+(i * other.dim)]*other.matrix[k+(j * self.dim)])
-                            new_mat[k+(i << self.shift)] += _summ
-                            _summ = 0
+                            new_mat[k+(i * self.dim)] = sum(self.matrix[j+(i * other.dim)]*other.matrix[k+(j * self.dim)] for j in range(self.dim))
                     if isinstance(other, Density):
                         new_info = "This is the density matrix of: "f"{self.name}"" and "f"{other.name}"
                         return Density(name=new_name, info=new_info, matrix=np.array(new_mat))
                     else:
-                        return Gate(name=new_name, info=new_info, matrix=np.array(new_mat))
+                        return Gate(name=new_name, info=new_info, matrix=np.array(new_mat, dtype=np.complex128))
                 else:
                     raise QC_error(qc_dat.error_mat_dim)
             elif isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
-                _summ = 0
                 if self.dim == other.dim:
                     new_name = f"{self.name}{other.name}"
                     new_mat = np.zeros(self.dim,dtype=np.complex128)
                     for i in range(self.dim):
-                        for j in range(self.dim):
-                            _summ += (self.matrix[j+(i * other.dim)]*other.vector[j])
-                        new_mat[i] += _summ
-                        _summ = 0
-                    return Qubit(name=new_name, vector=np.array(new_mat))
+                        new_mat[i] = sum(self.matrix[j+(i * other.dim)]*other.vector[j] for j in range(self.dim))
+                    return Qubit(name=new_name, vector=np.array(new_mat,dtype=np.complex128))
                 else:
                     raise QC_error(qc_dat.error_mat_dim)
             else:
                 raise QC_error(qc_dat.error_class)
         elif isinstance(self, np.ndarray):
-            _summ = 0
             self_length = len(self)
             self_dim = np.sqrt(self_length)
             other_length = len(other)
@@ -476,10 +469,8 @@ class Gate:            #creates a gate class to enable unique properties
                 new_mat = np.zeros(self_length,dtype=np.complex128)
                 for i in range(self_dim):
                     for k in range(self_dim):
-                        for j in range(self_dim):    #again a mess and done in a different manner to tensor product
-                            _summ += (self[j+(i * other_dim)]*other[k+(j * self_dim)])
-                        new_mat[k+(i * self_dim)] += _summ
-                        _summ = 0
+               
+                            new_mat[k+(i * self_dim)] = sum(self[j+(i * other_dim)]*other[k+(j * self_dim)] for j in range(self,dim))
                     return new_mat
             else:
                 raise QC_error(qc_dat.error_mat_dim)
@@ -703,8 +694,8 @@ class Measure(Density):
 class Grover:                                               #this is the Grover algorithms own class
     def __init__(self, oracle_values, **kwargs):
         self.n_cap = int(kwargs.get("qubit_cap",10))             #DONT ALLOW THIS BEYOND 12 DUE TO COMPUTATIONAL ISSUES
-        self.n = int(kwargs.get("n", 0))
-        self.it = int(kwargs.get("iterations", 0))               #ANY MORE THAN 85ISH CRASHES FOR NOW
+        self.n = int(kwargs.get("n", None))
+        self.it = int(kwargs.get("iterations", None))               #ANY MORE THAN 85ISH CRASHES FOR NOW
         self.oracle_values = oracle_values
         self.results = kwargs.get("results", [])
 
@@ -732,7 +723,7 @@ class Grover:                                               #this is the Grover 
         console.rule(f"Grovers search with oracle values: {self.oracle_values}", style="grover_header")
         spec_had_mat = np.array([1,1,1,-1])    #i use this so that all the matrix mults are by an integer value and not a float and then apply the float later
         spec_had = Gate(name="Custom Hadamard for Grovers", info=qc_dat.Hadamard_info, matrix=spec_had_mat)
-        if self.n == 0:               #if the number of qubits required is not given then run:
+        if self.n == None:               #if the number of qubits required is not given then run:
             print_array(f"Using up to {self.n_cap} Qubits to run the search")
             if self.it == 0:           #if an iteration count is not given then run:
                 max_oracle = max(self.oracle_values)
@@ -761,7 +752,7 @@ class Grover:                                               #this is the Grover 
             print_array(f"Using {self.n} Qubits and a search space of {search_space}")
         op_iter = round((np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5)
 
-        if self.it == 0:     #now picks an iteration value
+        if self.it == None:     #now picks an iteration value
             self.it = op_iter
             if self.it < 1:    #obviously we cant have no iterations so it atleast does 1 iteration
                 self.it = 1.0000       #more of a failsafe, will almost certainly be wrong as the percentage diff from the it value to 1 will be large?
@@ -983,3 +974,7 @@ oracle_values = [1,4,5]
 Grover(oracle_values).run()
 oracle_values = [10,90,29,39,49,45]
 Grover(oracle_values, qubit_cap=12).run()
+oracle_values = [1,4,5,6]
+Grover(oracle_values).run()
+oracle_values = [1,4,5,7,8]
+Grover(oracle_values).run()
