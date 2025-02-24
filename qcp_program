@@ -79,6 +79,7 @@ class qc_dat:                    #defines a class to store variables in to recal
     error_mixed_state = "the mixed states must each have their own probability values"
     error_density_vectors = "either the vectors are the wrong data type, or no vector has been provided to make a density matrix of"
     error_kwargs = "not enough key word arguments provided"
+
 class QC_error(Exception):                 #a custom error class to raise custom errors from qc_dat
     """Creates my own custom errors defined in qc_dat."""
     def __init__(self, message):
@@ -338,7 +339,7 @@ class Gate:            #creates a gate class to enable unique properties
 
     @classmethod
     def Identity(cls, **kwargs):                     #eventually want to make this so its n dimensional
-        n = kwargs.get("n", 2)
+        n = kwargs.get("n", 1)
         if isinstance(n, int):
             dim = 2**n
             new_mat = np.zeros(dim**2, dtype=np.complex128)
@@ -370,32 +371,22 @@ class Gate:            #creates a gate class to enable unique properties
 
     @classmethod                             #creates any specific control gate
     def C_Gate(cls, **kwargs):
-        qubit1 = kwargs.get("qubit1", 1)
-        qubit2 = kwargs.get("qubit2", 2)
-        gate_action = kwargs.get("gate_action", X_Gate)
-        qubit_dist = int(qubit1 - qubit2)
-        if qubit1 == 1 or qubit2 == 1:                   #either creates an inverted one or a "normal" one
-            if qubit_dist < 0:
-                i = 0                                     #THE INVERTED CONTROL GATE MAY BE IMPLEMENTED WRONG
-                Id = Identity
-                while i < int(abs(qubit_dist) - 1):
-                    Id += Identity
-                    i += 1
-                new_mat = Id & gate_action
-            elif qubit_dist > 0:
-                i = 0
-                Id = gate_action
-                while i < int(abs(qubit_dist)):
-                    Id += Identity
-                    i += 1
-                new_mat = Id
-            else:
-                raise QC_error(qc_dat.error_qubit_num)
-        else:
-            raise QC_error(qc_dat.error_qubit_pos)
-        C_dim = int(abs(qubit_dist)*Identity.dim+gate_action.dim)
-        C_length = C_dim*C_dim
-        return cls(name=f"Control {gate_action.name}", matrix=new_mat.matrix, dim=C_dim, len=C_length)
+        gate_type = kwargs.get("type", "standard")
+        gate_action = kwargs.get("gate", X_Gate)
+        new_mat = Identity & gate_action
+        if gate_type == "standard":
+            return cls(name=f"Control {gate_action.name}", matrix=new_mat.matrix)
+        elif gate_type == "inverted":
+            new_mat = Gate.Swap() * new_mat * Gate.Swap()
+            return cls(name=f"Inverted Control {gate_action.name}", matrix=new_mat.matrix)
+
+    @classmethod
+    def Swap(cls, **kwargs):
+        n_is_2 = [1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1]
+        n = kwargs.get("n", 2)
+        if n == 2:
+            return cls(name=f"2 Qubit Swap gate", matrix=n_is_2)
+
 
 
     def __str__(self):
@@ -908,6 +899,7 @@ def fractional_binary(qub,m):             #for shors
         print("new func")
         return val
 qub = q1 @ q1 @ q1 
+
 def quant_fourier_trans(qub):          #also for shors although used in other algorithms
     old_name = qub.name
     n = int(np.ceil(np.log2(qub.dim)))
@@ -962,8 +954,13 @@ print_array(den_mixed2)
 print_array(Density.fidelity(den_mixed1, den_mixed2))
 print_array(Density.trace_distance(den_mixed1, den_mixed2))
 print_array(Measure(state=q0@q0))
-oracle_values = [1,4,3,66,74]
+oracle_values = [1,4,3,66,74,89, 91]
 Grover(oracle_values).run()
 test = Measure(state=qm)
 print_array(test.measurement)
 print_array(Gate.Identity(n=2))
+print_array(Identity)
+print_array(Gate.C_Gate())
+print_array(Gate.C_Gate(type="inverted"))
+print_array(Gate.C_Gate(gate=Z_Gate))
+print_array(Gate.C_Gate(gate=Z_Gate, type="inverted"))
