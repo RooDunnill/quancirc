@@ -109,7 +109,6 @@ def trace(matrix):                #calculates the trace of a matrix, either for 
     else:
         raise QC_error(qc_dat.error_class)
     
-
 def reshape_matrix(matrix):
     length = len(matrix)
     dim = int(np.sqrt(length))
@@ -128,7 +127,6 @@ def flatten_matrix(matrix):
             flattened_matrix[j * dim + i] += matrix[j][i]
     return flattened_matrix
         
-
 def is_real(obj):                 #pretty irrelevant but is used for checking probs are real
     if isinstance(obj, complex):
         if np.imag(obj) < 1e-5:
@@ -148,6 +146,20 @@ def inner_product(vec_a, vec_b):
     else:
         raise QC_error(qc_dat.error_mat_dim)
 
+def top_probs(prob_list, n):             #sorts through the probability distribution and finds the top n probabilities corresponding to the length n or the oracle values
+        top_n = np.array([], dtype=prob_list.dtype)
+        temp_lst = prob_list.copy()  
+        for _ in range(n):
+            max_value = np.max(temp_lst)
+            top_n = np.append(top_n, max_value)
+            temp_lst = np.delete(temp_lst, np.argmax(temp_lst))
+        result = []
+        used_count = {} 
+        for i, num in enumerate(prob_list):
+            if num in top_n and used_count.get(num, 0) < np.count_nonzero(top_n == num):        #this accounts for if you have two numbers with the same value
+                result.append((i, num))
+                used_count[num] = used_count.get(num, 0) + 1
+        return np.array(result, dtype=object)
 
 
 class Qubit:                                           #creates the qubit class
@@ -161,8 +173,8 @@ class Qubit:                                           #creates the qubit class
             self.dim = len(self.vector[0])
         self.shift = self.dim.bit_length() - 1
         self.density = None
+        self.n = int(np.log2(self.dim))
         if self.state_type == "mixed":
-
             if isinstance(kwargs.get("vectors")[0], Qubit):
                 self.vector = np.array(kwargs.get("vectors",[]))
             else:
@@ -318,6 +330,7 @@ class Gate:            #creates a gate class to enable unique properties
         self.length = kwargs.get("len", len(self.matrix))          #naming these matrices and qubits vectors was a stupid idea XD
         self.dim = kwargs.get("dim", int(np.sqrt(self.length)))
         self.shift = self.dim.bit_length() - 1
+        self.n = int(np.log2(self.dim))
 
     @classmethod                #again creates some of the default gates, for ease of use and neatness
     def X_Gate(cls):
@@ -384,15 +397,12 @@ class Gate:            #creates a gate class to enable unique properties
         if n == 2:
             return cls(name=f"2 Qubit Swap gate", matrix=n_is_2)
 
-
-
     def __str__(self):
         return f"{self.name}\n{self.matrix}"
 
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.matrix}[/not bold]"
     
-
     def __matmul__(self, other):      #adopts the matmul notation to make an easy tensor product of two square matrices
         if isinstance(other, Gate):
             new_info = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
@@ -502,8 +512,6 @@ class Gate:            #creates a gate class to enable unique properties
         print(qc_dat.gate_info)
 
 
-        
-
 class Density(Gate):       #makes a matrix of the probabilities, useful for entangled states
     def __init__(self, **kwargs):
         self.qubit = kwargs.get("qubit", "no qubit")
@@ -511,18 +519,21 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             self.state_type = kwargs.get("type", "no specific type")
             self.rho = kwargs.get("rho", "no rho")
             self.name = kwargs.get("name", "Density Matrix:")
+            self.length = len(self.rho)
+            self.dim - int(np.sqrt(self.length))
+            self.n = int(np.log2(self.dim))
         else:
             self.state_type = kwargs.get("type", self.qubit.state_type)
             self.q_vector = self.qubit.vector
             self.dim = self.qubit.dim
             self.length = self.dim**2
+            self.n = int(np.log2(self.dim))
             self.shift = self.dim.bit_length() - 1
             self.rho = kwargs.get("rho", self.construct_density_matrix())
             if self.qubit.name != "":
                     desc_name =f"Density matrix of {self.state_type} qubit {self.qubit.name}:"
             self.name = kwargs.get("name", desc_name)
         
-
     def __str__(self):
         return f"{self.name}\n{self.rho}"
     
@@ -631,25 +642,36 @@ class Measure(Density):
     def __init__(self, **kwargs):
         self.measurement_state = kwargs.get("m_state", "all")
         self.measure_type = kwargs.get("type", "projective")
-        self.state = kwargs.get("state", "not specified")
-        if self.state != "not specified":
+        self.state = kwargs.get("state", None)
+        if self.state is not None:
             self.density = kwargs.get("density", Density(qubit=self.state))
             self.rho = self.density.rho
         else:
-            self.density = kwargs.get("density", "not specified")
-            self.rho = kwargs.get("rho", "not specified")
-        self.measurement_probs = self.measure_probs()
+            self.density = kwargs.get("density", None)
+            self.rho = self.density.rho if isinstance(self.density, Density) else kwargs.get("rho", None)
+    
+        
         self.name = kwargs.get("name", f"Measurement of state")
-        self.dim = len(self.measurement_probs)
         self.measurement = self.measure()
+
+    @property
+    def length(self):
+        return len(self.rho)
+    
+    @property
+    def dim(self):
+        return int(np.sqrt(self.length))
+    
+    @property
+    def n(self):
+        return int(np.log2(self.dim))
 
     def __str__(self):
         return f"test"
     
     def __rich__(self):
-        return f"[bold]{self.name}[/bold]\n[not bold]{self.measurement_probs}[/not bold]"
+        return f"[bold]{self.name}[/bold]\n[not bold]{self.proj_probs()}[/not bold]"
     
-
     def measure(self):
         if self.measure_type == "projective":
             return self.proj_measure()
@@ -657,33 +679,29 @@ class Measure(Density):
     def measure_probs(self):
         if self.measure_type == "projective":
             return self.proj_probs()
+        
+    def topn_measure_probs(self):
+        new_mat = top_probs(self.proj_probs(), 16)
+        return new_mat
     
     def proj_probs(self):
-        if self.measurement_state == "all":
-            if self.density != "not specified":
-                if isinstance(self.rho, np.ndarray):
-                    new_mat = np.zeros(self.density.dim, dtype=np.float64)
-                    new_mat_dim = len(new_mat)
-                    for i in range(new_mat_dim):
-                        new_mat[i] += self.rho[i+i*new_mat_dim].real
-                    return new_mat
-                else:
-                    self.rho = self.density.rho
-                    new_mat = np.zeros(self.density.dim, dtype=np.float64)
-                    new_mat_dim = len(new_mat)
-                    for i in range(new_mat_dim):
-                        new_mat[i] += self.rho[i+i*new_mat_dim].real
-                    return new_mat
-            else:
-                raise QC_error(qc_dat.error_kwargs)
+        if self.measurement_state == "all" and isinstance(self.density, Density):
+            if self.rho is None:
+                self.rho = self.density.rho
+            return np.array([self.rho[i + i * self.dim].real for i in range(self.dim)], dtype=np.float64)
+        else:
+            raise QC_error(qc_dat.error_kwargs)
         
     def proj_measure(self):
         sequence = np.arange(0,self.state.dim)
-        PD = self.measurement_probs
+        PD = self.proj_probs()
         measurement = int(rm.choices(sequence, weights=PD)[0])
         num_bits = int(np.ceil(np.log2(self.dim)))
         measurement = f"Measured the state: |{bin(measurement)[2:].zfill(num_bits)}>"
         return measurement        
+
+
+
 
 class Grover:                                               #this is the Grover algorithms own class
     def __init__(self, oracle_values, **kwargs):
@@ -711,20 +729,7 @@ class Grover:                                               #this is the Grover 
             qub.vector[j] = qub.vector[j] * vals        
         return qub
 
-    def top_probs(self, prob_list, n):             #sorts through the probability distribution and finds the top n probabilities corresponding to the length n or the oracle values
-        top_n = np.array([], dtype=prob_list.dtype)
-        temp_lst = prob_list.copy()  
-        for _ in range(n):
-            max_value = np.max(temp_lst)
-            top_n = np.append(top_n, max_value)
-            temp_lst = np.delete(temp_lst, np.argmax(temp_lst))
-        result = []
-        used_count = {} 
-        for i, num in enumerate(prob_list):
-            if num in top_n and used_count.get(num, 0) < np.count_nonzero(top_n == num):        #this accounts for if you have two numbers with the same value
-                result.append((i, num))
-                used_count[num] = used_count.get(num, 0) + 1
-        return np.array(result, dtype=object)
+    
 
     def run(self):     #Grovers algorithm, can input the number of qubits and also a custom amount of iterations
         console.rule(f"Grovers search with oracle values: {self.oracle_values}", style="grover_header")
@@ -785,9 +790,8 @@ class Grover:                                               #this is the Grover 
             print(f"\rIteration number: {it} ", end="")    #allows to clear line without writing a custom print function in print_array
         print_array("\n")
         final_state.vector *= had_norm**(3*int(self.it))             #applies the normalisation factor here
-        #final_state = final_state.prob_dist()                        #creates the prob distribution of the state
         final_state = Measure(state=final_state)
-        sorted_arr = self.top_probs(final_state.measurement_probs, len(self.oracle_values))         #finds the n top probabilities
+        sorted_arr = top_probs(final_state.proj_probs(), len(self.oracle_values))         #finds the n top probabilities
         output = Grover(final_state.name, n=self.n, results=sorted_arr)         #creates a Grover instance
         output.name = f"The States of the Grover Search with Oracle Values {oracle_values}, after {int(self.it)} iterations is: "
         print_array(output)                #prints that Grover instance
@@ -797,29 +801,32 @@ class Grover:                                               #this is the Grover 
 
 class Circuit:
     def __init__(self, **kwargs):
-        
         self.gates = []
-        self.state = kwargs.get("state", "not specified")
+        self.state = kwargs.get("state", None)
         if isinstance(self.state, Qubit):
-            self.n_qubits = int(np.log2(self.state.dim))
+            self.n = int(np.log2(self.state.dim))
         else:
-            self.n_qubits = kwargs.get("n", "not specified")
-            if isinstance(self.n_qubits, int):
-                new_vector = np.zeros(self.n_qubits**2, dtype=np.complex128)
+            self.n = kwargs.get("n", None)
+            if isinstance(self.n, int):
+                new_vector = np.zeros(self.n**2, dtype=np.complex128)
                 new_vector[0] = 1
                 self.state = Qubit(vector=new_vector)
-        self.start_gate = Gate.Identity(n=self.n_qubits)
-        console.rule(f"Initialising a Quantum Circuit with {self.n_qubits} Qubits", style="circuit_header")
+        self.start_gate = Gate.Identity(n=self.n)
+        console.rule(f"Initialising a Quantum Circuit with {self.n} Qubits", style="circuit_header")
         console.rule("", style="circuit_header")
 
     def __str__(self):
         return f"{self.final_state}"
     
     def __rich__(self):
-        console.rule(f"Running Quantum Circuit with {self.n_qubits} Qubits:", style="circuit_header", characters="/")
+        console.rule(f"Running Quantum Circuit with {self.n} Qubits:", style="circuit_header", characters="/")
         print_array(self.final_state)
         print_array(f"Final Probability Distribution:")
-        print_array(self.prob_dist)
+        num_bits = int(np.ceil(np.log2(self.state.dim)))
+        print_out = f""
+        for ket_val, prob_val in zip(self.top_prob_dist()[:,0],self.top_prob_dist()[:,1]):
+            print_out += (f"State |{bin(ket_val)[2:].zfill(num_bits)}> ({ket_val}) with a prob val of: {prob_val:.{3}f}\n")
+        print_array(print_out)
         print_array(f"{self.measure_all}")
         console.rule(f"", style="circuit_header")
 
@@ -867,6 +874,14 @@ class Circuit:
             print_array(self.measure_all)
         return self.measure_all
     
+    def top_prob_dist(self, text=True, **kwargs):
+        topn = kwargs.get("n", 8)
+        self.top_prob_dist = Measure(state=self.final_state).topn_measure_probs
+        if text:
+            print_array(f"The top {topn} probabilities are:")
+            print_array(self.top_prob_dist())
+        return self.top_prob_dist
+
     def run(self):
         if self.gates == []:
             raise QC_error(qc_dat.error_empty_circuit)
@@ -874,11 +889,11 @@ class Circuit:
             self.final_gate(text=False)
             self.apply_final_gate(text=False)
             self.prob_dist(text=False)
+            self.top_prob_dist(text=False)
             self.measure_all(text=False)
         return self.__rich__()
     
     
-
 class print_array:    #made to try to make matrices look prettier
     def __init__(self, array):
         self.console = Console()  # Use Rich's Console for rich printing
@@ -894,7 +909,7 @@ class print_array:    #made to try to make matrices look prettier
                 num_bits = int(np.ceil(np.log2(array.dim)))
                 np.set_printoptions(linewidth=(10))
                 console.print(f"{array.name}",markup=True, style="measure")
-                for ket_val, prob_val in zip(ket_mat,array.measurement_probs):
+                for ket_val, prob_val in zip(ket_mat,array.proj_probs()):
                     console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{self.prec}f}%",markup=True, style="measure")
             else:
                 console.print(array,markup=True,style="measure")
@@ -967,3 +982,5 @@ circuit = Circuit(state=Qubit.q0(n=4))
 circuit.add_gate(Hadamard @ Hadamard @ Hadamard @ Hadamard)
 circuit.add_gate(CNot @ CNot)
 circuit.run()
+oracle_values = [1,4,5]
+Grover(oracle_values).run()
