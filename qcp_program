@@ -10,26 +10,28 @@ from scipy.linalg import sqrtm
 from rich.panel import Panel
 import cProfile
 
-custom_theme = Theme({"Qubit_style":"spring_green4",               #creates nice colours for the print out
-                      "Prob_dist_style":"green4",
-                      "Gate_style":"dark_green",
-                      "Density_style":"chartreuse4",
-                      "info":"grey62",
+custom_theme = Theme({"qubit":"#587C53",           #Fern Green
+                      "prob_dist":"#3C4E35",       #Dark Forest Green
+                      "gate":"#3E5C41",            #Forest Green
+                      "density":"#4D5B44",         #Olive Green
+                      "info":"#7E5A3C",                  #Earthy Brown
                       "error":"dark_orange",
-                      "measure":"green1",
-                      "headers":"dark_goldenrod"})
+                      "measure":"#3B4C3A",               #Deep Moss Green
+                      "grover_header":"#7D9A69",         #Sage Green
+                      "circuit_header":"#465C48",        #Muted Green
+                      "main_header":"#4B7A4D"})          #Vibrant moss Green
 console = Console(style="none",theme=custom_theme, highlight=False)
 
 def prog_end():    #made it to make the code at the end of the program a little neater
     stop = time.time()
     interval: float = stop - start
-    console.print(f"{interval:.3f} seconds elapsed",style="info")
+    console.rule(f"{interval:.3f} seconds elapsed",style="main_header")
     plt.show()
 atexit.register(prog_end)
 
-console.rule(style="headers")     #creates the start message
-console.rule(f"Quantum Computer Simulator", style="headers")
-console.rule(style="headers")
+console.rule(style="main_header")     #creates the start message
+console.rule(f"Quantum Computer Simulator", style="main_header", characters="#")
+console.rule(style="main_header")
 console.print("""Welcome to our Quantum Computer Simulator,
 here you can simulate a circuit with any amount of gates and qubits.
 You can define your own algorithm in a function and also 
@@ -663,14 +665,14 @@ class Measure(Density):
                     new_mat = np.zeros(self.density.dim, dtype=np.float64)
                     new_mat_dim = len(new_mat)
                     for i in range(new_mat_dim):
-                        new_mat[i] += self.rho[i+i*new_mat_dim]
+                        new_mat[i] += self.rho[i+i*new_mat_dim].real
                     return new_mat
                 else:
                     self.rho = self.density.rho
                     new_mat = np.zeros(self.density.dim, dtype=np.float64)
                     new_mat_dim = len(new_mat)
                     for i in range(new_mat_dim):
-                        new_mat[i] += self.rho[i+i*new_mat_dim]
+                        new_mat[i] += self.rho[i+i*new_mat_dim].real
                     return new_mat
             else:
                 raise QC_error(qc_dat.error_kwargs)
@@ -725,7 +727,7 @@ class Grover:                                               #this is the Grover 
         return np.array(result, dtype=object)
 
     def run(self):     #Grovers algorithm, can input the number of qubits and also a custom amount of iterations
-        console.rule(f"Grovers search with oracle values: {self.oracle_values}", style="headers")
+        console.rule(f"Grovers search with oracle values: {self.oracle_values}", style="grover_header")
         spec_had_mat = np.array([1,1,1,-1])    #i use this so that all the matrix mults are by an integer value and not a float and then apply the float later
         spec_had = Gate(name="Custom Hadamard for Grovers", info=qc_dat.Hadamard_info, matrix=spec_had_mat)
         if self.n == 0:               #if the number of qubits required is not given then run:
@@ -789,12 +791,13 @@ class Grover:                                               #this is the Grover 
         output = Grover(final_state.name, n=self.n, results=sorted_arr)         #creates a Grover instance
         output.name = f"The States of the Grover Search with Oracle Values {oracle_values}, after {int(self.it)} iterations is: "
         print_array(output)                #prints that Grover instance
-        console.rule(f"", style="headers")
+        console.rule(f"", style="grover_header")
         return output              #returns the value
 
 
 class Circuit:
     def __init__(self, **kwargs):
+        
         self.gates = []
         self.state = kwargs.get("state", "not specified")
         if isinstance(self.state, Qubit):
@@ -806,17 +809,19 @@ class Circuit:
                 new_vector[0] = 1
                 self.state = Qubit(vector=new_vector)
         self.start_gate = Gate.Identity(n=self.n_qubits)
+        console.rule(f"Initialising a Quantum Circuit with {self.n_qubits} Qubits", style="circuit_header")
+        console.rule("", style="circuit_header")
 
     def __str__(self):
         return f"{self.final_state}"
     
     def __rich__(self):
-        console.rule(f"Running Quantum Circuit with {self.n_qubits} Qubits:")
+        console.rule(f"Running Quantum Circuit with {self.n_qubits} Qubits:", style="circuit_header", characters="/")
         print_array(self.final_state)
         print_array(f"Final Probability Distribution:")
         print_array(self.prob_dist)
         print_array(f"{self.measure_all}")
-        console.rule(f"")
+        console.rule(f"", style="circuit_header")
 
     def print_gates(self):
         for i in range(len(self.gates)):
@@ -886,11 +891,11 @@ class print_array:    #made to try to make matrices look prettier
                 ket_mat = np.arange(0,array.dim)
                 num_bits = int(np.ceil(np.log2(array.dim)))
                 np.set_printoptions(linewidth=(10))
-                console.print(f"{array.name}",markup=True, style="Prob_dist_style")
+                console.print(f"{array.name}",markup=True, style="measure")
                 for ket_val, prob_val in zip(ket_mat,array.measurement_probs):
-                    console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{self.prec}f}",markup=True, style="Prob_dist_style")
+                    console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{self.prec}f}",markup=True, style="measure")
             else:
-                console.print(array,markup=True,style="Density_style")
+                console.print(array,markup=True,style="measure")
         elif isinstance(array, Gate):
             if array.dim < 5:
                 np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * array.dim)
@@ -901,16 +906,17 @@ class print_array:    #made to try to make matrices look prettier
                 self.prec = self.prec - 2
                 np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * array.dim, precision=self.prec)
             if isinstance(array, Density):
-                console.print(array,markup=True,style="Density_style")
+                console.print(array,markup=True,style="density")
             else:
-                console.print(array,markup=True,style="Gate_style")
+                console.print(array,markup=True,style="gate")
         elif isinstance(array, Grover):
-            console.print(array,markup=True, style="Prob_dist_style")
+            console.print(array,markup=True, style="prob_dist")
         elif isinstance(array, Qubit):
             np.set_printoptions(linewidth=(10))
-            console.print(array,markup=True,style="Qubit_style")
+            console.print(array,markup=True,style="qubit")
         else:
-            console.print(array,markup=True,style="White")
+            console.print(array,markup=True,style="info")
+
 
 X_Gate = Gate.X_Gate()             #initialises the default gates
 Y_Gate = Gate.Y_Gate()
