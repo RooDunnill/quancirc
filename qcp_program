@@ -175,40 +175,39 @@ class Qubit:                                           #creates the qubit class
         self.shift = self.dim.bit_length() - 1
         self.density = None
         self.n = int(np.log2(self.dim))
-
-        if self.state_type == "mixed"
-            self.build_mixed_state(kwargs)
-
-
-
         if self.state_type == "mixed":
-            if isinstance(kwargs.get("vectors")[0], Qubit):
-                self.vector = np.array(kwargs.get("vectors",[]))
-            else:
-                self.vector = np.array(kwargs.get("vectors",[]),dtype=np.complex128)
-            self.weights = kwargs.get("weights", [])
-            if len(self.weights) != len(self.vector):
-                raise QC_error(qc_dat.errror_mixed_state)
-        elif self.state_type == "seperable":             #creates the seperable states
-            qubit_states = np.array(kwargs.get("vectors",[]))
-            if isinstance(qubit_states[0], np.ndarray):                         #creates the vector for the seperable states for custom vector states
-                qubit_states = np.array(kwargs.get("vectors",[]), dtype = np.complex128)
-                self.vector = qubit_states[0]
-                for state in qubit_states[1:]:
-                    self.vector = self @ state
-                self.name = f"Seperable state of custom states"
-            elif isinstance(qubit_states[0], Qubit):                          #creates a seperable state for the tensor of qubits together
-                self.vector = qubit_states[0].vector
-                state_name_size = int(np.log2(qubit_states[0].dim))
-                self.name = qubit_states[0].name
-                for state in qubit_states[1:]:
-                    self_name_size = int(np.log2(self.dim))
-                    self.vector = self @ state.vector
-                    self.name = f"|{self.name[1:self_name_size+1]}{state.name[1:state_name_size+1]}>"
-            else:
-                raise QC_error(qc_dat.error_class)
+            self.build_mixed_state(kwargs)
+        elif self.state_type == "seperable":
+            self.build_seperable_state(kwargs)
+
+    def build_mixed_state(self, kwargs):
+        if isinstance(kwargs.get("vectors")[0], Qubit):
+            self.vector = np.array(kwargs.get("vectors",[]))
         else:
-            pass
+            self.vector = np.array(kwargs.get("vectors",[]),dtype=np.complex128)
+        self.weights = kwargs.get("weights", [])
+        if len(self.weights) != len(self.vector):
+            raise QC_error(qc_dat.errror_mixed_state)
+            
+    def build_seperable_state(self, kwargs):
+        qubit_states = np.array(kwargs.get("vectors",[]))
+        if isinstance(qubit_states[0], np.ndarray):                         #creates the vector for the seperable states for custom vector states
+            qubit_states = np.array(kwargs.get("vectors",[]), dtype = np.complex128)
+            self.vector = qubit_states[0]
+            for state in qubit_states[1:]:
+                self.vector = self @ state
+            self.name = f"Seperable state of custom states"
+        elif isinstance(qubit_states[0], Qubit):                          #creates a seperable state for the tensor of qubits together
+            self.vector = qubit_states[0].vector
+            state_name_size = int(np.log2(qubit_states[0].dim))
+            self.name = qubit_states[0].name
+            for state in qubit_states[1:]:
+                self_name_size = int(np.log2(self.dim))
+                self.vector = self @ state.vector
+                self.name = f"|{self.name[1:self_name_size+1]}{state.name[1:state_name_size+1]}>"
+        else:
+            raise QC_error(qc_dat.error_class)
+
 
     @classmethod                 #creates the default qubits, using class methods allows you to define an instance within the class
     def q0(cls, **kwargs):
@@ -248,9 +247,9 @@ class Qubit:                                           #creates the qubit class
             return f"[bold]{self.name}[/bold]\n[not bold]{self.vector}[/not bold]"
     
     def __matmul__(self, other):               #this is an n x n tensor product function
+        self_name_size = int(np.log2(self.dim))
+        other_name_size = int(np.log2(other.dim))
         if isinstance(other, Qubit):           #although this tensors are all 1D   
-            self_name_size = int(np.log2(self.dim))
-            other_name_size = int(np.log2(other.dim))
             new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
             new_length: int = self.dim*other.dim
             new_vector = np.zeros(new_length,dtype=np.complex128)
@@ -261,9 +260,6 @@ class Qubit:                                           #creates the qubit class
             return Qubit(name=new_name, vector=np.array(new_vector))    #returns a new Qubit instance with a new name
         elif isinstance(other, np.ndarray):                 #used for when you just need to compute it for a given array, this is for creating seperable states
             other_dim = len(other)
-            self_name_size = int(np.log2(self.dim))
-            other_name_size = int(np.log2(other_dim))
-            new_name = f""
             new_length: int = self.dim*other_dim
             new_vector = np.zeros(new_length,dtype=np.complex128)
             for i in range(self.dim):     #multiplies the second ket by each value in the first ket
