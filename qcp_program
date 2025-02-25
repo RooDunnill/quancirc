@@ -165,6 +165,8 @@ def top_probs(prob_list, n):             #sorts through the probability distribu
         return np.array(result, dtype=object)
 
 
+
+
 class Qubit:                                           #creates the qubit class
     def __init__(self, **kwargs) -> None:
         self.state_type = kwargs.get("type", "pure")                   #the default qubit is a single pure qubit |0>
@@ -507,24 +509,25 @@ class Gate:            #creates a gate class to enable unique properties
 
 class Density(Gate):       #makes a matrix of the probabilities, useful for entangled states
     def __init__(self, **kwargs):
-        self.qubit = kwargs.get("qubit", None)
-        if self.qubit is None:
+        self.state = kwargs.get("qubit", None)
+        if self.state is None:
             self.state_type = kwargs.get("type", None)
             self.name = kwargs.get("name", "Density Matrix:")
             self.length = len(self.rho)
-        elif isinstance(self.qubit, Qubit):
-            self.state_type = kwargs.get("type", self.qubit.state_type)
-            self.q_vector = self.qubit.vector
-            self.length = self.qubit.dim**2
-            if self.qubit.name is not None:
-                    desc_name =f"Density matrix of {self.state_type} qubit {self.qubit.name}:"
+        elif isinstance(self.state, Qubit):
+            self.state_type = kwargs.get("type", self.state.state_type)
+            self.q_vector = self.state.vector
+            self.length = self.state.dim**2
+            if self.state.name is not None:
+                    desc_name =f"Density matrix of {self.state_type} qubit {self.state.name}:"
             self.name = kwargs.get("name", desc_name)
         else:
             raise QC_error(qc_dat.error_class)
         self.dim = int(np.sqrt(self.length))
         self.shift = self.dim.bit_length() - 1
         self.n = int(np.log2(self.dim))
-        self.rho = kwargs.get("rho", None if self.qubit is None else self.construct_density_matrix())
+        self.rho = kwargs.get("rho", None if self.state is None else self.construct_density_matrix())
+        self.vn_entropy = None
         
 
         
@@ -535,9 +538,9 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         return f"[bold]{self.name}[/bold]\n[not bold]{self.rho}[/not bold]"
     
     def construct_density_matrix(self):
-        if self.qubit.state_type in ["pure", "seperable", "entangled"]:
+        if self.state.state_type in ["pure", "seperable", "entangled"]:
             return self.generic_density()
-        elif self.qubit.state_type == "mixed":
+        elif self.state.state_type == "mixed":
             return self.mixed_state()
 
         
@@ -607,6 +610,21 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         for i in range(den1.dim):
             _summ += 0.5 * np.abs(diff_mat[i + den1.dim * i])
         return _summ
+
+    def calc_vn_entropy(self):
+        if self.rho is not None:
+            reshaped_rho = reshape_matrix(self.rho)
+            eigenvalues, eigenvectors = np.linalg.eig(reshaped_rho)
+            entropy = 0
+            for ev in eigenvalues:
+                if ev > 0:
+                    entropy -= ev * np.log2(ev)
+            if entropy < 1e-10:
+                entropy = 0
+            return entropy
+        else:
+            raise QC_error(f"No rho matrix provided")
+
 
     def __sub__(self, other):
         new_name = f"{self.name} - {other.name}"
@@ -1001,5 +1019,6 @@ circuit2 = Circuit(state=Qubit.q0(n=4))
 circuit2.add_gate(Hadamard @ Hadamard @ Hadamard @ Hadamard)
 circuit2.add_gate(CNot @ CNot)
 circuit2.run()
+print_array(Density(qubit=qm).calc_vn_entropy())
 oracle_values = [9,4,3,2,5,6,12]
 Grover(oracle_values).run()
