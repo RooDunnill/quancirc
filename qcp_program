@@ -525,16 +525,11 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             self.name = kwargs.get("name", desc_name)
         else:
             raise QC_error(qc_dat.error_class)
-        
-        
         self.rho = kwargs.get("rho", None if self.state is None else self.construct_density_matrix())
         self.length = len(self.rho) if self.state is None else self.state.dim**2
         self.dim = int(np.sqrt(self.length))
         self.n = int(np.log2(self.dim))
         self.shift = self.dim.bit_length() - 1
-        self.vn_entropy = None
-        self.qubit_a = kwargs.get("qubit_a", None)
-        self.qubit_b = kwargs.get("qubit_b", None)
         
 
         
@@ -653,26 +648,18 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         
     def partial_trace(self, **kwargs):
         trace_out_system = kwargs.get("trace_out", "B")
+        trace_out_state_size = int(kwargs.get("state_size", 1))
         if trace_out_system == "B":
-            print("test1")
-            print(type(self.rho))
-            print(type(self.state))
-            if isinstance(self.rho, np.ndarray) and isinstance(self.state, Qubit):
-                print("test2")
+            if isinstance(self.rho, np.ndarray):
                 rho_length = len(self.rho)
                 rho_dim = int(np.sqrt(rho_length))
-                traced_out_rho = self.construct_density_matrix()
-                traced_out_dim = self.state.dim
-                reduced_dim = int(rho_dim / self.state.dim)
+                traced_out_dim = 2**trace_out_state_size
+                reduced_dim = int(rho_dim / traced_out_dim)
                 reduced_length = int(reduced_dim**2)
                 new_mat = np.zeros(reduced_length,dtype=np.complex128)
-                print_array(self.rho)
                 for k in range(reduced_dim):
                     for i in range(reduced_dim):
-                        print("test3")
                         for j in range(traced_out_dim):
-                            print("test4")
-                            print(self.rho[j+j*traced_out_dim+j*rho_dim])
                             new_mat[i+k*reduced_dim] += self.rho[j+j*rho_dim+i*traced_out_dim+k*rho_dim*traced_out_dim]
                 self.rho_a = new_mat
                 return self.rho_a
@@ -680,6 +667,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             print("test1")
             print(type(self.rho))
             print(type(self.state))
+            print("running A")
             if isinstance(self.rho, np.ndarray) and isinstance(self.state, Qubit):
                 print("test2")
                 rho_length = len(self.rho)
@@ -689,6 +677,10 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 reduced_length = int(reduced_dim**2)
                 new_mat = np.zeros(reduced_length,dtype=np.complex128)
                 print_array(self.rho)
+                print_array(f"traced out dim {traced_out_dim}")
+                print_array(f"reduced dim {reduced_dim}")
+                print_array(f"rho dim {rho_dim}")
+                print_array(self.state)
                 for k in range(reduced_dim):
                     for i in range(reduced_dim):
                         print("test3")
@@ -760,9 +752,6 @@ class Measure(Density):
         num_bits = int(np.ceil(np.log2(self.dim)))
         measurement = f"Measured the state: |{bin(measurement)[2:].zfill(num_bits)}>"
         return measurement        
-
-
-
 
 def format_ket_notation(list_probs, **kwargs):
     list_type = kwargs.get("type", "all")
@@ -1086,8 +1075,10 @@ circuit2.add_gate(CNot @ CNot)
 circuit2.run()
 print_array(Density(state=qm).calc_vn_entropy())
 
-rho_ab = Density(state=qp @ q0).rho
-partial_trace = Density(state=qm, rho=rho_ab).partial_trace(trace_out_system="B")
+rho_ab = Density(state=q1 @ q0 @ q0).rho
+partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B")
 print_array(partial_trace)
+#partial_trace2 = Density(state=qm, rho=rho_ab).partial_trace(trace_out="A")
+#print_array(partial_trace2)
 oracle_values = [9,4,3,2,5,6,12]
 Grover(oracle_values).run()
