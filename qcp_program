@@ -509,25 +509,32 @@ class Gate:            #creates a gate class to enable unique properties
 
 class Density(Gate):       #makes a matrix of the probabilities, useful for entangled states
     def __init__(self, **kwargs):
-        self.state = kwargs.get("qubit", None)
+        self.state = kwargs.get("state", None)
         if self.state is None:
             self.state_type = kwargs.get("type", None)
             self.name = kwargs.get("name", "Density Matrix:")
-            self.length = len(self.rho)
         elif isinstance(self.state, Qubit):
             self.state_type = kwargs.get("type", self.state.state_type)
             self.q_vector = self.state.vector
             self.length = self.state.dim**2
+            self.dim = int(np.sqrt(self.length))
+            self.n = int(np.log2(self.dim))
+            self.shift = self.dim.bit_length() - 1
             if self.state.name is not None:
                     desc_name =f"Density matrix of {self.state_type} qubit {self.state.name}:"
             self.name = kwargs.get("name", desc_name)
         else:
             raise QC_error(qc_dat.error_class)
-        self.dim = int(np.sqrt(self.length))
-        self.shift = self.dim.bit_length() - 1
-        self.n = int(np.log2(self.dim))
+        
+        
         self.rho = kwargs.get("rho", None if self.state is None else self.construct_density_matrix())
+        self.length = len(self.rho) if self.state is None else self.state.dim**2
+        self.dim = int(np.sqrt(self.length))
+        self.n = int(np.log2(self.dim))
+        self.shift = self.dim.bit_length() - 1
         self.vn_entropy = None
+        self.qubit_a = kwargs.get("qubit_a", None)
+        self.qubit_b = kwargs.get("qubit_b", None)
         
 
         
@@ -620,7 +627,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 if ev > 0:
                     entropy -= ev * np.log2(ev)
             if entropy < 1e-10:
-                entropy = 0
+                entropy = 0.0
             return entropy
         else:
             raise QC_error(f"No rho matrix provided")
@@ -643,7 +650,54 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             return Density(name=new_name, info=qc_dat.Density_matrix_info, rho=np.array(new_mat))
         else:
             raise QC_error(qc_dat.error_class)
-
+        
+    def partial_trace(self, **kwargs):
+        trace_out_system = kwargs.get("trace_out", "B")
+        if trace_out_system == "B":
+            print("test1")
+            print(type(self.rho))
+            print(type(self.state))
+            if isinstance(self.rho, np.ndarray) and isinstance(self.state, Qubit):
+                print("test2")
+                rho_length = len(self.rho)
+                rho_dim = int(np.sqrt(rho_length))
+                traced_out_rho = self.construct_density_matrix()
+                traced_out_dim = self.state.dim
+                reduced_dim = int(rho_dim / self.state.dim)
+                reduced_length = int(reduced_dim**2)
+                new_mat = np.zeros(reduced_length,dtype=np.complex128)
+                print_array(self.rho)
+                for k in range(reduced_dim):
+                    for i in range(reduced_dim):
+                        print("test3")
+                        for j in range(traced_out_dim):
+                            print("test4")
+                            print(self.rho[j+j*traced_out_dim+j*rho_dim])
+                            new_mat[i+k*reduced_dim] += self.rho[j+j*rho_dim+i*traced_out_dim+k*rho_dim*traced_out_dim]
+                self.rho_a = new_mat
+                return self.rho_a
+        elif trace_out_system == "A":
+            print("test1")
+            print(type(self.rho))
+            print(type(self.state))
+            if isinstance(self.rho, np.ndarray) and isinstance(self.state, Qubit):
+                print("test2")
+                rho_length = len(self.rho)
+                rho_dim = int(np.sqrt(rho_length))
+                traced_out_dim = int(rho_dim / self.state.dim)
+                reduced_dim = self.state.dim
+                reduced_length = int(reduced_dim**2)
+                new_mat = np.zeros(reduced_length,dtype=np.complex128)
+                print_array(self.rho)
+                for k in range(reduced_dim):
+                    for i in range(reduced_dim):
+                        print("test3")
+                        for j in range(traced_out_dim):
+                            print("test4")
+                            print(self.rho[j+j*traced_out_dim+j*rho_dim])
+                            new_mat[i+k*reduced_dim] += self.rho[j+j*rho_dim+i*traced_out_dim+k*rho_dim*traced_out_dim]
+                self.rho_b = new_mat
+                return self.rho_b
 
 class Measure(Density):
     def __init__(self, **kwargs):
@@ -651,7 +705,7 @@ class Measure(Density):
         self.measure_type = kwargs.get("type", "projective")
         self.state = kwargs.get("state", None)
         if self.state is not None:
-            self.density = kwargs.get("density", Density(qubit=self.state))
+            self.density = kwargs.get("density", Density(state=self.state))
             self.rho = self.density.rho
         else:
             self.density = kwargs.get("density", None)
@@ -958,6 +1012,17 @@ class print_array:    #made to try to make matrices look prettier
         elif isinstance(array, Qubit):
             np.set_printoptions(linewidth=(10))
             console.print(array,markup=True,style="qubit")
+        elif isinstance(array, np.ndarray):
+            length = len(array)
+            if length < 17:
+                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * np.sqrt(length))
+            elif length < 65:
+                self.prec = self.prec - 1
+                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * np.sqrt(length), precision=self.prec)
+            else:
+                self.prec = self.prec - 2
+                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * np.sqrt(length), precision=self.prec)
+            console.print(array, markup=True, style="gate")
         else:
             console.print(array,markup=True,style="info")
 
@@ -1019,6 +1084,10 @@ circuit2 = Circuit(state=Qubit.q0(n=4))
 circuit2.add_gate(Hadamard @ Hadamard @ Hadamard @ Hadamard)
 circuit2.add_gate(CNot @ CNot)
 circuit2.run()
-print_array(Density(qubit=qm).calc_vn_entropy())
+print_array(Density(state=qm).calc_vn_entropy())
+
+rho_ab = Density(state=qp @ q0).rho
+partial_trace = Density(state=qm, rho=rho_ab).partial_trace(trace_out_system="B")
+print_array(partial_trace)
 oracle_values = [9,4,3,2,5,6,12]
 Grover(oracle_values).run()
