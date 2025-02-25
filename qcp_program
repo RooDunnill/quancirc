@@ -669,8 +669,9 @@ class Measure(Density):
         if self.measure_type == "projective":
             return self.list_proj_probs()
         
-    def topn_measure_probs(self):
-        new_mat = top_probs(self.list_proj_probs(), 16)
+    def topn_measure_probs(self, **kwargs):
+        topn = kwargs.get("n", 8)
+        new_mat = top_probs(self.list_proj_probs(), topn)
         return new_mat
     
     def list_proj_probs(self):
@@ -691,8 +692,21 @@ class Measure(Density):
 
 
 
-
-
+def format_ket_notation(list_probs, **kwargs):
+    list_type = kwargs.get("type", "all")
+    num_bits = kwargs.get("num_bits", int(np.ceil(np.log2(len(list_probs)))))
+    if list_type == "topn":
+        print_out = f""
+        for ket_val, prob_val in zip(list_probs[:,0],list_probs[:,1]):
+            print_out += (f"State |{bin(ket_val)[2:].zfill(num_bits)}> ({ket_val}) with a prob val of: {prob_val:.{3}f}%\n")
+        return print_out
+    elif list_type == "all":
+        prec = 3
+        ket_mat = range(len(list_probs))
+        print_out = f""
+        for ket_val, prob_val in zip(ket_mat,list_probs):
+            print_out += (f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{prec}f}%\n")
+        return print_out
 
 class Circuit:
     def __init__(self, **kwargs):
@@ -709,6 +723,7 @@ class Circuit:
         self.start_gate = Gate.Identity(n=self.n)
         console.rule(f"Initialising a Quantum Circuit with {self.n} Qubits", style="circuit_header")
         console.rule("", style="circuit_header")
+        self.measurement = None
 
     def __str__(self):
         return f"{self.final_state}"
@@ -718,11 +733,9 @@ class Circuit:
         print_array(self.final_state)
         print_array(f"Final Probability Distribution:")
         num_bits = int(np.ceil(np.log2(self.state.dim)))
-        print_out = f""
-        for ket_val, prob_val in zip(self.top_prob_dist[:,0],self.top_prob_dist[:,1]):
-            print_out += (f"State |{bin(ket_val)[2:].zfill(num_bits)}> ({ket_val}) with a prob val of: {prob_val:.{3}f}\n")
+        print_out = format_ket_notation(self.top_prob_dist, type="topn", num_bits=int(np.ceil(np.log2(self.state.dim))))
         print_array(print_out)
-        print_array(f"{self.measure}")
+        print_array(f"{self.measure_state}")
         console.rule(f"", style="circuit_header")
 
     def print_gates(self):
@@ -756,32 +769,28 @@ class Circuit:
         return self.final_state
     
     def list_proj_probs(self, text=True):
-        self.prob_distribution = Measure(state=self.final_state)
+        self.prob_distribution = Measure(state=self.final_state).list_proj_probs()
         if text:
             print_array(f"The projective probability distribution is:")
-            print_array(self.prob_distribution)
+            print_array(format_ket_notation(self.prob_distribution))
         return self.prob_distribution
-    
     
     
     def topn_probabilities(self, text=True, **kwargs):
         topn = kwargs.get("n", 8)
-        self.top_prob_dist = Measure(state=self.final_state).topn_measure_probs()
+        self.top_prob_dist = top_probs(self.list_proj_probs(), topn)
         if text:
-            num_bits = int(np.ceil(np.log2(self.state.dim)))
-            print_out = f""
-            for ket_val, prob_val in zip(self.top_prob_dist[:,0],self.top_prob_dist[:,1]):
-                print_out += (f"State |{bin(ket_val)[2:].zfill(num_bits)}> ({ket_val}) with a prob val of: {prob_val:.{3}f}\n")
+            print_out = format_ket_notation(self.top_prob_dist, type="topn", num_bits=int(np.ceil(np.log2(self.state.dim))))
             print_array(f"The top {topn} probabilities are:")
             print_array(print_out)
         return self.top_prob_dist
     
     def proj_measure_state(self, text=True):
-        self.measure = Measure(state=self.final_state).measurement
+        self.measure_state = Measure(state=self.final_state).proj_measure_state()
         if text:
             print_array(f"The measured state is:")
-            print_array(self.measure)
-        return self.measure
+            print_array(self.measure_state)
+        return self.measure_state
 
     def run(self):
         if self.gates == []:
@@ -808,10 +817,9 @@ class Grover:                                               #this is the Grover 
         return f"{self.name}\n{self.results}"
     
     def __rich__(self):           #creates the correct printout so it shows the prob next to the ket written in ket notation
-        num_bits = int(np.ceil(self.n))
         print_out = f"[bold]{self.name}[/bold]\n"
-        for ket_val, prob_val in zip(self.results[:,0],self.results[:,1]):
-            print_out += (f"State |{bin(ket_val)[2:].zfill(num_bits)}> ({ket_val}) with a prob val of: {prob_val:.{3}f}\n")
+        print_out_kets = format_ket_notation(self.results, type="topn", num_bits=int(np.ceil(self.n)))
+        print_out = print_out + print_out_kets
         return print_out
 
     def phase_oracle(self, qub, oracle_values):          #the Grover phase oracle
@@ -980,7 +988,7 @@ def quant_fourier_trans(qub):          #also for shors although used in other al
 
 
 circuit = Circuit(state=Qubit.q0(n=4))
-circuit.add_gate(Hadamard @ Hadamard @ Hadamard @ Hadamard)
+circuit.add_gate(Hadamard @ Hadamard @ X_Gate @ Hadamard)
 circuit.add_gate(CNot @ CNot)
 circuit.compute_final_gate()
 circuit.apply_final_gate()
