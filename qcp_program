@@ -730,6 +730,7 @@ class Circuit:
     
     def __rich__(self):
         console.rule(f"Running Quantum Circuit with {self.n} Qubits:", style="circuit_header", characters="/")
+        print_array(self.final_gate)
         print_array(self.final_state)
         print_array(f"Final Probability Distribution:")
         num_bits = int(np.ceil(np.log2(self.state.dim)))
@@ -778,11 +779,10 @@ class Circuit:
     
     def topn_probabilities(self, text=True, **kwargs):
         topn = kwargs.get("n", 8)
-        self.top_prob_dist = top_probs(self.list_proj_probs(), topn)
+        self.top_prob_dist = top_probs(self.list_proj_probs(text=False), topn)
         if text:
-            print_out = format_ket_notation(self.top_prob_dist, type="topn", num_bits=int(np.ceil(np.log2(self.state.dim))))
             print_array(f"The top {topn} probabilities are:")
-            print_array(print_out)
+            print_array(format_ket_notation(self.top_prob_dist, type="topn", num_bits=int(np.ceil(np.log2(self.state.dim)))))
         return self.top_prob_dist
     
     def proj_measure_state(self, text=True):
@@ -914,7 +914,7 @@ class print_array:    #made to try to make matrices look prettier
             floatmode="fixed")
         if isinstance(array, Measure):
             if array.measure_type == "projective":
-                ket_mat = np.arange(0,array.dim)
+                ket_mat = range(array.dim)
                 num_bits = int(np.ceil(np.log2(array.dim)))
                 np.set_printoptions(linewidth=(10))
                 console.print(f"{array.name}",markup=True, style="measure")
