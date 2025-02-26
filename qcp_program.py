@@ -663,9 +663,9 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             if isinstance(self.rho, np.ndarray):
                 rho_length = len(self.rho)
                 rho_dim = int(np.sqrt(rho_length))
-                reduced_dim = 2**trace_out_state_size
-                traced_out_dim = int(rho_dim / reduced_dim)
-                reduced_length = int(traced_out_dim**2)
+                traced_out_dim = 2**trace_out_state_size
+                reduced_dim = int(rho_dim / traced_out_dim)
+                reduced_length = int(reduced_dim**2)
                 new_mat = np.zeros(reduced_length,dtype=np.complex128)
                 print_array(self.state)
                 for k in range(reduced_dim):
@@ -1046,6 +1046,11 @@ rho_ab = Density(state=q1 @ q0 @ q0).rho
 partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=2)
 print_array(partial_trace)
 partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=2)
+print_array(partial_trace2)
+rho_ab = Density(state=q1 @ q0).rho
+partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=1)
+print_array(partial_trace)
+partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=1)
 print_array(partial_trace2)
 #partial_trace2 = Density(state=qm, rho=rho_ab).partial_trace(trace_out="A")
 #print_array(partial_trace2)
