@@ -535,7 +535,10 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         self.dim = int(np.sqrt(self.length))
         self.n = int(np.log2(self.dim))
         self.shift = self.dim.bit_length() - 1
-        
+        self.state_a = kwargs.get("state_a", None)
+        self.state_b = kwargs.get("state_b", None)
+        self.rho_a = kwargs.get("rho_a", None if self.state_a is None else self.construct_density_matrix())
+        self.rho_b = kwargs.get("rho_b", None if self.state_b is None else self.construct_density_matrix())
 
         
     def __str__(self):
@@ -596,31 +599,28 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         else:
                 raise QC_error(qc_dat.error_class)
 
-    @staticmethod
-    def fidelity(den1, den2):
-        if isinstance(den1, Density) and isinstance(den2, Density):
-            rho1 = reshape_matrix(den1.rho)
-            rho2 = den2.rho
+    def fidelity(self):
+        if isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarray):
+            rho1 = reshape_matrix(self.rho_a)
+            rho2 = self.rho_b
             sqrt_rho1 = sqrtm(rho1)
             flat_sqrt_rho1 = flatten_matrix(sqrt_rho1)
             product =  flat_sqrt_rho1 * rho2 * flat_sqrt_rho1
             sqrt_product = sqrtm(reshape_matrix(product))
             flat_sqrt_product = flatten_matrix(sqrt_product)
-            result = np.abs(trace(flat_sqrt_product))**2
-            return result
-    
-    @staticmethod
-    def trace_distance(den1, den2):
-        diff_den = den1 - den2
-        diff_mat = diff_den.rho
-        _summ = 0
-        for i in range(den1.dim):
-            _summ += 0.5 * np.abs(diff_mat[i + den1.dim * i])
-        return _summ
+            self.fidelity_ab = np.abs(trace(flat_sqrt_product))**2
+            return self.fidelity_ab
 
-    def calc_vn_entropy(self):
-        if self.rho is not None:
-            reshaped_rho = reshape_matrix(self.rho)
+    def trace_distance(self):
+        diff_mat = self.rho_a - self.rho_b
+        rho_a_dim = int(np.sqrt(len(self.rho_a)))
+        rho_b_dim = int(np.sqrt(len(self.rho_b)))
+        self.trace_dist = sum(0.5 * np.abs(diff_mat[i + rho_a_dim * i]) for i in range(rho_a_dim))
+        return self.trace_dist
+
+    def vn_entropy(self, rho):
+        if isinstance(rho, np.ndarray):
+            reshaped_rho = reshape_matrix(rho)
             eigenvalues, eigenvectors = np.linalg.eig(reshaped_rho)
             entropy = 0
             for ev in eigenvalues:
@@ -631,6 +631,33 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             return entropy
         else:
             raise QC_error(f"No rho matrix provided")
+        
+    def quantum_conditional_entropy(self, rho):    #rho is the one that goes first in S(A|B)
+        if isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarry):
+            if rho == self.rho_a:
+                cond_ent = self.vn_entropy(rho) - self.vn_entropy(self.rho_a)
+                return cond_ent
+            elif rho == self.rho_b:
+                cond_ent = self.vn_entropy(rho) - self.vn_entropy(self.rho_b)
+                return cond_ent
+            
+    def quantum_mutual_info(self):
+        if isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarray) and isinstance(self.rho, np.ndarray):
+            mut_info = self.vn_entropy(self.rho_a) + self.vn_entropy(self.rho_b) - self.vn_entropy(self.rho)
+            return mut_info
+        else:
+            raise QC_error(f"You need to provide rho a, rho b and rho for this computation to work")
+    
+    def quantum_relative_entropy(self, rho):   #rho is again the first value in S(A||B)
+        if isinstance(rho, np.ndarray) and isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarray):
+            if rho == self.rho_a:
+                quant_rel_ent = trace(rho*(np.log2(reshape_matrix(rho)) - np.log2(reshape_matrix(self.rho_b))))
+                return quant_rel_ent
+            elif rho == self.rho_b:
+                quant_rel_ent = trace(rho*(np.log2(reshape_matrix(rho)) - np.log2(reshape_matrix(self.rho_a))))
+                return quant_rel_ent
+        else:
+            raise QC_error(f"You need to provide two rhos of the correct type")
 
     def partial_trace(self, **kwargs):
         trace_out_system = kwargs.get("trace_out", "B")
