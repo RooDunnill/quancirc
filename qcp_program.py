@@ -6,7 +6,7 @@ import atexit
 import matplotlib.pyplot as plt
 from rich.console import Console
 from rich.theme import Theme
-from scipy.linalg import sqrtm
+from scipy.linalg import sqrtm, logm
 import cProfile
 from functools import lru_cache, cache
 
@@ -530,15 +530,15 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             self.name = kwargs.get("name", desc_name)
         else:
             raise QC_error(qc_dat.error_class)
-        self.rho = kwargs.get("rho", None if self.state is None else self.construct_density_matrix())
+        self.rho = kwargs.get("rho", None if self.state is None else self.construct_density_matrix(self.state))
         self.length = len(self.rho) if self.state is None else self.state.dim**2
         self.dim = int(np.sqrt(self.length))
         self.n = int(np.log2(self.dim))
         self.shift = self.dim.bit_length() - 1
         self.state_a = kwargs.get("state_a", None)
         self.state_b = kwargs.get("state_b", None)
-        self.rho_a = kwargs.get("rho_a", None if self.state_a is None else self.construct_density_matrix())
-        self.rho_b = kwargs.get("rho_b", None if self.state_b is None else self.construct_density_matrix())
+        self.rho_a = kwargs.get("rho_a", None if self.state_a is None else self.construct_density_matrix(self.state_a))
+        self.rho_b = kwargs.get("rho_b", None if self.state_b is None else self.construct_density_matrix(self.state_b))
 
         
     def __str__(self):
@@ -547,56 +547,56 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.rho}[/not bold]"
     
-    def construct_density_matrix(self):
-        if self.state.state_type in ["pure", "seperable", "entangled"]:
-            return self.generic_density()
-        elif self.state.state_type == "mixed":
-            return self.mixed_state()
+    def construct_density_matrix(self, calc_state=None):
+        if isinstance(calc_state, Qubit):
+            if calc_state.state_type in ["pure", "seperable", "entangled"]:
+                return self.generic_density(calc_state)
+            elif calc_state.state_type == "mixed":
+                return self.mixed_state(calc_state)
 
         
-    def generic_density(self, **kwargs):       #taken from the old density matrix function
-        if isinstance(self, Density):
-            rho = np.zeros(self.dim*self.dim,dtype=np.complex128)
-            qubit_conj = np.conj(self.q_vector)
-            for i in range(self.dim):
-                for j in range(self.dim):
-                    rho[j+(i << self.shift)] += qubit_conj[i]*self.q_vector[j]
-            if abs(1 -trace(rho)) < 1e-5:
+    def generic_density(self, calc_state, **kwargs):       #taken from the old density matrix function
+        state_vector = calc_state.vector
+        calc_state_dim = len(state_vector)
+        rho = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
+        qubit_conj = np.conj(state_vector)
+        for i in range(calc_state_dim):
+            for j in range(calc_state_dim):
+                rho[j+(i * calc_state_dim)] += qubit_conj[i]*state_vector[j]
+        if abs(1 -trace(rho)) < 1e-5:
+            return rho
+        else:
+            raise QC_error(qc_dat.error_trace)
+            
+    def mixed_state(self, calc_state, **kwargs):
+        calc_state_dim = len(calc_state)
+        state_vector = calc_state.vector
+        qubit_conj = np.conj(state_vector)
+        if isinstance(state_vector[0], np.ndarray):
+            rho = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
+            rho_sub = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
+            for k in range(len(state_vector)):
+                for i in range(calc_state_dim):
+                    for j in range(calc_state_dim):
+                        rho_sub[j+(i * calc_state_dim)] += qubit_conj[k][i]*state_vector[k][j]
+                rho += calc_state.weights[k]*rho_sub
+                rho_sub = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
+            rho_trace = trace(rho)
+            if abs(1 - rho_trace) < 1e-5:
                 return rho
             else:
+                print(f"The calculated trace is {rho_trace}")
                 raise QC_error(qc_dat.error_trace)
+        elif isinstance(state_vector[0], Qubit):
+            rho = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
+            rho_sub = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
+            for k in range(calc_state_dim):
+                den = Density(state=state_vector[k],type="pure")
+                rho += den.rho * calc_state.weights[k]
+            return rho
         else:
             raise QC_error(qc_dat.error_class)
-            
-    def mixed_state(self, **kwargs):
-        if isinstance(self, Density):
-            if isinstance(self.q_vector[0], np.ndarray):
-                rho = np.zeros(self.dim*self.dim,dtype=np.complex128)
-                rho_sub = np.zeros(self.dim*self.dim,dtype=np.complex128)
-                vectors_conj = np.conj(self.q_vector)
-                for k in range(len(self.q_vector)):
-                    for i in range(self.dim):
-                        for j in range(self.dim):
-                            rho_sub[j+(i << self.shift)] += vectors_conj[k][i]*self.q_vector[k][j]
-                    rho += self.qubit.weights[k]*rho_sub
-                    rho_sub = np.zeros(self.dim*self.dim,dtype=np.complex128)
-                rho_trace = trace(rho)
-                if abs(1 - rho_trace) < 1e-5:
-                    return rho
-                else:
-                    print(f"The calculated trace is {rho_trace}")
-                    raise QC_error(qc_dat.error_trace)
-            elif isinstance(self.q_vector[0], Qubit):
-                rho = np.zeros(self.dim*self.dim,dtype=np.complex128)
-                rho_sub = np.zeros(self.dim*self.dim,dtype=np.complex128)
-                for k in range(len(self.q_vector)):
-                    den = Density(qubit=self.q_vector[k],type="pure")
-                    rho += den.rho * self.qubit.weights[k]
-                return rho
-            else:
-                raise QC_error(qc_dat.error_class)
-        else:
-                raise QC_error(qc_dat.error_class)
+
 
     def fidelity(self):
         if isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarray):
@@ -607,7 +607,9 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             product =  flat_sqrt_rho1 * rho2 * flat_sqrt_rho1
             sqrt_product = sqrtm(reshape_matrix(product))
             flat_sqrt_product = flatten_matrix(sqrt_product)
-            self.fidelity_ab = np.abs(trace(flat_sqrt_product))**2
+            mat_trace = trace(flat_sqrt_product)
+            mat_trace_conj = np.conj(mat_trace)
+            self.fidelity_ab = mat_trace*mat_trace_conj
             return self.fidelity_ab
 
     def trace_distance(self):
@@ -631,14 +633,16 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         else:
             raise QC_error(f"No rho matrix provided")
         
-    def quantum_conditional_entropy(self, rho):    #rho is the one that goes first in S(A|B)
-        if isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarry):
-            if rho == self.rho_a:
-                cond_ent = self.vn_entropy(rho) - self.vn_entropy(self.rho_a)
+    def quantum_conditional_entropy(self, rho=None):    #rho is the one that goes first in S(A|B)
+        if isinstance(self.rho, np.ndarray) and isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarray):
+            if rho == "rho_a" or "a" or "A":
+                cond_ent = self.vn_entropy(self.rho) - self.vn_entropy(self.rho_a)
                 return cond_ent
-            elif rho == self.rho_b:
-                cond_ent = self.vn_entropy(rho) - self.vn_entropy(self.rho_b)
+            elif rho == "rh0_b" or "b" or "B":
+                cond_ent = self.vn_entropy(self.rho) - self.vn_entropy(self.rho_b)
                 return cond_ent
+        else:
+            raise QC_error("rho and rho a and rho b do not all have the same type")
             
     def quantum_mutual_info(self):
         if isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarray) and isinstance(self.rho, np.ndarray):
@@ -647,13 +651,21 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         else:
             raise QC_error(f"You need to provide rho a, rho b and rho for this computation to work")
     
-    def quantum_relative_entropy(self, rho):   #rho is again the first value in S(A||B)
-        if isinstance(rho, np.ndarray) and isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarray):
-            if rho == self.rho_a:
-                quant_rel_ent = trace(rho*(np.log2(reshape_matrix(rho)) - np.log2(reshape_matrix(self.rho_b))))
+    def quantum_relative_entropy(self, rho=None):   #rho is again the first value in S(A||B)  pretty sure this is wrong
+        if isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarray):
+            rho_a = np.zeros(len(self.rho_a),dtype=np.complex128)
+            rho_b = np.zeros(len(self.rho_b),dtype=np.complex128)
+            for i, val in enumerate(self.rho_a):
+                rho_a[i] = val
+                rho_a[i] += 1e-10 if val == 0 else 0
+            for i, val in enumerate(self.rho_b):
+                rho_b[i] = val
+                rho_b[i] += 1e-10 if val == 0 else 0
+            if rho in ["rho_a","a","A"]:
+                quant_rel_ent = trace(rho_a*(flatten_matrix(logm(reshape_matrix(rho_a)) - logm(reshape_matrix(rho_b)))))
                 return quant_rel_ent
-            elif rho == self.rho_b:
-                quant_rel_ent = trace(rho*(np.log2(reshape_matrix(rho)) - np.log2(reshape_matrix(self.rho_a))))
+            elif rho in ["rho_b","b","B"]:
+                quant_rel_ent = trace(rho_b*(flatten_matrix(logm(reshape_matrix(rho_b)) - logm(reshape_matrix(rho_a)))))
                 return quant_rel_ent
         else:
             raise QC_error(f"You need to provide two rhos of the correct type")
@@ -1094,3 +1106,28 @@ test_den_object = Density(state_a=q00, state_b=q11, state=q00 @ q11)
 print_array(test_den_object.rho)
 print_array(test_den_object.rho_a)
 print_array(test_den_object.rho_b)
+print_array(f"Rho B after tracing out A\n{test_den_object.partial_trace(trace_out="A", state_size=2)}")
+print_array(f"Rho A after tracing out B\n{test_den_object.partial_trace(trace_out="B", state_size=2)}")
+print_array(f"Trace Distance between A and B: {test_den_object.trace_distance()}")
+print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
+print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
+print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy(rho="A")}")
+print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy(rho="B")}")
+print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
+print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
+
+qpp = qp @ qp
+qmm = qm @ qm
+test_den_object = Density(state_a=qpp, state_b=qmm, state=qpp @ qmm)
+print_array(test_den_object.rho)
+print_array(test_den_object.rho_a)
+print_array(test_den_object.rho_b)
+print_array(f"Rho B after tracing out A\n{test_den_object.partial_trace(trace_out="A", state_size=2)}")
+print_array(f"Rho A after tracing out B\n{test_den_object.partial_trace(trace_out="B", state_size=2)}")
+print_array(f"Trace Distance between A and B: {test_den_object.trace_distance()}")
+print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
+print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
+print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy(rho="A")}")
+print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy(rho="B")}")
+print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
+print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
