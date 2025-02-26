@@ -586,7 +586,6 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 else:
                     print(f"The calculated trace is {rho_trace}")
                     raise QC_error(qc_dat.error_trace)
-
             elif isinstance(self.q_vector[0], Qubit):
                 rho = np.zeros(self.dim*self.dim,dtype=np.complex128)
                 rho_sub = np.zeros(self.dim*self.dim,dtype=np.complex128)
@@ -1087,3 +1086,11 @@ print_array(partial_trace2)
 
 oracle_values = [9,4,3,2,5,6,12,15,16,17]
 Grover(oracle_values).run()
+
+
+q00 = q0 @ q0
+q11 = q1 @ q1
+test_den_object = Density(state_a=q00, state_b=q11, state=q00 @ q11)
+print_array(test_den_object.rho)
+print_array(test_den_object.rho_a)
+print_array(test_den_object.rho_b)
