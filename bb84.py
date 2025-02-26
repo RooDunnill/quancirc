@@ -8,11 +8,14 @@ import matplotlib.pyplot as plt
 from rich.console import Console
 from rich.theme import Theme
 import cProfile
+import qcp_program
+
 
 # I was thinking of making a little game of BB84 where you play different
 #   characters to both test and understand the scheme.
 # We could pull from the ChatGPT API to create fully encrypted automated
 #   conversations.
+# We could also just have it be a back and forth between two players
 # the basic idea I have is that you could choose to play Alice, Bob, or Eve
 # BOB:
 #   comes up with a message of bitlength n that can be answered by a one bit
@@ -36,8 +39,8 @@ import cProfile
 #   NOTE: I often talk about bits in the key (like in k or k'), but I really
 #   mean bits in the associated a and b lists
 #
-# BOB:
-#   Alice randomly comes up with a message of bitlength n that can be answered
+# ALICE:
+#   Bob randomly comes up with a message of bitlength n that can be answered
 #       by a one bit response
 #   thus, want a final key length of atleast n+1 (Alice takes first n, Bob
 #       takes final one)
@@ -60,185 +63,9 @@ import cProfile
 #   Get's to try and steal the message without getting caught.
 
 # FIRST: WE HAVE OUR GENERAL QUBIT CLASS
-class Qubit:              
-    def __init__(self, **kwargs) -> None:
-        self.state_type = kwargs.get("type", "pure") #HM: if a value for the key type isn't passed into the Qubit definition, it defaults to "pure"
-        self.name = kwargs.get("name","|0>")
-        self.vector = np.array(kwargs.get("vector",np.array([1,0])),dtype=np.complex128) #HM: isn't this redundant? do we want an array of an array?
-        self.dim = len(self.vector)                    #used constantly in all calcs so defined it universally
-        self.shift = self.dim.bit_length() - 1 #HM: this returns the # of bits required to represent self.dim minus 1
-        self.density = None
-        if self.state_type == "pure":
-            pass
-        elif self.state_type == "mixed":
-            self.vector = np.array(kwargs.get("vectors",[]),dtype = np.complex128)
-            self.weights = kwargs.get("weights", [])
-            self.density = self.density_mat()
-        elif self.state_type == "seperable":
-            qubit_states = np.array(kwargs.get("vectors",[]),dtype = np.complex128)
-            self.vector = qubit_states[0]
-            for state in qubit_states[1:]:
-                self.vector = self @ state #HM: @ here is mat multiplication
-        elif self.state_type == "entangled":
-            pass
-        else:
-            pass #HM: maybe worth throwing an error of some sorts here (unless it's covered elsewhere)
 
-    @classmethod
-    def q0(cls):
-        q0_vector = [1,0]
-        return cls(name="|0>", vector=q0_vector)
+# FOR NOW WE WILL FORGET ABOUT THIS
 
-    @classmethod
-    def q1(cls):
-        q1_vector = [0,1]
-        return cls(name="|1>", vector=q1_vector)
-
-    @classmethod
-    def qp(cls):
-        n = 1/np.sqrt(2)
-        qp_vector = [n,n]
-        return cls(name="|+>", vector=qp_vector)
-
-    @classmethod
-    def qm(cls):
-        n = 1/np.sqrt(2)
-        qm_vector = [n,-n]
-        return cls(name="|->", vector=qm_vector)
-        
-
-    def __str__(self):
-        return f"{self.name}\n{self.vector}"   #did this so that the matrix prints neatly
-    
-    def __rich__(self):
-        return f"[bold]{self.name}[/bold]\n[not bold]{self.vector}[/not bold]"
-    
-    def __matmul__(self, other):               #this is an n x n tensor product function
-        if isinstance(other, Qubit):           #although this tensors are all 1D   
-            self_name_size = int(np.log2(self.dim))
-            other_name_size = int(np.log2(other.dim))
-            new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>" #HM: this indexing seems wrong?
-            new_length: int = self.dim*other.dim #HM: so this is a tensor multiplication in this case?
-            new_vector = np.zeros(new_length,dtype=np.complex128)
-            other_shift = other.dim.bit_length() - 1
-            for i in range(self.dim):     #multiplies the second ket by each value in the first ket
-                for j in range(other.dim):          #iterates up and down the second ket
-                    new_vector[j+(i << other_shift)] += self.vector[i]*other.vector[j] #adds the values into
-            return Qubit(name=new_name, vector=np.array(new_vector))    #returns a new Object with a new name too
-        elif isinstance(other, np.ndarray): #HM: what other objects are we possibly even passing through?
-            other_dim = len(other)
-            self_name_size = int(np.log2(self.dim)) # the int() wrapper truncates to the int part (like a floor function for postive numbers)
-            other_name_size = int(np.log2(other_dim))
-            new_name = f""
-            new_length: int = self.dim*other_dim
-            new_vector = np.zeros(new_length,dtype=np.complex128)
-            for i in range(self.dim):     #multiplies the second ket by each value in the first ket
-                for j in range(other_dim):          #iterates up and down the second ket
-                    new_vector[j+(i * other_dim)] += self.vector[i]*other[j] #adds the values into
-            self.dim = new_length
-            return np.array(new_vector)    #returns a new Object with a new name too
-
-            print(test)
-        else:
-            raise QC_error(qc_dat.error_class)
-
-    #HM: this seems to be a Kronecker product
-    def __ipow__(self, other):                 #denoted **=
-        if isinstance(self, Qubit):  
-            self = self @ other
-            return self
-        elif isinstance(self, Qubit.vector):
-            print(test2)
-        else:
-            raise QC_error(qc_dat.error_class)
-
-    def norm(self):                 #dunno why this is here ngl, just one of the first functions i tried
-        normalise = np.sqrt(sum([i*np.conj(i) for i in self.vector]))
-        self.vector = self.vector/normalise
-
-    def qubit_info(self):      
-        print(qc_dat.qubit_info)
-
-    def density_mat(self):
-        new_name =f"Density matrix of qubit {self.name}"
-        new_mat = np.zeros(self.dim*self.dim,dtype=np.complex128)
-        qubit_conj = np.conj(self.vector)
-        for i in range(self.dim):
-            for j in range(self.dim):
-                new_mat[j+(i << self.shift)] += qubit_conj[i]*self.vector[j]
-        den = Density(new_name, qc_dat.Density_matrix_info, new_mat)
-        if abs(1 -trace(den)) < 1e-5:
-            return den
-        else:
-            raise QC_error(qc_dat.error_trace)
-
-    def prob_state(self, meas_state=None, final_gate=None) -> float:
-        global is_real
-        if meas_state:
-            if isinstance(self, Qubit) and isinstance(meas_state, Qubit):
-                projector = meas_state.density_mat()
-                if final_gate:
-                    if isinstance(final_gate, Gate):
-                        final_state = final_gate * self
-                    else:
-                        raise QC_error(qc_dat.error_class)
-                else:
-                    final_state = self
-                den = final_state.density_mat()
-                probability = trace(projector * den)
-                is_real = np.isreal(probability)
-                if is_real is True:
-                    return probability
-                else:
-                    if np.imag(probability) < 1e-5:
-                        return probability
-                    else:
-                        raise QC_error(qc_dat.error_imag_prob)
-            else:
-                raise QC_error(qc_dat.error_class)
-
-    def prob_dist(self, final_gate=None):            #creates a table with the prob of each state occuring, only works for projective measurements
-        new_mat = np.zeros(self.dim,dtype=np.float64)
-        if isinstance(self, Qubit):
-            norm = 0
-            if final_gate:
-                if isinstance(final_gate, Gate):
-                    new_name = f"PD for {self.name} applied to Circuit:"
-                    new_state = final_gate * self             #creates the new state vector
-                    state_conj = np.conj(new_state.vector)
-                    for i in range(self.dim):             #basically squares the vector components to get the prob of each
-                        new_mat[i] = (new_state.vector[i]*state_conj[i]).real
-                        norm += new_mat[i]
-                else:
-                    raise QC_error(qc_dat.error_class)
-            else:
-                qubit_conj = np.conj(self.vector)
-                new_name = f"PD for {self.name}"
-                for i in range(self.dim):
-                    new_mat[i] = (self.vector[i]*qubit_conj[i]).real        #just does the squaring without any external matrices applied
-                    norm += new_mat[i]
-            if np.isclose(norm, 1.0, atol=1e-5):
-                return Prob_dist(new_name, qc_dat.prob_dist_info, np.array(new_mat))
-            else:
-                raise QC_error(qc_dat.error_norm)
-        else:
-            raise QC_error(qc_dat.error_class)
-
-    def measure(self, final_gate=None):         #randomly picks a state from the weighted probabilities, can also apply the gate within it, which is a bit redundant
-        if isinstance(self, Qubit):
-            sequence = np.arange(0,self.dim)
-            if final_gate:
-                if isinstance(final_gate, Gate):
-                    PD = self.prob_dist(final_gate)
-                    measurement = int(rm.choices(sequence, weights=PD.matrix)[0])
-                else:
-                    raise QC_error(qc_dat.error_class)
-            else:
-                PD = self.prob_dist()
-                measurement = int(rm.choices(sequence, weights=PD.matrix)[0])
-            num_bits = int(np.ceil(np.log2(self.dim)))
-            measurement = f"Measured the state: |{bin(measurement)[2:].zfill(num_bits)}>"
-            return measurement
 
 # SECOND: WE ARE GOING TO MAKE A SIMPLE BOB-CENTERED IMPLEMENTATION
 #   okay we want Bob to be able to read-in messages randomly generate a key
@@ -247,7 +74,12 @@ def m_to_bits(m):
     return ''.join(format(ord(c), '08b') for c in m)
 
 def bits_to_m(bit_m):
-    chars = [bit_m[i:i+8] for i in range(0, len(), 8)]
+    if len(bit_m) % 8 != 0:
+        # print('bit message is:  ' + bit_m)
+        # print(len(bit_m) % 8)
+        raise ValueError("Input bit string length must be a multiple of 8")
+    chars = [bit_m[i:i+8] for i in range(0, len(bit_m), 8)]
+    # print('the amount of chars is: ' + str(len(chars)))
     return ''.join(chr(int(char, 2)) for char in chars)
 
 class BOB:
@@ -265,47 +97,61 @@ class BOB:
         for i in range(big_key_length):
             r_num = rm.randint(0,3)
             if r_num == 0:
-                self.quantum_key.append(Qubit.q0)
+                self.quantum_key.append(qcp_program.Qubit.q0())
+                # qcp_program.Qubit.q0().qubit_info()
                 self.x.append(0)
                 self.a.append(0)
             elif r_num == 1:
-                self.quantum_key.append(Qubit.q1)
+                self.quantum_key.append(qcp_program.Qubit.q1())
+                # qcp_program.Qubit.q0().qubit_info()
                 self.x.append(0)
                 self.a.append(1)
             elif r_num == 2:
-                self.quantum_key.append(Qubit.qp)
+                self.quantum_key.append(qcp_program.Qubit.qp())
+                # qcp_program.Qubit.q0().qubit_info()
                 self.x.append(1)
                 self.a.append(0)
             elif r_num == 3:
-                self.quantum_key.append(Qubit.qm)
-                self.x.append(0)
+                self.quantum_key.append(qcp_program.Qubit.qm())
+                # qcp_program.Qubit.q0().qubit_info()
+                self.x.append(1)
                 self.a.append(1)
     
     def prune(self, l):
         for element in l:
-            del self.y[element]
-            del self.b[element]
+            del self.x[element]
+            del self.a[element]
 
     def encode(self):
-        short_key = self.a[:len(self.message)]
+        bit_m = m_to_bits(self.message)
+        short_key = self.a[:len(bit_m)]
+        # print('length of the message in bits is' + str(len(bit_m)))
+        if len(bit_m) != len(short_key):
+            raise ValueError("message bits and key are of different length")
         final_key = ''.join(map(str, short_key))
+        # print('the key that bob uses is :' + str(final_key))
         # bin(x)[2:] returns the binary version of x and [2:] removes the first
         # two character "0b" which we don't want
         # zfill just adds enough 0's in front to equal length of self.message
-        return bin(int(m_to_bits(self.message),2) ^ int(final_key, 2))[2:].zfill(len(self.message))
-    def decode(self, message):
+        cypher = bin(int(bit_m,2) ^ int(final_key,2))[2:].zfill(len(bit_m))
+        # print('the XORed message seems to be: ' + cypher)
+        return cypher
+    
+    def decode(self, recieved_message):
         short_key = self.a[len(self.a) - 1]
-        if bin(short_key ^ message)[2:] == 0:
+        if bin(short_key ^ recieved_message)[2:] == '0':
             return "NO"
-        elif bin(short_key ^ message)[2:] == 1:
+        elif bin(short_key ^ recieved_message)[2:] == '1':
             return "YES"
+        else:
+            print (bin(short_key ^ recieved_message)[2:])
+            raise ValueError("Alice's message is neither 0 or 1 and thus can't be decrypted.")
 
 class ALICE:
     def __init__(self):
-        self.response = None
+        # self.response = None
         self.y = []
         self.b = []
-        self.answer = rm.randint(0,1)
 
     def create_y(self, l):
         for i in range(l):
@@ -314,11 +160,30 @@ class ALICE:
 
     def measure_key(self, key):
         if len(self.y) != len(key):
+            print("y length"+ str(len(self.y)))
+            print("key length" + str(len(key)))
             raise ValueError("Key and measurement device length mismatch.")
         for i in range(len(self.y)):
-            self.b.append(key[i].measure(self.y[i]))
-            # this I have yet to impliment, needs to be able to measure our
-            # qubit in the desired basis
+            qbit = key[i]
+            if self.y[i] == 1:
+                H = qcp_program.Gate.Hadamard()
+                qbit = H.__mul__(qbit)
+            # qbit.qubit_info()
+            # null_gate = qcp_program.Gate.Identity()
+            density_mat = qcp_program.Density(qubit=qbit)
+            measure = qcp_program.Measure(density=density_mat)
+            projective_probs = measure.list_proj_probs()
+            measurement = rm.choices(range(2), weights=projective_probs)[0]
+            self.b.append(measurement)
+                
+                
+
+
+            # this should work for computational basis butif 
+
+            # self.b.append(qcp_program.Measure()key[i].measure(self.y[i]))
+            # so the goal here is I have a state in key[i] and a basis in the
+            # y[i] and want to be able to measure it in that basis
     def prune(self, l):
         for element in l:
             del self.y[element]
@@ -327,39 +192,93 @@ class ALICE:
     def decode(self, code):
         short_key = self.b[:len(code)]
         final_key = ''.join(map(str, short_key))
-        bin_decoding = bin(int(m_to_bits(self.code),2) ^ int(final_key, 2))[2:].zfill(len(self.code))
+        # print('the key alice is about to use is: ' + str(final_key))
+        bin_decoding = bin(int(code,2) ^ int(final_key, 2))[2:].zfill(len(code))
         return bits_to_m(bin_decoding)
     
     def answer(self):
         return rm.randint(0,1)
-    
 
+
+played_before = False
+character_choice = None
 
 def play():
-    user_input = input("Hi Bob, enter your secure message please:")
-    fraction = float(input("Thank you. Now, please input the fraction of bits you want to use to check for error:"))
-    while fraction >= 1 or fraction < 0:
-        fraction = float(input("Error checking fraction must be in [0,1), please try again:"))
-    error_tolerance = float(input("Now, please describe your error tolerance:"))
-    while error_tolerance >= 1 or error_tolerance < 0:
-        error_tolerance = float(input("Error tolerance must be in [0,1), please try again:"))
-    Bob = BOB(user_input,fraction,error_tolerance)
-    Bob.generate_big_key()
-    Alice = ALICE()
-    Alice.create_y(len(m_to_bits(user_input)))
-    Alice.measure_key(Bob.quantum_key)
-    if len(Bob.x) != len(Alice.y): raise ValueError("Bob and Alice length mismatch.")
-    bad_indices = []
-    for i in range(len(Bob.x)):
-        if Bob.x[i] != Alice.y[i]: bad_indices.append(i)
-    Bob.prune(bad_indices)
-    Alice.prunce(bad_indices)
-    code = Bob.encode()
-    print("Your message has succesfully been encoded.")
-    message_alice_recieves = Alice.decode(Bob.encode())
-    print("We have received and decoded Alice's message. The message:" + Bob.decode(Alice.answer()))
+    global played_before
+    global character_choice
+    if not played_before:
+        character_choice = input('Welcome to our BB84 Simulator! Here you get ' + \
+                                'the chance to play one of three characters: ' + \
+                                'BOB, ALICE, or EVE. BOB gets to ask questions ' + \
+                                'and prompt a vitual ALICE, engaging in a back ' + \
+                                'and forth discussion over a quantum-secure '+ \
+                                'line of communication. ALICE gets to answer ' + \
+                                'questions prompted by a virtual BOB over a ' + \
+                                'quantum-secure line of commmunicataion. EVE ' + \
+                                'discretily attempts to disrupt this ' + \
+                                'communication. Please enter your choice of ' + \
+                                'character: ')
+    if character_choice.lower() == 'bob':
+        user_input = input('Hi BOB, thanks for playing. Please enter your ' + \
+                           'secure question for ALICE: ')
+        fraction = float(input("Thank you. Now, please input the fraction of bits you want to use to check for error: "))
+        while fraction >= 1 or fraction < 0:
+            fraction = float(input("Error checking fraction must be in [0,1), please try again: "))
+        error_tolerance = float(input("Now, please describe your error tolerance: "))
+        while error_tolerance >= 1 or error_tolerance < 0:
+            error_tolerance = float(input("Error tolerance must be in [0,1), please try again: "))
+        Bob = BOB(user_input,fraction,error_tolerance)
+        Bob.generate_big_key()
+        Alice = ALICE()
+        Alice.create_y((len(m_to_bits(user_input))+1)*3)
+        Alice.measure_key(Bob.quantum_key)
+        if len(Bob.x) != len(Alice.y): raise ValueError("Bob and Alice length mismatch.")
+        bad_indices = []
+        for i in range(len(Bob.x)):
+            if Bob.x[i] != Alice.y[i]: bad_indices.insert(0,i)
+        Bob.prune(bad_indices)
+        Alice.prune(bad_indices)
+        # print('bob has a message:' + Bob.message)
+        # print('in binary this is:' + m_to_bits(Bob.message))
+        # print('if we then decode we return to: ' + bits_to_m(m_to_bits(Bob.message)))
+        code = Bob.encode()
+        # print('Bobs encoded message is: ' + code)
+        print("Your message has succesfully been encoded.")
+        message_alice_recieves = Alice.decode(code)
+        # print("Alice recieves the message:" + message_alice_recieves)
+        alice_answer = Alice.answer()
+        # print(alice_answer)
+        print("We have received and decoded Alice's message. The message: " + Bob.decode(alice_answer))
+        repeat = input('Would you like to ask ALICE  another question? ')
+        if repeat.lower() == 'yes' or repeat.lower() == 'ya' or repeat.lower() == 'yeah' or repeat.lower() == 'yea' or repeat.lower() == 'ok' or repeat.lower() == 'okay':
+            played_before = True
+            play()
+        elif repeat.lower() == 'no' or repeat.lower() == 'nope':
+            played_before = False
+            print('Thanks for playing!')
 
-    
 
 play()
+
 print("Script completed run.")
+
+# okay what should I do next with this:
+# options:
+#   make UI more enjoyable
+#   figure out how to make more than 2 person communication
+#   implement it such that Alice and Bob are two characters that have a line of
+#       communication
+
+
+# ORDER
+#   two people are playing, first one chooses Bob, second chooses Alice
+#   bob sends a message first, alice gets to see it and then respond etc
+#   in the beginning we arbitarily initiate a key size, and they take turns eating it up
+#   at some point some user will be prompted that they only have x chars left to send
+#   and then they will have to create a new key (once prompted)
+#   thus, they have encrypted indefinite communication
+#   also, I should make it so that they actually exchange key info to see if it
+#   has been infiltrated
+#   i could have more specific technical stuff here
+#   I could also create an EVE that gets to try and clone a state but idk how
+#   this would work. 
