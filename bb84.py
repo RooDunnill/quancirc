@@ -170,7 +170,7 @@ class ALICE:
                 qbit = H.__mul__(qbit)
             # qbit.qubit_info()
             # null_gate = qcp_program.Gate.Identity()
-            density_mat = qcp_program.Density(qubit=qbit)
+            density_mat = qcp_program.Density(state=qbit)
             measure = qcp_program.Measure(density=density_mat)
             projective_probs = measure.list_proj_probs()
             measurement = rm.choices(range(2), weights=projective_probs)[0]

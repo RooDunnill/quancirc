@@ -7,14 +7,13 @@ import matplotlib.pyplot as plt
 from rich.console import Console
 from rich.theme import Theme
 from scipy.linalg import sqrtm
-from rich.panel import Panel
 import cProfile
 from functools import lru_cache, cache
 
-custom_theme = Theme({"qubit":"#587C53",           #Fern Green
-                      "prob_dist":"#3C4E35",       #Dark Forest Green
-                      "gate":"#3E5C41",            #Forest Green
-                      "density":"#4D5B44",         #Olive Green
+custom_theme = Theme({"qubit":"#587C53",                 #Fern Green
+                      "prob_dist":"#3C4E35",             #Dark Forest Green
+                      "gate":"#3E5C41",                  #Forest Green
+                      "density":"#4D5B44",               #Olive Green
                       "info":"#7E5A3C",                  #Earthy Brown
                       "error":"dark_orange",
                       "measure":"#3B4C3A",               #Deep Moss Green
@@ -165,8 +164,6 @@ def top_probs(prob_list, n):             #sorts through the probability distribu
         return np.array(result, dtype=object)
 
 
-
-
 class Qubit:                                           #creates the qubit class
     def __init__(self, **kwargs) -> None:
         self.state_type = kwargs.get("type", "pure")                   #the default qubit is a single pure qubit |0>
@@ -211,7 +208,6 @@ class Qubit:                                           #creates the qubit class
                 self.name = f"|{self.name[1:self_name_size+1]}{state.name[1:state_name_size+1]}>"
         else:
             raise QC_error(qc_dat.error_class)
-
 
     @classmethod                 #creates the default qubits, using class methods allows you to define an instance within the class
     def q0(cls, **kwargs):
@@ -326,6 +322,7 @@ q0 = Qubit.q0()
 q1 = Qubit.q1()
 qp = Qubit.qp()
 qm = Qubit.qm()
+
 
 class Gate:            #creates a gate class to enable unique properties
     def __init__(self, **kwargs):
@@ -471,8 +468,7 @@ class Gate:            #creates a gate class to enable unique properties
                 new_mat = np.zeros(self_length,dtype=np.complex128)
                 for i in range(self_dim):
                     for k in range(self_dim):
-               
-                            new_mat[k+(i * self_dim)] = sum(self[j+(i * other_dim)]*other[k+(j * self_dim)] for j in range(self,dim))
+                            new_mat[k+(i * self_dim)] = sum(self[j+(i * other_dim)]*other[k+(j * self_dim)] for j in range(self.dim))
                     return new_mat
             else:
                 raise QC_error(qc_dat.error_mat_dim)
@@ -664,30 +660,18 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 self.rho_a = new_mat
                 return self.rho_a
         elif trace_out_system == "A":
-            print("test1")
-            print(type(self.rho))
-            print(type(self.state))
-            print("running A")
-            if isinstance(self.rho, np.ndarray) and isinstance(self.state, Qubit):
-                print("test2")
+            if isinstance(self.rho, np.ndarray):
                 rho_length = len(self.rho)
                 rho_dim = int(np.sqrt(rho_length))
-                traced_out_dim = int(rho_dim / self.state.dim)
-                reduced_dim = self.state.dim
-                reduced_length = int(reduced_dim**2)
+                reduced_dim = 2**trace_out_state_size
+                traced_out_dim = int(rho_dim / reduced_dim)
+                reduced_length = int(traced_out_dim**2)
                 new_mat = np.zeros(reduced_length,dtype=np.complex128)
-                print_array(self.rho)
-                print_array(f"traced out dim {traced_out_dim}")
-                print_array(f"reduced dim {reduced_dim}")
-                print_array(f"rho dim {rho_dim}")
                 print_array(self.state)
                 for k in range(reduced_dim):
                     for i in range(reduced_dim):
-                        print("test3")
                         for j in range(traced_out_dim):
-                            print("test4")
-                            print(self.rho[j+j*traced_out_dim+j*rho_dim])
-                            new_mat[i+k*reduced_dim] += self.rho[j+j*rho_dim+i*traced_out_dim+k*rho_dim*traced_out_dim]
+                            new_mat[i+k*reduced_dim] += self.rho[reduced_dim*(j+j*rho_dim)+i+k*rho_dim]
                 self.rho_b = new_mat
                 return self.rho_b
 
@@ -769,6 +753,7 @@ def format_ket_notation(list_probs, **kwargs):
             print_out += (f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{prec}f}%\n")
         return print_out
 
+
 class Circuit:
     def __init__(self, **kwargs):
         self.gates = []
@@ -794,7 +779,6 @@ class Circuit:
         print_array(self.final_gate)
         print_array(self.final_state)
         print_array(f"Final Probability Distribution:")
-        num_bits = int(np.ceil(np.log2(self.state.dim)))
         print_out = format_ket_notation(self.top_prob_dist, type="topn", num_bits=int(np.ceil(np.log2(self.state.dim))))
         print_array(print_out)
         print_array(f"{self.measure_state}")
@@ -865,7 +849,6 @@ class Circuit:
         return self.__rich__()
     
     
-
 class Grover:                                               #this is the Grover algorithms own class
     def __init__(self, oracle_values, **kwargs):
         self.n_cap = int(kwargs.get("qubit_cap",10))             #DONT ALLOW THIS BEYOND 12 DUE TO COMPUTATIONAL ISSUES
@@ -890,8 +873,6 @@ class Grover:                                               #this is the Grover 
         for j, vals in enumerate(flip):
             qub.vector[j] = qub.vector[j] * vals        
         return qub
-
-    
 
     def run(self):     #Grovers algorithm, can input the number of qubits and also a custom amount of iterations
         console.rule(f"Grovers search with oracle values: {self.oracle_values}", style="grover_header")
@@ -961,7 +942,6 @@ class Grover:                                               #this is the Grover 
         print_array(output)                #prints that Grover instance
         console.rule(f"", style="grover_header")
         return output              #returns the value
-
 
 
 class print_array:    #made to try to make matrices look prettier
@@ -1059,25 +1039,14 @@ def quant_fourier_trans(qub):          #also for shors although used in other al
     return four_qub_sum
 
 
-circuit = Circuit(state=Qubit.q0(n=4))
-circuit.add_gate(Hadamard @ Hadamard @ X_Gate @ Hadamard)
-circuit.add_gate(CNot @ CNot)
-circuit.compute_final_gate()
-circuit.apply_final_gate()
-circuit.proj_measure_state()
-circuit.list_proj_probs()
-circuit.topn_probabilities()
 
-
-circuit2 = Circuit(state=Qubit.q0(n=4))
-circuit2.add_gate(Hadamard @ Hadamard @ Hadamard @ Hadamard)
-circuit2.add_gate(CNot @ CNot)
-circuit2.run()
 print_array(Density(state=qm).calc_vn_entropy())
 
 rho_ab = Density(state=q1 @ q0 @ q0).rho
-partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B")
+partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=2)
 print_array(partial_trace)
+partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=2)
+print_array(partial_trace2)
 #partial_trace2 = Density(state=qm, rho=rho_ab).partial_trace(trace_out="A")
 #print_array(partial_trace2)
 oracle_values = [9,4,3,2,5,6,12]
