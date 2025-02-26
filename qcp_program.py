@@ -163,6 +163,15 @@ def top_probs(prob_list, n):             #sorts through the probability distribu
                 used_count[num] = used_count.get(num, 0) + 1
         return np.array(result, dtype=object)
 
+def binary_entropy(prob):
+    if isinstance(prob, float) or isinstance(prob, int):
+        if int(prob) ==  0 or int(prob) == 1:
+            return 0.0
+        else:
+            return -prob*np.log2(prob) - (1 - prob)*np.log2(1 - prob)
+    else:
+        raise QC_error(f"Binary value must be a float")
+
 
 class Qubit:                                           #creates the qubit class
     def __init__(self, **kwargs) -> None:
@@ -623,6 +632,30 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         else:
             raise QC_error(f"No rho matrix provided")
 
+    def partial_trace(self, **kwargs):
+        trace_out_system = kwargs.get("trace_out", "B")
+        trace_out_state_size = int(kwargs.get("state_size", 1))
+        rho_length = len(self.rho)
+        rho_dim = int(np.sqrt(rho_length))
+        traced_out_dim = 2**trace_out_state_size
+        reduced_dim = int(rho_dim / traced_out_dim)
+        reduced_length = int(reduced_dim**2)
+        new_mat = np.zeros(reduced_length,dtype=np.complex128)
+        if isinstance(self.rho, np.ndarray):
+            if trace_out_system == "B":
+                    for k in range(reduced_dim):
+                        for i in range(reduced_dim):
+                            new_mat[i+k*reduced_dim] = sum(self.rho[j+j*rho_dim+i*traced_out_dim+k*rho_dim*traced_out_dim] for j in range(traced_out_dim))
+                    self.rho_a = new_mat
+                    return self.rho_a
+            elif trace_out_system == "A":
+                    for k in range(reduced_dim):
+                        for i in range(reduced_dim):
+                            new_mat[i+k*reduced_dim] = sum(self.rho[reduced_dim*(j+j*rho_dim)+i+k*rho_dim] for j in range(traced_out_dim))
+                    self.rho_b = new_mat
+                    return self.rho_b
+        else:
+            QC_error(qc_dat.error_class)
 
     def __sub__(self, other):
         new_name = f"{self.name} - {other.name}"
@@ -641,39 +674,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             return Density(name=new_name, info=qc_dat.Density_matrix_info, rho=np.array(new_mat))
         else:
             raise QC_error(qc_dat.error_class)
-        
-    def partial_trace(self, **kwargs):
-        trace_out_system = kwargs.get("trace_out", "B")
-        trace_out_state_size = int(kwargs.get("state_size", 1))
-        if trace_out_system == "B":
-            if isinstance(self.rho, np.ndarray):
-                rho_length = len(self.rho)
-                rho_dim = int(np.sqrt(rho_length))
-                traced_out_dim = 2**trace_out_state_size
-                reduced_dim = int(rho_dim / traced_out_dim)
-                reduced_length = int(reduced_dim**2)
-                new_mat = np.zeros(reduced_length,dtype=np.complex128)
-                for k in range(reduced_dim):
-                    for i in range(reduced_dim):
-                        for j in range(traced_out_dim):
-                            new_mat[i+k*reduced_dim] += self.rho[j+j*rho_dim+i*traced_out_dim+k*rho_dim*traced_out_dim]
-                self.rho_a = new_mat
-                return self.rho_a
-        elif trace_out_system == "A":
-            if isinstance(self.rho, np.ndarray):
-                rho_length = len(self.rho)
-                rho_dim = int(np.sqrt(rho_length))
-                traced_out_dim = 2**trace_out_state_size
-                reduced_dim = int(rho_dim / traced_out_dim)
-                reduced_length = int(reduced_dim**2)
-                new_mat = np.zeros(reduced_length,dtype=np.complex128)
-                print_array(self.state)
-                for k in range(reduced_dim):
-                    for i in range(reduced_dim):
-                        for j in range(traced_out_dim):
-                            new_mat[i+k*reduced_dim] += self.rho[reduced_dim*(j+j*rho_dim)+i+k*rho_dim]
-                self.rho_b = new_mat
-                return self.rho_b
+
 
 class Measure(Density):
     def __init__(self, **kwargs):
@@ -1039,20 +1040,23 @@ def quant_fourier_trans(qub):          #also for shors although used in other al
     return four_qub_sum
 
 
-
-print_array(Density(state=qm).calc_vn_entropy())
-
 rho_ab = Density(state=q1 @ q0 @ q0).rho
 partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=2)
 print_array(partial_trace)
 partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=2)
 print_array(partial_trace2)
+
 rho_ab = Density(state=q1 @ q0).rho
 partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=1)
 print_array(partial_trace)
 partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=1)
 print_array(partial_trace2)
-#partial_trace2 = Density(state=qm, rho=rho_ab).partial_trace(trace_out="A")
-#print_array(partial_trace2)
-oracle_values = [9,4,3,2,5,6,12]
+
+rho_ab = Density(state=q1 @ q0 @ q0).rho
+partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=1)
+print_array(partial_trace)
+partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=1)
+print_array(partial_trace2)
+
+oracle_values = [9,4,3,2,5,6,12,15,16,17]
 Grover(oracle_values).run()
