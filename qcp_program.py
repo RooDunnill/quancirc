@@ -23,6 +23,8 @@ custom_theme = Theme({"qubit":"#587C53",                 #Fern Green
 console = Console(style="none",theme=custom_theme, highlight=False)
 
 def prog_end():    #made it to make the code at the end of the program a little neater
+    if __name__ == "__main__":
+        main()
     stop = time.time()
     interval: float = stop - start
     console.rule(f"{interval:.3f} seconds elapsed",style="main_header")
@@ -1078,56 +1080,57 @@ def quant_fourier_trans(qub):          #also for shors although used in other al
     return four_qub_sum
 
 
-rho_ab = Density(state=q1 @ q0 @ q0).rho
-partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=2)
-print_array(partial_trace)
-partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=2)
-print_array(partial_trace2)
-
-rho_ab = Density(state=q1 @ q0).rho
-partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=1)
-print_array(partial_trace)
-partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=1)
-print_array(partial_trace2)
-
-rho_ab = Density(state=q1 @ q0 @ q0).rho
-partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=1)
-print_array(partial_trace)
-partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=1)
-print_array(partial_trace2)
-
 oracle_values = [9,4,3,2,5,6,12,15,16,17]
-Grover(oracle_values).run()
+def main():
+    rho_ab = Density(state=q1 @ q0 @ q0).rho
+    partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=2)
+    print_array(partial_trace)
+    partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=2)
+    print_array(partial_trace2)
 
+    rho_ab = Density(state=q1 @ q0).rho
+    partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=1)
+    print_array(partial_trace)
+    partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=1)
+    print_array(partial_trace2)
 
-q00 = q0 @ q0
-q11 = q1 @ q1
-test_den_object = Density(state_a=q00, state_b=q11, state=q00 @ q11)
-print_array(test_den_object.rho)
-print_array(test_den_object.rho_a)
-print_array(test_den_object.rho_b)
-print_array(f"Rho B after tracing out A\n{test_den_object.partial_trace(trace_out="A", state_size=2)}")
-print_array(f"Rho A after tracing out B\n{test_den_object.partial_trace(trace_out="B", state_size=2)}")
-print_array(f"Trace Distance between A and B: {test_den_object.trace_distance()}")
-print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
-print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
-print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy(rho="A")}")
-print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy(rho="B")}")
-print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
-print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
+    rho_ab = Density(state=q1 @ q0 @ q0).rho
+    partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=1)
+    print_array(partial_trace)
+    partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=1)
+    print_array(partial_trace2)
 
-qpp = qp @ qp
-qmm = qm @ qm
-test_den_object = Density(state_a=qpp, state_b=qmm, state=qpp @ qmm)
-print_array(test_den_object.rho)
-print_array(test_den_object.rho_a)
-print_array(test_den_object.rho_b)
-print_array(f"Rho B after tracing out A\n{test_den_object.partial_trace(trace_out="A", state_size=2)}")
-print_array(f"Rho A after tracing out B\n{test_den_object.partial_trace(trace_out="B", state_size=2)}")
-print_array(f"Trace Distance between A and B: {test_den_object.trace_distance()}")
-print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
-print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
-print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy(rho="A")}")
-print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy(rho="B")}")
-print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
-print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
+    
+    Grover(oracle_values).run()
+    
+    q00 = q0 @ q0
+    q11 = q1 @ q1
+    test_den_object = Density(state_a=q00, state_b=q11, state=q00 @ q11)
+    print_array(test_den_object.rho)
+    print_array(test_den_object.rho_a)
+    print_array(test_den_object.rho_b)
+    print_array(f"Rho B after tracing out A\n{test_den_object.partial_trace(trace_out="A", state_size=2)}")
+    print_array(f"Rho A after tracing out B\n{test_den_object.partial_trace(trace_out="B", state_size=2)}")
+    print_array(f"Trace Distance between A and B: {test_den_object.trace_distance()}")
+    print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
+    print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
+    print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy(rho="A")}")
+    print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy(rho="B")}")
+    print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
+    print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
+
+    qpp = qp @ qp
+    qmm = qm @ qm
+    test_den_object = Density(state_a=qpp, state_b=qmm, state=qpp @ qmm)
+    print_array(test_den_object.rho)
+    print_array(test_den_object.rho_a)
+    print_array(test_den_object.rho_b)
+    print_array(f"Rho B after tracing out A\n{test_den_object.partial_trace(trace_out="A", state_size=2)}")
+    print_array(f"Rho A after tracing out B\n{test_den_object.partial_trace(trace_out="B", state_size=2)}")
+    print_array(f"Trace Distance between A and B: {test_den_object.trace_distance()}")
+    print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
+    print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
+    print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy(rho="A")}")
+    print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy(rho="B")}")
+    print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
+    print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
