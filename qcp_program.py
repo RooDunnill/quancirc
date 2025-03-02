@@ -915,54 +915,24 @@ class Grover:                                               #this is the Grover 
             qub.vector[j] = qub.vector[j] * vals        
         return qub
 
-    def run(self):     #Grovers algorithm, can input the number of qubits and also a custom amount of iterations
-        console.rule(f"Grovers search with oracle values: {self.oracle_values}", style="grover_header")
+    def init_states(self):
         spec_had_mat = np.array([1,1,1,-1])    #i use this so that all the matrix mults are by an integer value and not a float and then apply the float later
         spec_had = Gate(name="Custom Hadamard for Grovers", info=qc_dat.Hadamard_info, matrix=spec_had_mat)
-        if self.n == None:               #if the number of qubits required is not given then run:
-            print_array(f"Using up to {self.n_cap} Qubits to run the search")
-            if self.it == None:           #if an iteration count is not given then run:
-                max_oracle = max(self.oracle_values)
-                n_qubit_min = 1
-                search_space = 2
-                while max_oracle > 2**n_qubit_min:             #when picking the qubits, we need enough to allow the search space to be bigger than all the oracle values
-                    n_qubit_min += 1
-                n_qubit_range = np.arange(n_qubit_min, self.n_cap + 1, dtype=int)
-                int_val = 0
-                for i in n_qubit_range:   #goes through the range of possible qubit values from the smallest possible for the given oracle values up to the cap
-                    search_space = 2**i   #computes the search space for the given qubit value
-                    op_iter = ((np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5)     #can probs make this not be defined in so many places
-                    int_dist = op_iter - np.floor((np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5)  #finds the float value
-                    int_dist = abs(int_dist-0.5)             #shifts them down so its the distance from any integer
-                    print_array(f"Optimal iterations for {i} Qubits is: {op_iter:.3f}")
-                    if int_dist > int_val:            #iterates through to find the smallest distance from an integer
-                        self.n = i
-                        int_val = int_dist
-                search_space: int = 2**self.n       #computes the final search space for the chosen n
-                print_array("\n")
-                print_array(f"Using {self.n} Qubits with a search space of {search_space} to get the best accuracy")
-            else:
-                raise QC_error(qc_dat.error_iterations)
-        elif isinstance(self.n, int):
-            search_space = 2**self.n       #computes the search space for the n provided
-            print_array(f"Using {self.n} Qubits and a search space of {search_space}")
-        else:
-            raise QC_error(qc_dat.error_class)
-        op_iter = round((np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5)
-
-        if self.it == None:     #now picks an iteration value
-            self.it = op_iter
-            if self.it < 1:    #obviously we cant have no iterations so it atleast does 1 iteration
-                self.it = 1.0000       #more of a failsafe, will almost certainly be wrong as the percentage diff from the it value to 1 will be large?
-            print_array(f"Optimal number of iterations are: {self.it}")
-        else:
-            print_array(f"Number of iterations to perform are: {self.it}")
         qub = q0
         had_op = spec_had                      
-        had_norm = 1/np.sqrt(2**self.n)   #applies the norm afterwards to be more efficient
+        
         for i in range(self.n-1):    #creates the qubit and also the tensored hadamard for the given qubit size
             qub **= q0
             had_op **= spec_had
+        return qub, had_op
+    
+    def optimal_iterations(self, n):
+        search_space = 2**n
+        op_iter = (np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5
+        return op_iter, search_space
+
+    def iterate_alg(self):
+        qub, had_op = self.init_states()
         it = 0
         while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
             if it != 0:
@@ -974,12 +944,60 @@ class Grover:                                               #this is the Grover 
             final_state = had_op * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 4
             it += 1                   #adds to the iteration counter
             print(f"\rIteration number: {it} ", end="")    #allows to clear line without writing a custom print function in print_array
-        print_array("\n")
+        had_norm = 1/np.sqrt(2**self.n)   #applies the norm afterwards to be more efficient
         final_state.vector *= had_norm**(3*int(self.it))             #applies the normalisation factor here
+        return final_state
+
+
+    def run(self):     #Grovers algorithm, can input the number of qubits and also a custom amount of iterations
+        console.rule(f"Grovers search with oracle values: {self.oracle_values}", style="grover_header")
+        if self.n == None:               #if the number of qubits required is not given then run:
+            print_array(f"Using up to {self.n_cap} Qubits to run the search")
+            if self.it == None:           #if an iteration count is not given then run:
+                max_oracle = max(self.oracle_values)
+                n_qubit_min = 1
+                search_space = 2
+                while max_oracle > 2**n_qubit_min:             #when picking the qubits, we need enough to allow the search space to be bigger than all the oracle values
+                    n_qubit_min += 1
+                n_qubit_range = np.arange(n_qubit_min, self.n_cap + 1, dtype=int)
+                int_val = 0
+                for i in n_qubit_range:   #goes through the range of possible qubit values from the smallest possible for the given oracle values up to the cap
+                    op_iter, search_space = self.optimal_iterations(i) 
+                    if op_iter >= 1:
+                        int_dist = op_iter - np.floor(op_iter)  #finds the float value
+                        int_dist = abs(int_dist-0.5)             #shifts them down so its the distance from any integer
+                        print_array(f"Optimal iterations for {i} Qubits is: {op_iter:.3f}")
+                        if int_dist > int_val:            #iterates through to find the smallest distance from an integer
+                            self.n = i
+                            int_val = int_dist
+                search_space: int = 2**self.n       #computes the final search space for the chosen n
+                print_array("\n")
+                print_array(f"Using {self.n} Qubits with a search space of {search_space} to get the best accuracy")
+            else:
+                raise QC_error(qc_dat.error_iterations)
+        elif isinstance(self.n, int):
+            search_space = 2**self.n       #computes the search space for the n provided
+            print_array(f"Using {self.n} Qubits and a search space of {search_space}")
+        else:
+            raise QC_error(qc_dat.error_class)
+        op_iter = self.optimal_iterations(self.n)[0]
+
+        if self.it == None:     #now picks an iteration value
+            self.it = op_iter
+            if self.it < 1:    #obviously we cant have no iterations so it atleast does 1 iteration
+                self.it = 1.0000       #more of a failsafe, will almost certainly be wrong as the percentage diff from the it value to 1 will be large?
+                print_array(f"Computing 1 iteration, most likely will not be very accurate")
+            else:
+                print_array(f"Optimal number of iterations are: {self.it}")
+        else:
+            print_array(f"Number of iterations to perform are: {self.it}")
+        
+        final_state = self.iterate_alg()
+        print_array("\n")
         final_state = Measure(state=final_state)
         sorted_arr = top_probs(final_state.list_proj_probs(), len(self.oracle_values))         #finds the n top probabilities
         output = Grover(final_state.name, n=self.n, results=sorted_arr)         #creates a Grover instance
-        output.name = f"The States of the Grover Search with Oracle Values {oracle_values}, after {int(self.it)} iterations is: "
+        output.name = f"The States of the Grover Search with Oracle Values {self.oracle_values}, after {int(self.it)} iterations is: "
         print_array(output)                #prints that Grover instance
         console.rule(f"", style="grover_header")
         return output              #returns the value
@@ -1081,6 +1099,7 @@ def quant_fourier_trans(qub):          #also for shors although used in other al
 
 
 oracle_values = [9,4,3,2,5,6,12,15,16,17]
+oracle_values2 = [1,2,3,4,5]
 def main():
     rho_ab = Density(state=q1 @ q0 @ q0).rho
     partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=2)
@@ -1102,6 +1121,7 @@ def main():
 
     
     Grover(oracle_values).run()
+    Grover(oracle_values2).run()
     
     q00 = q0 @ q0
     q11 = q1 @ q1
