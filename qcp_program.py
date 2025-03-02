@@ -345,7 +345,7 @@ class Gate:            #creates a gate class to enable unique properties
         self.length = len(self.matrix)
         self.dim = int(np.sqrt(self.length))
         self.shift = self.dim.bit_length() - 1
-        self.n = int(np.log2(self.dim))
+        self.n =  0 if self.dim == 0 else int(np.log2(self.dim))
 
     @classmethod                #again creates some of the default gates, for ease of use and neatness
     def X_Gate(cls):
@@ -366,7 +366,11 @@ class Gate:            #creates a gate class to enable unique properties
     def Identity(cls, **kwargs):                     #eventually want to make this so its n dimensional
         n = kwargs.get("n", 1)
         if isinstance(n, int):
-            dim = 2**n
+            if n == 0:
+                new_mat = np.array([1], dtype=np.complex128)
+                return cls(name="Identity Gate", matrix=new_mat, info=qc_dat.Identity_info, dim=0)
+
+            dim = int(2**n)
             new_mat = np.zeros(dim**2, dtype=np.complex128)
             for i in range(dim):
                 new_mat[i+ dim * i] += 1
@@ -719,11 +723,11 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
 class Measure(Density):
     def __init__(self, **kwargs):
         self.measurement_state = kwargs.get("m_state", "all")
-        self.measure_type = kwargs.get("type", "projective")
+        self.measure_type: str = kwargs.get("type", "projective")
         self.state = kwargs.get("state", None)
         if self.state is not None:
-            self.density = kwargs.get("density", Density(state=self.state))
-            self.rho = self.density.rho
+            self.density: Density = kwargs.get("density", Density(state=self.state))
+            self.rho: np.ndarray = self.density.rho
         else:
             self.density = kwargs.get("density", None)
             self.rho = self.density.rho if isinstance(self.density, Density) else kwargs.get("rho", None)
@@ -733,15 +737,15 @@ class Measure(Density):
         self.measurement = self.measure()
 
     @property
-    def length(self):
+    def length(self) -> int:
         return len(self.rho)
     
     @property
-    def dim(self):
+    def dim(self) -> int:
         return int(np.sqrt(self.length))
     
     @property
-    def n(self):
+    def n(self) -> int:
         return int(np.log2(self.dim))
 
     def __str__(self):
@@ -750,11 +754,11 @@ class Measure(Density):
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.list_proj_probs()}[/not bold]"
     
-    def measure(self):
+    def measure(self) -> str:
         if self.measure_type == "projective":
             return self.proj_measure_state()
 
-    def measure_probs(self):
+    def measure_probs(self) -> str:
         if self.measure_type == "projective":
             return self.list_proj_probs()
         
@@ -838,7 +842,28 @@ class Circuit:
             else:
                 print_array(f"Adding the {gate.dim} x {gate.dim} gate: {gate.name} to the circuit")
 
-    def compute_final_gate(self, text=True):
+    def add_single_gate(self, gate: Gate, gate_location: int, text=True):
+        if self.n:
+            if isinstance(gate_location, int):
+                if gate_location == 0:
+                    pass
+                upper_id = Gate.Identity(n=gate_location)
+                lower_id = Gate.Identity(n=self.n - gate_location - 1)
+            else:
+                raise QC_error(f"The gate location connot be of {type(gate_location)}, expect type int")
+            ndim_gate = upper_id @ gate @ lower_id
+            self.gates.append(ndim_gate)
+            if text:
+                if gate.dim < 9:
+                    print_array(f"Adding this gate to the circuit:")
+                    print_array(ndim_gate)
+                else:
+                    print_array(f"Adding the {self.n} x {self.n} gate: {gate.name} to the circuit")
+
+        
+
+
+    def compute_final_gate(self, text=True) -> Gate:
         self.final_gate = self.start_gate
         for gate in reversed(self.gates):
             self.final_gate = self.final_gate * gate
@@ -848,14 +873,14 @@ class Circuit:
         self.final_gate.name = f"Final Gate"
         return self.final_gate
     
-    def apply_final_gate(self, text=True):
+    def apply_final_gate(self, text=True) -> Qubit:
         self.final_state = self.final_gate * self.state
         if text:
             print_array(f"The final state is:")
             print_array(self.final_state)
         return self.final_state
     
-    def list_proj_probs(self, text=True):
+    def list_proj_probs(self, text=True) -> Measure:
         self.prob_distribution = Measure(state=self.final_state).list_proj_probs()
         if text:
             print_array(f"The projective probability distribution is:")
@@ -863,7 +888,7 @@ class Circuit:
         return self.prob_distribution
     
     
-    def topn_probabilities(self, text=True, **kwargs):
+    def topn_probabilities(self, text=True, **kwargs) -> Measure:
         topn = kwargs.get("n", 8)
         self.top_prob_dist = top_probs(self.list_proj_probs(text=False), topn)
         if text:
@@ -871,7 +896,7 @@ class Circuit:
             print_array(format_ket_notation(self.top_prob_dist, type="topn", num_bits=int(np.ceil(np.log2(self.state.dim)))))
         return self.top_prob_dist
     
-    def proj_measure_state(self, text=True):
+    def proj_measure_state(self, text=True) -> Measure:
         self.measure_state = Measure(state=self.final_state).proj_measure_state()
         if text:
             print_array(f"The measured state is:")
@@ -888,11 +913,17 @@ class Circuit:
             self.topn_probabilities(text=False)
             self.proj_measure_state(text=False)
         return self.__rich__()
+
+    def return_info(self, attr):
+        if not hasattr(self, attr): 
+            raise QC_error(f"This parameter {attr} of type {type(attr)} does not exist")
+        return getattr(self, attr)  
+        
     
     
 class Grover:                                               #this is the Grover algorithms own class
     def __init__(self, oracle_values, **kwargs):
-        self.n_cap = int(kwargs.get("qubit_cap",10))             #DONT ALLOW THIS BEYOND 12 DUE TO COMPUTATIONAL ISSUES
+        self.n_cap: int = int(kwargs.get("qubit_cap",10))             #DONT ALLOW THIS BEYOND 12 DUE TO COMPUTATIONAL ISSUES
         self.n = kwargs.get("n", None)
         self.it = kwargs.get("iterations", None)               #ANY MORE THAN 85ISH CRASHES FOR NOW
         self.oracle_values = oracle_values
@@ -901,42 +932,39 @@ class Grover:                                               #this is the Grover 
     def __str__(self):
         return f"{self.name}\n{self.results}"
     
-    def __rich__(self):           #creates the correct printout so it shows the prob next to the ket written in ket notation
+    def __rich__(self) -> str:           #creates the correct printout so it shows the prob next to the ket written in ket notation
         print_out = f"[bold]{self.name}[/bold]\n"
         print_out_kets = format_ket_notation(self.results, type="topn", num_bits=int(np.ceil(self.n)))
         print_out = print_out + print_out_kets
         return print_out
 
-    def phase_oracle(self, qub, oracle_values):          #the Grover phase oracle
+    def phase_oracle(self, qub, oracle_values) -> Qubit:          #the Grover phase oracle
         flip = np.ones(qub.dim)
-        for i in oracle_values:
-            flip[i] = flip[i] - 2
-        for j, vals in enumerate(flip):
-            qub.vector[j] = qub.vector[j] * vals        
+        flip[oracle_values] = -1
+        qub.vector *= flip 
         return qub
 
-    def init_states(self):
+    def init_states(self) -> tuple[Qubit, Gate]:
         spec_had_mat = np.array([1,1,1,-1])    #i use this so that all the matrix mults are by an integer value and not a float and then apply the float later
         spec_had = Gate(name="Custom Hadamard for Grovers", info=qc_dat.Hadamard_info, matrix=spec_had_mat)
         qub = q0
         had_op = spec_had                      
-        
         for i in range(self.n-1):    #creates the qubit and also the tensored hadamard for the given qubit size
             qub **= q0
             had_op **= spec_had
         return qub, had_op
     
-    def optimal_iterations(self, n):
-        search_space = 2**n
-        op_iter = (np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5
+    def optimal_iterations(self, n) -> tuple[int, int]:
+        search_space: int = 2**n
+        op_iter:int = int((np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5)
         return op_iter, search_space
 
-    def iterate_alg(self):
+    def iterate_alg(self) -> Qubit:
         qub, had_op = self.init_states()
         it = 0
         while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
             if it != 0:
-                qub = final_state
+                qub: Qubit = final_state
             initialized_qubit = had_op * qub       #applies a hadamard to every qubit                           STEP 1
             intermidary_qubit = had_op * self.phase_oracle(initialized_qubit, self.oracle_values)              #STEP 2   phase flips the given oracle values
             intermidary_qubit.vector *= -1           #inverts all of the phases of the qubit values             STEP 3a
@@ -964,11 +992,11 @@ class Grover:                                               #this is the Grover 
                 for i in n_qubit_range:   #goes through the range of possible qubit values from the smallest possible for the given oracle values up to the cap
                     op_iter, search_space = self.optimal_iterations(i) 
                     if op_iter >= 1:
-                        int_dist = op_iter - np.floor(op_iter)  #finds the float value
+                        int_dist: float = op_iter - np.floor(op_iter)  #finds the float value
                         int_dist = abs(int_dist-0.5)             #shifts them down so its the distance from any integer
                         print_array(f"Optimal iterations for {i} Qubits is: {op_iter:.3f}")
                         if int_dist > int_val:            #iterates through to find the smallest distance from an integer
-                            self.n = i
+                            self.n: int = i
                             int_val = int_dist
                 search_space: int = 2**self.n       #computes the final search space for the chosen n
                 print_array("\n")
@@ -976,7 +1004,7 @@ class Grover:                                               #this is the Grover 
             else:
                 raise QC_error(qc_dat.error_iterations)
         elif isinstance(self.n, int):
-            search_space = 2**self.n       #computes the search space for the n provided
+            search_space: int = 2**self.n       #computes the search space for the n provided
             print_array(f"Using {self.n} Qubits and a search space of {search_space}")
         else:
             raise QC_error(qc_dat.error_class)
@@ -1024,7 +1052,7 @@ class print_array:    #made to try to make matrices look prettier
                 console.print(array,markup=True,style="measure")
         elif isinstance(array, Gate):
             if array.dim < 5:
-                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * array.dim)
+                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * array.dim, precision=self.prec)
             elif array.dim < 9:
                 self.prec = self.prec - 1
                 np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * array.dim, precision=self.prec)
@@ -1154,3 +1182,11 @@ def main():
     print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy(rho="B")}")
     print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
     print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
+
+    test_circuit = Circuit(n=3)
+    test_circuit.add_single_gate(gate=Hadamard, gate_location=0)
+    print_array(Hadamard @ Identity @ Identity)
+    test_circuit.add_single_gate(gate=X_Gate, gate_location=1)
+    print_array(Identity @ X_Gate @ Identity)
+    test_circuit.run()
+    print_array(test_circuit.return_info("final_gate"))
