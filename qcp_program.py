@@ -183,7 +183,6 @@ class Qubit:                                           #creates the qubit class
             self.dim: int = len(self.vector)                    #used constantly in all calcs so defined it universally
         else:
             self.dim: int = len(self.vector[0])
-        self.density = None
         self.n: int = int(np.log2(self.dim))
         if self.state_type == "mixed":
             self.build_mixed_state(kwargs)
@@ -200,7 +199,7 @@ class Qubit:                                           #creates the qubit class
             raise QC_error(qc_dat.errror_mixed_state)
             
     def build_seperable_state(self, kwargs):
-        qubit_states = np.array(kwargs.get("vectors",[]), dtype = np.complex128)
+        qubit_states = np.array(kwargs.get("vectors",[]))
         if isinstance(qubit_states[0], np.ndarray):                         #creates the vector for the seperable states for custom vector states
             qubit_states = np.array(kwargs.get("vectors",[]), dtype = np.complex128)
             self.vector = qubit_states[0]
@@ -210,7 +209,7 @@ class Qubit:                                           #creates the qubit class
         elif isinstance(qubit_states[0], Qubit):                          #creates a seperable state for the tensor of qubits together
             self.vector = qubit_states[0].vector
             state_name_size = int(np.log2(qubit_states[0].dim))
-            self.name = qubit_states[0].name
+            self.name = qubit_states[0].name                   #name doesnt work atm
             for state in qubit_states[1:]:
                 self_name_size = int(np.log2(self.dim))
                 self.vector = self @ state.vector
@@ -256,9 +255,10 @@ class Qubit:                                           #creates the qubit class
             return f"[bold]{self.name}[/bold]\n[not bold]{self.vector}[/not bold]"
     
     def __matmul__(self, other):               #this is an n x n tensor product function
-        self_name_size = int(np.log2(self.dim))
-        other_name_size = int(np.log2(other.dim))
-        if isinstance(other, Qubit):           #although this tensors are all 1D   
+        
+        if isinstance(other, Qubit):           #although this tensors are all 1D  
+            self_name_size = int(np.log2(self.dim))
+            other_name_size = int(np.log2(other.dim)) 
             new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
             new_length: int = self.dim*other.dim
             new_vector = np.zeros(new_length,dtype=np.complex128)
@@ -274,7 +274,8 @@ class Qubit:                                           #creates the qubit class
                 for j in range(other_dim):          #iterates up and down the second ket
                     new_vector[j+(i * other_dim)] += self.vector[i]*other[j] #adds the values into
             self.dim = new_length
-            return new_vector    #returns a new Object with a new name too
+            self.vector = new_vector
+            return self.vector    #returns a new Object with a new name too
         else:
             raise QC_error(qc_dat.error_class)
 
@@ -446,17 +447,19 @@ class Gate:            #creates a gate class to enable unique properties
         if isinstance(self, Gate):
             if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
                 if self.dim == other.dim:
-                    new_info: str = "This is a matrix multiplication of gates: "f"{self.name}"" and "f"{other.name}"
-                    new_name: str = f"{self.name} * {other.name}"
-                    new_mat = [0] * self.length
+                    new_mat = np.zeros(self.length,dtype=np.complex128)
                     for i in range(self.dim):
                         for k in range(self.dim):
                             new_mat[k+(i * self.dim)] = sum(self.matrix[j+(i * other.dim)]*other.matrix[k+(j * self.dim)] for j in range(self.dim))
                     if isinstance(other, Density):
                         new_info = "This is the density matrix of: "f"{self.name}"" and "f"{other.name}"
-                        return Density(name=new_name, info=new_info, matrix=np.array(new_mat))
+                        new_name: str = f"{self.name} * {other.name}"
+                        return Density(name=new_name, info=new_info, matrix=np.array(new_mat, dtype=np.complex128))
                     else:
-                        return Gate(name=new_name, info=new_info, matrix=np.array(new_mat, dtype=np.complex128))
+                        self.info: str = "This is a matrix multiplication of gates: "f"{self.name}"" and "f"{other.name}"
+                        self.name: str = f"{self.name} * {other.name}"
+                        self.matrix = np.array(new_mat, dtype=np.complex128)
+                        return self
                 else:
                     raise QC_error(qc_dat.error_mat_dim)
             elif isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
@@ -1133,6 +1136,67 @@ oracle_values = [9,4,3,2,5,6,12,15,16,17]
 oracle_values2 = [1,2,3,4,5]
 oracle_values3 = [500]
 def main():
+    rho_ab = Density(state=q1 @ q0 @ q0).rho
+    partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=2)
+    print_array(partial_trace)
+    partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=2)
+    print_array(partial_trace2)
+
+    rho_ab = Density(state=q1 @ q0).rho
+    partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=1)
+    print_array(partial_trace)
+    partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=1)
+    print_array(partial_trace2)
+
+    rho_ab = Density(state=q1 @ q0 @ q0).rho
+    partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=1)
+    print_array(partial_trace)
+    partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=1)
+    print_array(partial_trace2)
+
+    
+    Grover(oracle_values).run()
+    Grover(oracle_values2).run()
+    
+    q00 = q0 @ q0
+    q11 = q1 @ q1
+    test_den_object = Density(state_a=q00, state_b=q11, state=q00 @ q11)
+    print_array(test_den_object.rho)
+    print_array(test_den_object.rho_a)
+    print_array(test_den_object.rho_b)
+    print_array(f"Rho B after tracing out A\n{test_den_object.partial_trace(trace_out="A", state_size=2)}")
+    print_array(f"Rho A after tracing out B\n{test_den_object.partial_trace(trace_out="B", state_size=2)}")
+    print_array(f"Trace Distance between A and B: {test_den_object.trace_distance()}")
+    print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
+    print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
+    print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy(rho="A")}")
+    print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy(rho="B")}")
+    print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
+    print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
+
+    qpp = qp @ qp
+    qmm = qm @ qm
+    test_den_object = Density(state_a=qpp, state_b=qmm, state=qpp @ qmm)
+    print_array(test_den_object.rho)
+    print_array(test_den_object.rho_a)
+    print_array(test_den_object.rho_b)
+    print_array(f"Rho B after tracing out A\n{test_den_object.partial_trace(trace_out="A", state_size=2)}")
+    print_array(f"Rho A after tracing out B\n{test_den_object.partial_trace(trace_out="B", state_size=2)}")
+    print_array(f"Trace Distance between A and B: {test_den_object.trace_distance()}")
+    print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
+    print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
+    print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy(rho="A")}")
+    print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy(rho="B")}")
+    print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
+    print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
+
+    test_circuit = Circuit(n=3)
+    test_circuit.add_single_gate(gate=Hadamard, gate_location=0)
+    print_array(Hadamard @ Identity @ Identity)
+    test_circuit.add_single_gate(gate=X_Gate, gate_location=1)
+    print_array(Identity @ X_Gate @ Identity)
+    test_circuit.run()
+    print_array(test_circuit.return_info("final_gate"))
     Grover(oracle_values, n_cap=11).run()
     Grover(oracle_values2, n_cap=11).run()
     Grover(oracle_values3, n_cap=11).run()
@@ -1140,3 +1204,6 @@ def main():
     print_array(q0 @ q0 @ q0 @ q0)
     print_array(Hadamard * q0)
     print_array(type(Hadamard * q0))
+    print_array(Hadamard * Hadamard)
+    print_array(Qubit(type="seperable", vectors=[q0,q0,q1]))
+    print_array(Qubit(type="seperable", vectors=[[1,0],[1,0],[0,1]]))
