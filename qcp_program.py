@@ -950,6 +950,8 @@ class Grover:                                               #this is the Grover 
         print_array(f"Initialising {self.n} x {self.n} Hadamard")
         for i in range(self.n-1):    #creates the qubit and also the tensored hadamard for the given qubit size
             had_op **= spec_had
+            print(f"\r{i+2} x {i+2} Hadamard created", end="")    #allows to clear line without writing a custom print function in print_array
+        print()
         
         return qub, had_op
     
@@ -974,7 +976,7 @@ class Grover:                                               #this is the Grover 
             final_state.vector *= had_norm**3             #applies the normalisation factor here
             it += 1                   #adds to the iteration counter
             print(f"\rIteration number: {it} ", end="")    #allows to clear line without writing a custom print function in print_array
-        print_array("\n")
+        print()
         print_array(f"Final state calculated")
         return final_state
 
@@ -1197,10 +1199,10 @@ def main():
     print_array(Identity @ X_Gate @ Identity)
     test_circuit.run()
     print_array(test_circuit.return_info("final_gate"))
-    Grover(oracle_values, n_cap=11).run()
-    Grover(oracle_values2, n_cap=11).run()
-    Grover(oracle_values3, n_cap=11).run()
-    Grover(oracle_values3, n=10).run()
+    Grover(oracle_values, n_cap=14).run()
+    Grover(oracle_values2, n_cap=14).run()
+    Grover(oracle_values3, n_cap=14).run()
+    Grover(oracle_values3,n=15, n_cap=15).run()
     print_array(q0 @ q0 @ q0 @ q0)
     print_array(Hadamard * q0)
     print_array(type(Hadamard * q0))
