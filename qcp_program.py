@@ -922,10 +922,10 @@ class Circuit:
     
 class Grover:                                               #this is the Grover algorithms own class
     def __init__(self, oracle_values: list, **kwargs):
-        self.n_cap: int = int(kwargs.get("qubit_cap",10))             #DONT ALLOW THIS BEYOND 12 DUE TO COMPUTATIONAL ISSUES
+        self.n_cap: int = int(kwargs.get("n_cap",12))             #DONT GO BEYOND 14 AS THE MEMORY ALLOCATION IS TOO MUCH
         self.n = kwargs.get("n", None)
         self.it = kwargs.get("iterations", None)               #ANY MORE THAN 85ISH CRASHES FOR NOW
-        self.oracle_values = oracle_values
+        self.oracle_values: list = oracle_values
         self.results = kwargs.get("results", [])
 
     def __str__(self):
@@ -952,7 +952,6 @@ class Grover:                                               #this is the Grover 
             had_op **= spec_had
             print(f"\r{i+2} x {i+2} Hadamard created", end="")    #allows to clear line without writing a custom print function in print_array
         print()
-        
         return qub, had_op
     
     def optimal_iterations(self, n: int) -> tuple[float, int]:
@@ -981,29 +980,35 @@ class Grover:                                               #this is the Grover 
         return final_state
 
     def compute_n(self) -> int:
-        print_array(f"Using up to {self.n_cap} Qubits to run the search")
-        if self.it == None:           #if an iteration count is not given then run:
-            print_array(f"No iteration value given, so will now calculate the optimal iterations")
+        if isinstance(self.n_cap, int):
+            print_array(f"Using up to {self.n_cap} Qubits to run the search")
             max_oracle = max(self.oracle_values)
             n_qubit_min = 1
             while max_oracle > 2**n_qubit_min:             #when picking the qubits, we need enough to allow the search space to be bigger than all the oracle values
                 n_qubit_min += 1
-            n_qubit_range = np.arange(n_qubit_min, self.n_cap + 1, dtype=int)
-            int_val = 0
-            for i in n_qubit_range:   #goes through the range of possible qubit values from the smallest possible for the given oracle values up to the cap
-                op_iter = self.optimal_iterations(i)[0]
-                if op_iter >= 1:
-                    int_dist: float = op_iter - np.floor(op_iter)  #finds the float value
-                    int_dist: float = abs(int_dist-0.5)             #shifts them down so its the distance from any integer
-                    print_array(f"Optimal iterations for {i} Qubits is: {op_iter:.3f}")
-                    if int_dist > int_val:            #iterates through to find the smallest distance from an integer
-                        self.n: int = i
-                        int_val: float = int_dist
+            if n_qubit_min > self.n_cap:
+                raise QC_error(f"The search space needed for this search is larger than the qubit limit {self.n_cap}.")
+            if self.it == None:
+                print_array(f"No iteration value given, so will now calculate the optimal iterations")
+                n_qubit_range = np.arange(n_qubit_min, self.n_cap + 1, dtype=int)
+                int_val = 0
+                for i in n_qubit_range:   #goes through the range of possible qubit values from the smallest possible for the given oracle values up to the cap
+                    op_iter = self.optimal_iterations(i)[0]
+                    if op_iter >= 1:
+                        int_dist: float = op_iter - np.floor(op_iter)  #finds the float value
+                        int_dist: float = abs(int_dist-0.5)             #shifts them down so its the distance from any integer
+                        print_array(f"Optimal iterations for {i} Qubits is: {op_iter:.3f}")
+                        if int_dist > int_val:            #iterates through to find the smallest distance from an integer
+                            self.n: int = i
+                            int_val: float = int_dist
+                return self.n
+            else:
+                self.n = n_qubit_min
+                print_array(f"Running the given {self.it} iterations with the minimum number of qubits {self.n}")
+                return self.n
         else:
-            raise QC_error(qc_dat.error_iterations)
-        return self.n
-
-
+            raise QC_error(f"The qubit limit cannot be of {type(self.n_cap)}, expected type int")
+    
     def run(self) -> "Grover":     #Grovers algorithm, can input the number of qubits and also a custom amount of iterations
         console.rule(f"Grovers search with oracle values: {self.oracle_values}", style="grover_header")
         if self.n == None:               #if the number of qubits required is not given then run:
@@ -1024,14 +1029,16 @@ class Grover:                                               #this is the Grover 
                 print_array(f"Computing 1 iteration, most likely will not be very accurate")
             else:
                 print_array(f"Optimal number of iterations are: {self.it}")
-        else:
+        elif isinstance(self.it, int):
             print_array(f"Number of iterations to perform are: {self.it}")
+        else:
+            raise QC_error(f"Iterations cannot be of {type(self.it)}, expected type int")
         final_state = self.iterate_alg()
         print_array(f"Computing Probability Distribution of States")
         final_state = Measure(state=final_state)
         print_array(f"Finding the probabilities for the top n Probabilities (n is the number of oracle values)")
         sorted_arr = top_probs(final_state.list_proj_probs(), len(self.oracle_values))         #finds the n top probabilities
-        print_array(f"Outputting:")
+        print_array(f"Outputing:")
         output = Grover(final_state.name, n=self.n, results=sorted_arr)         #creates a Grover instance
         output.name = f"The States of the Grover Search with Oracle Values {self.oracle_values}, after {int(self.it)} iterations is: "
         print_array(output)                #prints that Grover instance
@@ -1134,9 +1141,10 @@ def quant_fourier_trans(qub):          #also for shors although used in other al
     return four_qub_sum
 
 
-oracle_values = [9,4,3,2,5,6,12,15,16,17]
-oracle_values2 = [1,2,3,4,5]
-oracle_values3 = [500]
+oracle_values = [9,4,3,2,5,6,12,15,16,17, 300, 301]
+oracle_values2 = [1,2,3,4, 664, 77,5]
+oracle_values3 = [500, 5, 30]
+oracle_values4 = [500, 5, 4, 7, 8, 9, 99]
 def main():
     rho_ab = Density(state=q1 @ q0 @ q0).rho
     partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=2)
@@ -1156,10 +1164,6 @@ def main():
     partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=1)
     print_array(partial_trace2)
 
-    
-    Grover(oracle_values).run()
-    Grover(oracle_values2).run()
-    
     q00 = q0 @ q0
     q11 = q1 @ q1
     test_den_object = Density(state_a=q00, state_b=q11, state=q00 @ q11)
@@ -1199,10 +1203,10 @@ def main():
     print_array(Identity @ X_Gate @ Identity)
     test_circuit.run()
     print_array(test_circuit.return_info("final_gate"))
-    Grover(oracle_values, n_cap=14).run()
-    Grover(oracle_values2, n_cap=14).run()
-    Grover(oracle_values3, n_cap=14).run()
-    Grover(oracle_values3,n=15, n_cap=15).run()
+    Grover(oracle_values).run()
+    Grover(oracle_values2).run()
+    Grover(oracle_values3).run()
+    Grover(oracle_values4).run()
     print_array(q0 @ q0 @ q0 @ q0)
     print_array(Hadamard * q0)
     print_array(type(Hadamard * q0))
