@@ -184,7 +184,6 @@ class Qubit:                                           #creates the qubit class
             self.dim = len(self.vector)                    #used constantly in all calcs so defined it universally
         else:
             self.dim = len(self.vector[0])
-        self.shift = self.dim.bit_length() - 1
         self.density = None
         self.n = int(np.log2(self.dim))
         if self.state_type == "mixed":
@@ -264,10 +263,9 @@ class Qubit:                                           #creates the qubit class
             new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
             new_length: int = self.dim*other.dim
             new_vector = np.zeros(new_length,dtype=np.complex128)
-            other_shift = other.dim.bit_length() - 1
             for i in range(self.dim):     #multiplies the second ket by each value in the first ket
                 for j in range(other.dim):          #iterates up and down the second ket
-                    new_vector[j+(i << other_shift)] += self.vector[i]*other.vector[j] #adds the values into each element of the vector
+                    new_vector[j+(i * other.dim)] += self.vector[i]*other.vector[j] #adds the values into each element of the vector
             return Qubit(name=new_name, vector=new_vector)    #returns a new Qubit instance with a new name
         elif isinstance(other, np.ndarray):                 #used for when you just need to compute it for a given array, this is for creating seperable states
             other_dim = len(other)
@@ -344,7 +342,6 @@ class Gate:            #creates a gate class to enable unique properties
             raise QC_error(qc_dat.error_kwargs)
         self.length = len(self.matrix)
         self.dim = int(np.sqrt(self.length))
-        self.shift = self.dim.bit_length() - 1
         self.n =  0 if self.dim == 0 else int(np.log2(self.dim))
 
     @classmethod                #again creates some of the default gates, for ease of use and neatness
@@ -428,13 +425,13 @@ class Gate:            #creates a gate class to enable unique properties
             new_name = f"{self.name} @ {other.name}"
             new_length = self.length*other.length
             new_mat = np.zeros(new_length,dtype=np.complex128)
-            new_shift = (self.dim*other.dim).bit_length() - 1
-            comb_shift = other.shift + new_shift
+            new_dim = self.dim * other.dim
             for m in range(self.dim):
                 for i in range(self.dim):
                     for j in range(other.dim):             #4 is 100 2 is 10
                         for k in range(other.dim):   #honestly, this works but is trash and looks like shit
-                            new_mat[k+(j << new_shift)+(i << other.shift)+(m << comb_shift)] = self.matrix[i+(m << self.shift)]*other.matrix[k+(j << other.shift)]
+                            index = k+j*new_dim+other.dim*i+other.dim*new_dim*m
+                            new_mat[index] += self.matrix[i+self.dim*m]*other.matrix[k+other.dim*j]
             return Gate(name=new_name, info=new_info, matrix=new_mat)
         else:
             raise QC_error(qc_dat.error_class)
@@ -468,7 +465,8 @@ class Gate:            #creates a gate class to enable unique properties
                     new_name = f"{self.name}{other.name}"
                     new_mat = np.zeros(self.dim,dtype=np.complex128)
                     for i in range(self.dim):
-                        new_mat[i] = sum(self.matrix[j+(i * other.dim)]*other.vector[j] for j in range(self.dim))
+                        row = self.matrix[i * self.dim:(i + 1) * self.dim]
+                        new_mat[i] = np.sum(row[:] * other.vector[:])
                     return Qubit(name=new_name, vector=np.array(new_mat,dtype=np.complex128))
                 else:
                     raise QC_error(qc_dat.error_mat_dim)
@@ -530,7 +528,6 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             self.length = self.state.dim**2
             self.dim = int(np.sqrt(self.length))
             self.n = int(np.log2(self.dim))
-            self.shift = self.dim.bit_length() - 1
             if self.state.name is not None:
                     desc_name =f"Density matrix of {self.state_type} qubit {self.state.name}:"
             self.name = kwargs.get("name", desc_name)
@@ -540,7 +537,6 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         self.length = len(self.rho) if self.state is None else self.state.dim**2
         self.dim = int(np.sqrt(self.length))
         self.n = int(np.log2(self.dim))
-        self.shift = self.dim.bit_length() - 1
         self.state_a = kwargs.get("state_a", None)
         self.state_b = kwargs.get("state_b", None)
         self.rho_a = kwargs.get("rho_a", None if self.state_a is None else self.construct_density_matrix(self.state_a))
@@ -947,21 +943,25 @@ class Grover:                                               #this is the Grover 
     def init_states(self) -> tuple[Qubit, Gate]:
         spec_had_mat = np.array([1,1,1,-1])    #i use this so that all the matrix mults are by an integer value and not a float and then apply the float later
         spec_had = Gate(name="Custom Hadamard for Grovers", info=qc_dat.Hadamard_info, matrix=spec_had_mat)
-        qub = q0
+        qub = Qubit.q0(n=self.n)
+        print_array(f"Initialising state {qub.name}")
         had_op = spec_had                      
+        print_array(f"Initialising {self.n} x {self.n} Hadamard")
         for i in range(self.n-1):    #creates the qubit and also the tensored hadamard for the given qubit size
-            qub **= q0
             had_op **= spec_had
+        
         return qub, had_op
     
-    def optimal_iterations(self, n) -> tuple[int, int]:
+    def optimal_iterations(self, n) -> tuple[float, int]:
         search_space: int = 2**n
-        op_iter:int = int((np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5)
+        op_iter: float = (np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5
         return op_iter, search_space
 
     def iterate_alg(self) -> Qubit:
         qub, had_op = self.init_states()
+        print_array(f"Running algorithm:")
         it = 0
+        had_norm = 1/np.sqrt(2**self.n)   #applies the norm afterwards to be more efficient
         while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
             if it != 0:
                 qub: Qubit = final_state
@@ -970,10 +970,11 @@ class Grover:                                               #this is the Grover 
             intermidary_qubit.vector *= -1           #inverts all of the phases of the qubit values             STEP 3a
             intermidary_qubit.vector[0] *= -1              #inverts back the first qubits phase                 STEP 3b
             final_state = had_op * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 4
+            final_state.vector *= had_norm**3             #applies the normalisation factor here
             it += 1                   #adds to the iteration counter
             print(f"\rIteration number: {it} ", end="")    #allows to clear line without writing a custom print function in print_array
-        had_norm = 1/np.sqrt(2**self.n)   #applies the norm afterwards to be more efficient
-        final_state.vector *= had_norm**(3*int(self.it))             #applies the normalisation factor here
+        print_array("\n")
+        print_array(f"Final state calculated")
         return final_state
 
 
@@ -982,6 +983,7 @@ class Grover:                                               #this is the Grover 
         if self.n == None:               #if the number of qubits required is not given then run:
             print_array(f"Using up to {self.n_cap} Qubits to run the search")
             if self.it == None:           #if an iteration count is not given then run:
+                print_array(f"No iteration value given, so will now calculate the optimal iterations")
                 max_oracle = max(self.oracle_values)
                 n_qubit_min = 1
                 search_space = 2
@@ -999,7 +1001,6 @@ class Grover:                                               #this is the Grover 
                             self.n: int = i
                             int_val = int_dist
                 search_space: int = 2**self.n       #computes the final search space for the chosen n
-                print_array("\n")
                 print_array(f"Using {self.n} Qubits with a search space of {search_space} to get the best accuracy")
             else:
                 raise QC_error(qc_dat.error_iterations)
@@ -1011,7 +1012,7 @@ class Grover:                                               #this is the Grover 
         op_iter = self.optimal_iterations(self.n)[0]
 
         if self.it == None:     #now picks an iteration value
-            self.it = op_iter
+            self.it = round(op_iter)
             if self.it < 1:    #obviously we cant have no iterations so it atleast does 1 iteration
                 self.it = 1.0000       #more of a failsafe, will almost certainly be wrong as the percentage diff from the it value to 1 will be large?
                 print_array(f"Computing 1 iteration, most likely will not be very accurate")
@@ -1021,9 +1022,11 @@ class Grover:                                               #this is the Grover 
             print_array(f"Number of iterations to perform are: {self.it}")
         
         final_state = self.iterate_alg()
-        print_array("\n")
+        print_array(f"Computing Probability Distribution of States")
         final_state = Measure(state=final_state)
+        print_array(f"Finding the probabilities for the top n Probabilities (n is the number of oracle values)")
         sorted_arr = top_probs(final_state.list_proj_probs(), len(self.oracle_values))         #finds the n top probabilities
+        print_array(f"Outputting:")
         output = Grover(final_state.name, n=self.n, results=sorted_arr)         #creates a Grover instance
         output.name = f"The States of the Grover Search with Oracle Values {self.oracle_values}, after {int(self.it)} iterations is: "
         print_array(output)                #prints that Grover instance
@@ -1128,65 +1131,10 @@ def quant_fourier_trans(qub):          #also for shors although used in other al
 
 oracle_values = [9,4,3,2,5,6,12,15,16,17]
 oracle_values2 = [1,2,3,4,5]
+oracle_values3 = [500]
 def main():
-    rho_ab = Density(state=q1 @ q0 @ q0).rho
-    partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=2)
-    print_array(partial_trace)
-    partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=2)
-    print_array(partial_trace2)
-
-    rho_ab = Density(state=q1 @ q0).rho
-    partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=1)
-    print_array(partial_trace)
-    partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=1)
-    print_array(partial_trace2)
-
-    rho_ab = Density(state=q1 @ q0 @ q0).rho
-    partial_trace = Density(rho=rho_ab).partial_trace(trace_out="B",state_size=1)
-    print_array(partial_trace)
-    partial_trace2 = Density(rho=rho_ab).partial_trace(trace_out="A",state_size=1)
-    print_array(partial_trace2)
-
-    
-    Grover(oracle_values).run()
-    Grover(oracle_values2).run()
-    
-    q00 = q0 @ q0
-    q11 = q1 @ q1
-    test_den_object = Density(state_a=q00, state_b=q11, state=q00 @ q11)
-    print_array(test_den_object.rho)
-    print_array(test_den_object.rho_a)
-    print_array(test_den_object.rho_b)
-    print_array(f"Rho B after tracing out A\n{test_den_object.partial_trace(trace_out="A", state_size=2)}")
-    print_array(f"Rho A after tracing out B\n{test_den_object.partial_trace(trace_out="B", state_size=2)}")
-    print_array(f"Trace Distance between A and B: {test_den_object.trace_distance()}")
-    print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
-    print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
-    print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy(rho="A")}")
-    print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy(rho="B")}")
-    print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
-    print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
-
-    qpp = qp @ qp
-    qmm = qm @ qm
-    test_den_object = Density(state_a=qpp, state_b=qmm, state=qpp @ qmm)
-    print_array(test_den_object.rho)
-    print_array(test_den_object.rho_a)
-    print_array(test_den_object.rho_b)
-    print_array(f"Rho B after tracing out A\n{test_den_object.partial_trace(trace_out="A", state_size=2)}")
-    print_array(f"Rho A after tracing out B\n{test_den_object.partial_trace(trace_out="B", state_size=2)}")
-    print_array(f"Trace Distance between A and B: {test_den_object.trace_distance()}")
-    print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
-    print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
-    print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy(rho="A")}")
-    print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy(rho="B")}")
-    print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
-    print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
-
-    test_circuit = Circuit(n=3)
-    test_circuit.add_single_gate(gate=Hadamard, gate_location=0)
-    print_array(Hadamard @ Identity @ Identity)
-    test_circuit.add_single_gate(gate=X_Gate, gate_location=1)
-    print_array(Identity @ X_Gate @ Identity)
-    test_circuit.run()
-    print_array(test_circuit.return_info("final_gate"))
+    Grover(oracle_values, n_cap=11).run()
+    Grover(oracle_values2, n_cap=11).run()
+    Grover(oracle_values3, n_cap=11).run()
+    Grover(oracle_values3, n=10).run()
+    print_array(q0 @ q0 @ q0 @ q0)
