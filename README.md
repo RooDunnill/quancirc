@@ -26,5 +26,23 @@ this is there actual times computed for one value, so slowest it would ever be:
 ![image](https://github.com/user-attachments/assets/3e9bb9aa-9297-4847-a4df-9f930c54114f)
 
 
+<<<<<<< HEAD
 
 >>>>>>> 15528d5 (Update README.md)
+=======
+[[ 2.000  0.007]
+ [ 3.000  0.006]
+ [ 4.000  0.007]
+ [ 5.000  0.007]
+ [ 6.000  0.009]
+ [ 7.000  0.011]
+ [ 8.000  0.014]
+ [ 9.000  0.025]
+ [10.000  0.028]
+ [11.000  0.044]
+ [12.000  0.086]
+ [13.000  0.175]
+ [14.000  0.420]
+ [15.000  1.164]
+ [16.000 11.368]]
+>>>>>>> f496eb2 (Update README.md)
