@@ -967,6 +967,7 @@ class Grover:                                               #this is the Grover 
         self.it = kwargs.get("iterations", None)               #ANY MORE THAN 85ISH CRASHES FOR NOW
         self.oracle_values: list = oracle_values
         self.results = kwargs.get("results", [])
+        self.fast = kwargs.get("fast", False)
 
     def __str__(self):
         return f"{self.name}\n{self.results}"
@@ -985,32 +986,71 @@ class Grover:                                               #this is the Grover 
         search_space: int = 2**n
         op_iter: float = (np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5
         return op_iter, search_space
+    
+    def init_states(self) -> tuple[Qubit, Gate]:
+        spec_had_mat = np.array([1,1,1,-1])    #i use this so that all the matrix mults are by an integer value and not a float and then apply the float later
+        spec_had = Gate(name="Custom Hadamard for Grovers", info=qc_dat.Hadamard_info, matrix=spec_had_mat)
+        qub = Qubit.q0(n=self.n)
+        print_array(f"Initialising state {qub.name}")
+        had_op = spec_had                      
+        print_array(f"Initialising {self.n} x {self.n} Hadamard")
+        for i in range(self.n-1):    #creates the qubit and also the tensored hadamard for the given qubit size
+            had_op **= spec_had
+            print(f"\r{i+2} x {i+2} Hadamard created", end="")    #allows to clear line without writing a custom print function in print_array
+        print()
+        return qub, had_op
 
     def iterate_alg(self) -> Qubit:
-        timer = Timer()
-        F = FWHT()
-        qub = Qubit.q0(n=self.n)
-        print_array(f"Running algorithm:")
         it = 0
-        while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
-            print(f"\rIteration {it + 1}:                                                                                    Time elapsed:{timer.elapsed()[0]:.4f} secs", end="")
-            if it != 0:
-                qub: Qubit = final_state
-            print(f"\rIteration {it + 1}: Applying first Hadamard                                                            ", end="")
-            initialized_qubit = F * qub       #applies a hadamard to every qubit                           STEP 1
-            print(f"\rIteration {it + 1}: Applying phase oracle and second Hadamard                                          ", end="")
-            intermidary_qubit = F * self.phase_oracle(initialized_qubit, self.oracle_values)              #STEP 2   phase flips the given oracle values
-            print(f"\rIteration {it + 1}: Flipping the Qubits phase except first Qubit                                       ", end="")
-            intermidary_qubit.vector *= -1           #inverts all of the phases of the qubit values             STEP 3a
-            intermidary_qubit.vector[0] *= -1              #inverts back the first qubits phase                 STEP 3b
-            print(f"\rIteration {it + 1}: Applying third and final Hadamard                                                  ", end="")
-            final_state = F * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 4
-            it += 1                   #adds to the iteration counter
+        timer = Timer()
+        print_array(f"Running FWHT algorithm:")
+        if self.fast:
+            F = FWHT()
+            qub = Qubit.q0(n=self.n)
             
-                #allows to clear line without writing a custom print function in print_array
-        print()
-        print_array(f"Final state calculated. Time to iterate algorithm: {timer.elapsed()[1]:.4f} seconds")
-        return final_state
+            while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
+                print(f"\rIteration {it + 1}:                                                                                    Time elapsed:{timer.elapsed()[0]:.4f} secs", end="")
+                if it != 0:
+                    qub: Qubit = final_state
+                print(f"\rIteration {it + 1}: Applying first Hadamard                                                            ", end="")
+                initialized_qubit = F * qub       #applies a hadamard to every qubit                           STEP 1
+                print(f"\rIteration {it + 1}: Applying phase oracle and second Hadamard                                          ", end="")
+                intermidary_qubit = F * self.phase_oracle(initialized_qubit, self.oracle_values)              #STEP 2   phase flips the given oracle values
+                print(f"\rIteration {it + 1}: Flipping the Qubits phase except first Qubit                                       ", end="")
+                intermidary_qubit.vector *= -1           #inverts all of the phases of the qubit values             STEP 3a
+                intermidary_qubit.vector[0] *= -1              #inverts back the first qubits phase                 STEP 3b
+                print(f"\rIteration {it + 1}: Applying third and final Hadamard                                                  ", end="")
+                final_state = F * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 4
+                it += 1                   #adds to the iteration counter
+                
+                    #allows to clear line without writing a custom print function in print_array
+            print()
+            print_array(f"Final state calculated. Time to iterate algorithm: {timer.elapsed()[1]:.4f} seconds")
+            return final_state
+        else:
+            qub, had_op = self.init_states()
+            print_array(f"Running algorithm:")
+            it = 0
+            had_norm = 1/np.sqrt(2**self.n)   #applies the norm afterwards to be more efficient
+            while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
+                print(f"\rIteration {it + 1}:                                                                                    Time elapsed:{timer.elapsed()[0]:.4f} secs", end="")
+                if it != 0:
+                    qub: Qubit = final_state
+                print(f"\rIteration {it + 1}: Applying first Hadamard                                                            ", end="")
+                initialized_qubit = had_op * qub       #applies a hadamard to every qubit                           STEP 1
+                print(f"\rIteration {it + 1}: Applying phase oracle and second Hadamard                                          ", end="")
+                intermidary_qubit = had_op * self.phase_oracle(initialized_qubit, self.oracle_values)              #STEP 2   phase flips the given oracle values
+                print(f"\rIteration {it + 1}: Flipping the Qubits phase except first Qubit                                       ", end="")
+                intermidary_qubit.vector *= -1           #inverts all of the phases of the qubit values             STEP 3a
+                intermidary_qubit.vector[0] *= -1              #inverts back the first qubits phase                 STEP 3b
+                print(f"\rIteration {it + 1}: Applying third and final Hadamard                                                  ", end="")
+                final_state = had_op * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 4
+                final_state.vector *= had_norm**3             #applies the normalisation factor here
+                it += 1                   #adds to the iteration counter
+                print(f"\rIteration number: {it} ", end="")    #allows to clear line without writing a custom print function in print_array
+            print()
+            print_array(f"Final state calculated")
+            return final_state
 
     def compute_n(self) -> int:
         if isinstance(self.n_cap, int):
@@ -1078,6 +1118,7 @@ class Grover:                                               #this is the Grover 
         output.name = f"The States of the Grover Search with Oracle Values {self.oracle_values}, after {int(self.it)} iterations is: "
         print_array(output)                #prints that Grover instance
         console.rule(f"Total Time to run Grover's Algorithm: {Grover_timer.elapsed()[0]:.4f} seconds", style="grover_header")
+        print()
         return output              #returns the value
 
 
@@ -1182,6 +1223,17 @@ oracle_values3 = [500, 5, 30]
 oracle_values4 = [500, 5, 4, 7, 8, 9, 99]
 oracle_value_test = [0]
 def main():
-    Grover(oracle_value_test, n=16, iterations=5).run()
-    Grover(oracle_values, n=14).run()
+    times_array = np.zeros((10, 3))
     
+    for i in range(10):
+        n=i+2
+        test_timer = Timer()
+        Grover(oracle_value_test, n=n).run()
+        time_slow = test_timer.elapsed()[0]
+        test_timer = Timer()
+        Grover(oracle_value_test, n=n, fast=True).run()
+        time_fast = test_timer.elapsed()[0]
+        
+        times_array[i] = np.array([int(i+2), time_slow, time_fast])
+    print_array(f"Qubits, f time, s time")
+    print(times_array)
