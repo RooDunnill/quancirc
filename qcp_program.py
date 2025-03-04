@@ -482,6 +482,8 @@ class Gate:            #creates a gate class to enable unique properties
     def __mul__(self, other):       #matrix multiplication
         if isinstance(self, FWHT):
             vec = other.vector
+            sqrt2_inv = 1 / np.sqrt(2)
+            norm  = sqrt2_inv ** (other.n)
             for i in range(other.n):                                            #loops through each size of qubit below the size of the state
                 step_size = 2**(i + 1)                                          #is the dim of the current qubit tieration size 
                 half_step = step_size // 2                                      #half the step size to go between odd indexes
@@ -491,6 +493,7 @@ class Gate:            #creates a gate class to enable unique properties
                 a, b = vec[indices], vec[indices + half_step]
                 vec[indices] = a + b
                 vec[indices + half_step] = a - b                            #normalisation has been taken out giving a slight speed up in performance
+            vec *= norm
             return other
         elif isinstance(self, Gate):
             if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
@@ -1033,8 +1036,6 @@ class Grover:                                               #this is the Grover 
             F = FWHT()
             qub = Qubit.q0(n=self.n)
             print_array(f"Running FWHT algorithm:")
-            sqrt2_inv = 1 / np.sqrt(2)
-            norm  = sqrt2_inv ** (3 * self.n * self.it)
             while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
                 print(f"\rIteration {it + 1}:                                                                  ", end="")
                 if it != 0:
@@ -1048,7 +1049,6 @@ class Grover:                                               #this is the Grover 
                 intermidary_qubit.vector[0] *= -1              #inverts back the first qubits phase                 STEP 3b
                 print(f"\rIteration {it + 1}: Applying third and final Hadamard                                ", end="")
                 final_state = F * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 4
-                final_state.vector *= norm
                 it += 1                   #adds to the iteration counter
                 print(f"\r                                                                                     Time elapsed:{timer.elapsed()[0]:.4f} secs", end="")
             print(f"\r",end="")
@@ -1252,4 +1252,5 @@ oracle_values3 = [500, 5, 30]
 oracle_values4 = [500, 5, 4, 7, 8, 9, 99]
 oracle_value_test = [0,1,2,3]
 def main():
-    Grover(oracle_values, n=4, fast=True).run()
+    Grover(oracle_values, n=5, fast=True).run()
+    Grover(oracle_values2, n=10, fast=True).run()
