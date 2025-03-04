@@ -22,6 +22,9 @@ comparing new for only one iteration for each, bare in mind the iterations scale
 ![image](https://github.com/user-attachments/assets/88c1d691-37eb-42b4-98f3-b57270483b9d)
 The limitation at this point is the prob dist, but i have also sped that up a lot now, ironically you need to classical search through every item in the list to find the highest probs, maybe we could implement grovers for the prob list XD
 ![image](https://github.com/user-attachments/assets/02da4322-859a-4389-a2e8-122d8c2e1132)
+this is there actual times computed for one value, so slowest it would ever be:
+![image](https://github.com/user-attachments/assets/3e9bb9aa-9297-4847-a4df-9f930c54114f)
+
 
 
 >>>>>>> 15528d5 (Update README.md)
