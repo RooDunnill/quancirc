@@ -1168,6 +1168,6 @@ oracle_values3 = [500, 5, 30]
 oracle_values4 = [500, 5, 4, 7, 8, 9, 99]
 def main():
     
-    F_Qubit = Qubit.q0(n=16)
+    F_Qubit = Qubit.q0(n=20)
     F = FWHT()
     print_array(F * F_Qubit)
