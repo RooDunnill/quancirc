@@ -153,14 +153,37 @@ def is_real(obj):                 #pretty irrelevant but is used for checking pr
     else:
         return False
 
-def inner_product(vec_a: np.ndarray, vec_b: np.ndarray) -> np.ndarray:
-    if len(vec_a) == len(vec_b):
-        dim = len(vec_a)
-        new_mat = np.zeros(dim, dtype=np.complex128)
-        new_mat[:] = vec_a[:] * vec_b[:]
-        return new_mat
-    else:
-        raise QC_error(qc_dat.error_mat_dim)
+def comp_Grover_test(n, **kwargs):
+        g_loops = kwargs.get("g_loops", 10)
+        warmup_timer = Timer()
+        warmup = warmup_timer.elapsed()
+        loops = np.arange(2,n+1)
+        times_array = np.zeros((n-1, 3))
+        for i in loops:
+            n=int(i)
+            test_timer = Timer()
+            for j in range(g_loops): Grover(oracle_value_test, n=n).run()
+            time_slow = test_timer.elapsed()[0]
+            test_timer = Timer()
+            for j in range(g_loops): Grover(oracle_value_test, n=n, fast=True).run()
+            time_fast = test_timer.elapsed()[0]
+            times_array[i-2] = np.array([n, time_slow/g_loops, time_fast/g_loops])
+        print_array(f"Qubits, s time, f time")
+        print(times_array)
+def time_test(n, fast=False, iterations=None, **kwargs):
+    g_loops = kwargs.get("g_loops", 10)
+    warmup_timer = Timer()
+    warmup = warmup_timer.elapsed
+    loops = np.arange(2,n+1)
+    times_array = np.zeros((n-1, 2))
+    for i in loops:
+        n=int(i)
+        test_timer = Timer()
+        for j in range(g_loops): Grover(oracle_value_test, n=n, fast=fast, iterations=iterations).run()
+        time = test_timer.elapsed()[0]
+        times_array[i-2] = np.array([n, time/g_loops])
+    print_array(f"Qubits, time")
+    print(times_array)
 
 def top_probs(prob_list: np.ndarray, n: int) -> np.ndarray:             #sorts through the probability distribution and finds the top n probabilities corresponding to the length n or the oracle values
         top_n = np.array([], dtype=prob_list.dtype)
@@ -459,7 +482,6 @@ class Gate:            #creates a gate class to enable unique properties
     def __mul__(self, other):       #matrix multiplication
         if isinstance(self, FWHT):
             vec = other.vector
-            sqrt2_inv = 1 / np.sqrt(2)
             for i in range(other.n):                                            #loops through each size of qubit below the size of the state
                 step_size = 2**(i + 1)                                          #is the dim of the current qubit tieration size 
                 half_step = step_size // 2                                      #half the step size to go between odd indexes
@@ -467,8 +489,8 @@ class Gate:            #creates a gate class to enable unique properties
                 inner_range = np.arange(half_step)                               
                 indices = outer_range + inner_range                        
                 a, b = vec[indices], vec[indices + half_step]
-                vec[indices] = (a + b) * sqrt2_inv
-                vec[indices + half_step] = (a - b) * sqrt2_inv
+                vec[indices] = (a + b)
+                vec[indices + half_step] = (a - b)                              #normalisation has been taken out giving a slight speed up in performance
             return other
         elif isinstance(self, Gate):
             if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
@@ -965,7 +987,7 @@ class Circuit:
 class Grover:                                               #this is the Grover algorithms own class
     def __init__(self, oracle_values: list, **kwargs):
         self.fast = kwargs.get("fast", False)
-        self.n_cap: int = int(kwargs.get("n_cap",20 if self.fast else 12))         
+        self.n_cap: int = int(kwargs.get("n_cap",17 if self.fast else 12))         
         self.n = kwargs.get("n", None)
         self.it = kwargs.get("iterations", None)         
         self.oracle_values: list = oracle_values
@@ -991,6 +1013,7 @@ class Grover:                                               #this is the Grover 
         return op_iter, search_space
     
     def init_states(self) -> tuple[Qubit, Gate]:
+        timer = Timer()
         spec_had_mat = np.array([1,1,1,-1])    #i use this so that all the matrix mults are by an integer value and not a float and then apply the float later
         spec_had = Gate(name="Custom Hadamard for Grovers", info=qc_dat.Hadamard_info, matrix=spec_had_mat)
         qub = Qubit.q0(n=self.n)
@@ -1000,7 +1023,8 @@ class Grover:                                               #this is the Grover 
         for i in range(self.n-1):    #creates the qubit and also the tensored hadamard for the given qubit size
             had_op **= spec_had
             print(f"\r{i+2} x {i+2} Hadamard created", end="")    #allows to clear line without writing a custom print function in print_array
-        print()
+        print(f"\r",end="")
+        print_array(f"\rHadamard and Quantum State created, time to create was: {timer.elapsed()[0]:.4f}")
         return qub, had_op
 
     def iterate_alg(self) -> Qubit:
@@ -1010,6 +1034,8 @@ class Grover:                                               #this is the Grover 
             F = FWHT()
             qub = Qubit.q0(n=self.n)
             print_array(f"Running FWHT algorithm:")
+            sqrt2_inv = 1 / np.sqrt(2)
+            norm  = sqrt2_inv ** (3 * self.n * self.it)
             while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
                 print(f"\rIteration {it + 1}:                                                                  ", end="")
                 if it != 0:
@@ -1023,16 +1049,18 @@ class Grover:                                               #this is the Grover 
                 intermidary_qubit.vector[0] *= -1              #inverts back the first qubits phase                 STEP 3b
                 print(f"\rIteration {it + 1}: Applying third and final Hadamard                                ", end="")
                 final_state = F * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 4
+                final_state.vector *= norm
                 it += 1                   #adds to the iteration counter
                 print(f"\r                                                                                     Time elapsed:{timer.elapsed()[0]:.4f} secs", end="")
-                print(f"\r",end="")
+            print(f"\r",end="")
             print_array(f"\rFinal state calculated. Time to iterate algorithm: {timer.elapsed()[1]:.4f} secs                                                                        ")
             return final_state
         else:
             qub, had_op = self.init_states()
             print_array(f"Running algorithm:")
             it = 0
-            had_norm = 1/np.sqrt(2**self.n)   #applies the norm afterwards to be more efficient
+            sqrt2_inv = 1 / np.sqrt(2)
+            norm  = sqrt2_inv ** (3 * self.n * self.it)
             while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
                 print(f"\rIteration {it + 1}:                                                                  ", end="")
                 if it != 0:
@@ -1046,9 +1074,10 @@ class Grover:                                               #this is the Grover 
                 intermidary_qubit.vector[0] *= -1              #inverts back the first qubits phase                 STEP 3b
                 print(f"\rIteration {it + 1}: Applying third and final Hadamard                                ", end="")
                 final_state = had_op * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 4
-                final_state.vector *= had_norm**3             #applies the normalisation factor here
+                final_state.vector *=  norm             #applies the normalisation factor here
                 it += 1                   #adds to the iteration counter
                 print(f"\r                                                                                     Time elapsed:{timer.elapsed()[0]:.4f} secs", end="")
+            print(f"\r",end="")
             print_array(f"\rFinal state calculated. Time to iterate algorithm: {timer.elapsed()[1]:.4f} secs                                                                        ")
             return final_state
 
@@ -1223,36 +1252,4 @@ oracle_values3 = [500, 5, 30]
 oracle_values4 = [500, 5, 4, 7, 8, 9, 99]
 oracle_value_test = [0]
 def main():
-    def comp_Grover_test(n, **kwargs):
-        g_loops = kwargs.get("g_loops", 10)
-        warmup_timer = Timer()
-        warmup = warmup_timer.elapsed()
-        loops = np.arange(2,n+1)
-        times_array = np.zeros((n-1, 3))
-        for i in loops:
-            n=int(i)
-            test_timer = Timer()
-            for j in range(g_loops): Grover(oracle_value_test, n=n).run()
-            time_slow = test_timer.elapsed()[0]
-            test_timer = Timer()
-            for j in range(g_loops): Grover(oracle_value_test, n=n, fast=True).run()
-            time_fast = test_timer.elapsed()[0]
-            times_array[i-2] = np.array([n, time_slow/g_loops, time_fast/g_loops])
-        print_array(f"Qubits, s time, f time")
-        print(times_array)
-    def time_test(n, fast=False, iterations=None, **kwargs):
-        g_loops = kwargs.get("g_loops", 10)
-        warmup_timer = Timer()
-        warmup = warmup_timer.elapsed
-        loops = np.arange(2,n+1)
-        times_array = np.zeros((n-1, 2))
-        for i in loops:
-            n=int(i)
-            test_timer = Timer()
-            for j in range(g_loops): Grover(oracle_value_test, n=n, fast=fast, iterations=iterations).run()
-            time = test_timer.elapsed()[0]
-            times_array[i-2] = np.array([n, time/g_loops])
-        print_array(f"Qubits, time")
-        print(times_array)
-    comp_Grover_test(6)
-    time_test(24, fast=True, g_loops=1, iterations=1)
+    time_test(n=16, g_loop=4, fast=True)
