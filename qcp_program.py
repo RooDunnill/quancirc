@@ -184,10 +184,11 @@ class Qubit:                                           #creates the qubit class
         else:
             self.dim: int = len(self.vector[0])
         self.n: int = int(np.log2(self.dim))
-        if self.state_type == "mixed":
-            self.build_mixed_state(kwargs)
-        elif self.state_type == "seperable":
-            self.build_seperable_state(kwargs)
+        if "vectors" in kwargs:
+            if self.state_type == "mixed":
+                    self.build_mixed_state(kwargs)
+            elif self.state_type == "seperable":
+                self.build_seperable_state(kwargs)
 
     def build_mixed_state(self, kwargs):
         if isinstance(kwargs.get("vectors")[0], Qubit):
@@ -255,7 +256,6 @@ class Qubit:                                           #creates the qubit class
             return f"[bold]{self.name}[/bold]\n[not bold]{self.vector}[/not bold]"
     
     def __matmul__(self, other):               #this is an n x n tensor product function
-        
         if isinstance(other, Qubit):           #although this tensors are all 1D  
             self_name_size = int(np.log2(self.dim))
             other_name_size = int(np.log2(other.dim)) 
@@ -265,7 +265,7 @@ class Qubit:                                           #creates the qubit class
             for i in range(self.dim):     #multiplies the second ket by each value in the first ket
                 for j in range(other.dim):          #iterates up and down the second ket
                     new_vector[j+(i * other.dim)] += self.vector[i]*other.vector[j] #adds the values into each element of the vector
-            return Qubit(name=new_name, vector=new_vector)    #returns a new Qubit instance with a new name
+            return Qubit(name=new_name, vector=new_vector, type=self.state_type)    #returns a new Qubit instance with a new name
         elif isinstance(other, np.ndarray):                 #used for when you just need to compute it for a given array, this is for creating seperable states
             other_dim = len(other)
             new_length: int = self.dim*other_dim
@@ -419,7 +419,7 @@ class Gate:            #creates a gate class to enable unique properties
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.matrix}[/not bold]"
     
-    def __matmul__(self, other):      #adopts the matmul notation to make an easy tensor product of two square matrices
+    def __matmul__(self, other: "Gate") -> "Gate":      #adopts the matmul notation to make an easy tensor product of two square matrices
         if isinstance(other, Gate):
             new_info: str = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
             new_name: str = f"{self.name} @ {other.name}"
@@ -436,7 +436,7 @@ class Gate:            #creates a gate class to enable unique properties
         else:
             raise QC_error(qc_dat.error_class)
 
-    def __ipow__(self, other):    #denoted **=
+    def __ipow__(self, other: "Gate") -> "Gate":    #denoted **=
         if isinstance(self, Gate):  
             self = self @ other
             return self
@@ -448,9 +448,10 @@ class Gate:            #creates a gate class to enable unique properties
             if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
                 if self.dim == other.dim:
                     new_mat = np.zeros(self.length,dtype=np.complex128)
+                    dim_range = np.arange(self.dim)
                     for i in range(self.dim):
                         for k in range(self.dim):
-                            new_mat[k+(i * self.dim)] = sum(self.matrix[j+(i * other.dim)]*other.matrix[k+(j * self.dim)] for j in range(self.dim))
+                            new_mat[k+(i * self.dim)] = np.sum(self.matrix[dim_range+(i * other.dim)]*other.matrix[k+(dim_range* self.dim)])
                     if isinstance(other, Density):
                         new_info = "This is the density matrix of: "f"{self.name}"" and "f"{other.name}"
                         new_name: str = f"{self.name} * {other.name}"
@@ -482,9 +483,10 @@ class Gate:            #creates a gate class to enable unique properties
             other_dim = np.sqrt(other_length)
             if self_dim == other_dim:
                 new_mat = np.zeros(self_length,dtype=np.complex128)
+                dim_range = np.arange(self.dim)
                 for i in range(self_dim):
                     for k in range(self_dim):
-                            new_mat[k+(i * self_dim)] = sum(self[j+(i * other_dim)]*other[k+(j * self_dim)] for j in range(self.dim))
+                            new_mat[k+(i * self_dim)] = np.sum(self[dim_range+(i * other_dim)]*other[k+(dim_range * self_dim)])
                     return new_mat
             else:
                 raise QC_error(qc_dat.error_mat_dim)
@@ -508,7 +510,7 @@ class Gate:            #creates a gate class to enable unique properties
         else:
             raise QC_error(qc_dat.error_class)
     
-    def __iadd__(self, other):                                  #used almost exclusively for the CNot gate creator
+    def __iadd__(self, other: "Gate") -> "Gate":                                  #used almost exclusively for the CNot gate creator
         if isinstance(other, Gate):
             self = self & other
             return self
@@ -620,8 +622,8 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
     def trace_distance(self):
         diff_mat = self.rho_a - self.rho_b
         rho_a_dim = int(np.sqrt(len(self.rho_a)))
-        rho_b_dim = int(np.sqrt(len(self.rho_b)))
-        self.trace_dist = sum(0.5 * np.abs(diff_mat[i + rho_a_dim * i]) for i in range(rho_a_dim))
+        dim_range = np.arange(rho_a_dim)
+        self.trace_dist = np.sum(0.5 * np.abs(diff_mat[dim_range + rho_a_dim * dim_range]))
         return self.trace_dist
 
     def vn_entropy(self, rho: np.ndarray) -> float:
@@ -684,17 +686,18 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         reduced_dim = int(rho_dim / traced_out_dim)
         reduced_length = int(reduced_dim**2)
         new_mat = np.zeros(reduced_length,dtype=np.complex128)
+        traced_out_dim_range = np.arange(traced_out_dim)
         if isinstance(self.rho, np.ndarray):
             if trace_out_system == "B":
                     for k in range(reduced_dim):
                         for i in range(reduced_dim):
-                            new_mat[i+k*reduced_dim] = sum(self.rho[j+j*rho_dim+i*traced_out_dim+k*rho_dim*traced_out_dim] for j in range(traced_out_dim))
+                            new_mat[i+k*reduced_dim] = np.sum(self.rho[traced_out_dim_range+traced_out_dim_range*rho_dim+i*traced_out_dim+k*rho_dim*traced_out_dim])
                     self.rho_a = new_mat
                     return self.rho_a
             elif trace_out_system == "A":
                     for k in range(reduced_dim):
                         for i in range(reduced_dim):
-                            new_mat[i+k*reduced_dim] = sum(self.rho[reduced_dim*(j+j*rho_dim)+i+k*rho_dim] for j in range(traced_out_dim))
+                            new_mat[i+k*reduced_dim] = np.sum(self.rho[reduced_dim*(traced_out_dim_range+traced_out_dim_range*rho_dim)+i+k*rho_dim])
                     self.rho_b = new_mat
                     return self.rho_b
         else:
@@ -810,7 +813,7 @@ class Circuit:
                 new_vector = np.zeros(2**self.n, dtype=np.complex128)
                 new_vector[0] = 1
                 self.state = Qubit(vector=new_vector)
-        self.start_gate = Gate.Identity(n=self.n)
+        self.start_gate: Gate = Gate.Identity(n=self.n)
         console.rule(f"Initialising a Quantum Circuit with {self.n} Qubits", style="circuit_header")
         console.rule("", style="circuit_header")
         self.measurement = None
@@ -829,8 +832,8 @@ class Circuit:
         console.rule(f"", style="circuit_header")
 
     def print_gates(self):
-        for i in range(len(self.gates)):
-            print_array(self.gates[-i])
+        for gate in reversed(self.gates):
+            print_array(gate)
 
     def add_gate(self, gate: Gate, text=True):
         self.gates.append(gate)
@@ -844,8 +847,6 @@ class Circuit:
     def add_single_gate(self, gate: Gate, gate_location: int, text=True):
         if self.n:
             if isinstance(gate_location, int):
-                if gate_location == 0:
-                    pass
                 upper_id = Gate.Identity(n=gate_location)
                 lower_id = Gate.Identity(n=self.n - gate_location - 1)
             else:
@@ -859,17 +860,15 @@ class Circuit:
                 else:
                     print_array(f"Adding the {self.n} x {self.n} gate: {gate.name} to the circuit")
 
-        
-
-
     def compute_final_gate(self, text=True) -> Gate:
         self.final_gate = self.start_gate
         for gate in reversed(self.gates):
             self.final_gate = self.final_gate * gate
+        self.final_gate.name = f"Final Gate"
         if text:
             print_array(f"The final Gate is:")
             print_array(self.final_gate)
-        self.final_gate.name = f"Final Gate"
+        
         return self.final_gate
     
     def apply_final_gate(self, text=True) -> Qubit:
@@ -885,7 +884,6 @@ class Circuit:
             print_array(f"The projective probability distribution is:")
             print_array(format_ket_notation(self.prob_distribution))
         return self.prob_distribution
-    
     
     def topn_probabilities(self, text=True, **kwargs) -> Measure:
         topn = kwargs.get("n", 8)
