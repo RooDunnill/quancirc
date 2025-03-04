@@ -489,8 +489,8 @@ class Gate:            #creates a gate class to enable unique properties
                 inner_range = np.arange(half_step)                               
                 indices = outer_range + inner_range                        
                 a, b = vec[indices], vec[indices + half_step]
-                vec[indices] = (a + b)
-                vec[indices + half_step] = (a - b)                              #normalisation has been taken out giving a slight speed up in performance
+                vec[indices] = a + b
+                vec[indices + half_step] = a - b                            #normalisation has been taken out giving a slight speed up in performance
             return other
         elif isinstance(self, Gate):
             if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
@@ -811,7 +811,7 @@ class Measure(Density):
         return int(np.log2(self.dim))
 
     def __str__(self):
-        return f"test"
+        return f"Measure"
     
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.list_proj_probs()}[/not bold]"
@@ -859,7 +859,6 @@ def format_ket_notation(list_probs, **kwargs) -> str:
             print_out += (f"State |{bin(ket_val)[2:].zfill(num_bits)}> ({ket_val}) with a prob val of: {prob_val * 100:.{prec}f}%\n")
         return print_out
     elif list_type == "all":
-        prec = 3
         ket_mat = range(len(list_probs))
         print_out = f""
         for ket_val, prob_val in zip(ket_mat,list_probs):
@@ -1140,6 +1139,7 @@ class Grover:                                               #this is the Grover 
         final_state = self.iterate_alg()
         print_array(f"Computing Probability Distribution of States")
         final_state = Measure(state=final_state, fast=True)
+
         print_array(f"Finding the probabilities for the top n Probabilities (n is the number of oracle values)")
         sorted_arr = top_probs(final_state.list_proj_probs(), len(self.oracle_values))         #finds the n top probabilities
         print_array(f"Outputing:")
@@ -1246,10 +1246,10 @@ def quant_fourier_trans(qub):          #also for shors although used in other al
     return four_qub_sum
 
 
-oracle_values = [9,4,3,2,5,6,12,15,16,17, 300]
+oracle_values = [9,4,3,2,5,6,12,15]
 oracle_values2 = [1,2,3,4, 664, 77,5]
 oracle_values3 = [500, 5, 30]
 oracle_values4 = [500, 5, 4, 7, 8, 9, 99]
-oracle_value_test = [0]
+oracle_value_test = [0,1,2,3]
 def main():
-    time_test(n=16, g_loop=4, fast=True)
+    Grover(oracle_values, n=4, fast=True).run()
