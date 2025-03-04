@@ -458,17 +458,17 @@ class Gate:            #creates a gate class to enable unique properties
         
     def __mul__(self, other):       #matrix multiplication
         if isinstance(self, FWHT):
-            for i in range(other.n):
-                step_size = 2**(i + 1)
-                half_step_size = step_size // 2
-                outer_range = np.arange(0, other.dim, step_size)
-                inner_range = np.arange(0, half_step_size)
-                for j in outer_range:
-                    for k in inner_range:
-                        a = other.vector[j + k]
-                        b = other.vector[j + k + half_step_size]
-                        other.vector[j + k] = (a + b) / np.sqrt(2)
-                        other.vector[j + k + half_step_size] = (a - b) / np.sqrt(2)
+            vec = other.vector
+            sqrt2_inv = 1 / np.sqrt(2)
+            for i in range(other.n):                                            #loops through each size of qubit below the size of the state
+                step_size = 2**(i + 1)                                          #is the dim of the current qubit tieration size 
+                half_step = step_size // 2                                      #half the step size to go between odd indexes
+                outer_range = np.arange(0, other.dim, step_size)[:, None]       #more efficient intergration of a loop over the state dim in steps of the current dim 
+                inner_range = np.arange(half_step)                               
+                indices = outer_range + inner_range                        
+                a, b = vec[indices], vec[indices + half_step]
+                vec[indices] = (a + b) * sqrt2_inv
+                vec[indices + half_step] = (a - b) * sqrt2_inv
             return other
         elif isinstance(self, Gate):
             if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
@@ -808,8 +808,9 @@ class Measure(Density):
         return new_mat
     
     def list_proj_probs(self) -> np.ndarray:
-        if self.fast:
-            new_mat = np.array(inner_product(self.state.vector, np.conj(self.state.vector)),dtype=np.complex128).real
+        if self.fast:   
+            vector = self.state.vector
+            new_mat = np.multiply(vector, np.conj(vector)).real
             return new_mat
         else:
             if self.measurement_state == "all" and isinstance(self.density, Density):
@@ -829,10 +830,11 @@ class Measure(Density):
 def format_ket_notation(list_probs, **kwargs) -> str:
     list_type = kwargs.get("type", "all")
     num_bits = kwargs.get("num_bits", int(np.ceil(np.log2(len(list_probs)))))
+    prec = kwargs.get("precision", 3)
     if list_type == "topn":
         print_out = f""
         for ket_val, prob_val in zip(list_probs[:,0],list_probs[:,1]):
-            print_out += (f"State |{bin(ket_val)[2:].zfill(num_bits)}> ({ket_val}) with a prob val of: {prob_val * 100:.{3}f}%\n")
+            print_out += (f"State |{bin(ket_val)[2:].zfill(num_bits)}> ({ket_val}) with a prob val of: {prob_val * 100:.{prec}f}%\n")
         return print_out
     elif list_type == "all":
         prec = 3
@@ -866,7 +868,7 @@ class Circuit:
     def __rich__(self):
         console.rule(f"Running Quantum Circuit with {self.n} Qubits:", style="circuit_header", characters="/")
         print_array(self.final_gate)
-        print_array(self.final_state)
+        print_array(self.state)
         print_array(f"Final Probability Distribution:")
         print_out = format_ket_notation(self.top_prob_dist, type="topn", num_bits=int(np.ceil(np.log2(self.state.dim))))
         print_array(print_out)
@@ -914,14 +916,14 @@ class Circuit:
         return self.final_gate
     
     def apply_final_gate(self, text=True) -> Qubit:
-        self.final_state = self.final_gate * self.state
+        self.state = self.final_gate * self.state
         if text:
             print_array(f"The final state is:")
-            print_array(self.final_state)
-        return self.final_state
+            print_array(self.state)
+        return self.state
     
     def list_proj_probs(self, text=True) -> Measure:
-        self.prob_distribution = Measure(state=self.final_state).list_proj_probs()
+        self.prob_distribution = Measure(state=self.state).list_proj_probs()
         if text:
             print_array(f"The projective probability distribution is:")
             print_array(format_ket_notation(self.prob_distribution))
@@ -936,7 +938,7 @@ class Circuit:
         return self.top_prob_dist
     
     def proj_measure_state(self, text=True) -> Measure:
-        self.measure_state = Measure(state=self.final_state).proj_measure_state()
+        self.measure_state = Measure(state=self.state).proj_measure_state()
         if text:
             print_array(f"The measured state is:")
             print_array(self.measure_state)
@@ -962,19 +964,20 @@ class Circuit:
     
 class Grover:                                               #this is the Grover algorithms own class
     def __init__(self, oracle_values: list, **kwargs):
-        self.n_cap: int = int(kwargs.get("n_cap",18))             #DONT GO BEYOND 14 AS THE MEMORY ALLOCATION IS TOO MUCH
+        self.fast = kwargs.get("fast", False)
+        self.n_cap: int = int(kwargs.get("n_cap",20 if self.fast else 12))         
         self.n = kwargs.get("n", None)
-        self.it = kwargs.get("iterations", None)               #ANY MORE THAN 85ISH CRASHES FOR NOW
+        self.it = kwargs.get("iterations", None)         
         self.oracle_values: list = oracle_values
         self.results = kwargs.get("results", [])
-        self.fast = kwargs.get("fast", False)
+        
 
     def __str__(self):
         return f"{self.name}\n{self.results}"
     
     def __rich__(self) -> str:           #creates the correct printout so it shows the prob next to the ket written in ket notation
         print_out = f"[bold]{self.name}[/bold]\n"
-        print_out_kets = format_ket_notation(self.results, type="topn", num_bits=int(np.ceil(self.n)))
+        print_out_kets = format_ket_notation(self.results, type="topn", num_bits=int(np.ceil(self.n)), precision = (3 if self.n < 20 else 6))
         print_out = print_out + print_out_kets
         return print_out
 
@@ -1003,29 +1006,27 @@ class Grover:                                               #this is the Grover 
     def iterate_alg(self) -> Qubit:
         it = 0
         timer = Timer()
-        print_array(f"Running FWHT algorithm:")
         if self.fast:
             F = FWHT()
             qub = Qubit.q0(n=self.n)
-            
+            print_array(f"Running FWHT algorithm:")
             while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
-                print(f"\rIteration {it + 1}:                                                                                    Time elapsed:{timer.elapsed()[0]:.4f} secs", end="")
+                print(f"\rIteration {it + 1}:                                                                  ", end="")
                 if it != 0:
                     qub: Qubit = final_state
-                print(f"\rIteration {it + 1}: Applying first Hadamard                                                            ", end="")
+                print(f"\rIteration {it + 1}: Applying first Hadamard                                          ", end="")
                 initialized_qubit = F * qub       #applies a hadamard to every qubit                           STEP 1
-                print(f"\rIteration {it + 1}: Applying phase oracle and second Hadamard                                          ", end="")
+                print(f"\rIteration {it + 1}: Applying phase oracle and second Hadamard                        ", end="")
                 intermidary_qubit = F * self.phase_oracle(initialized_qubit, self.oracle_values)              #STEP 2   phase flips the given oracle values
-                print(f"\rIteration {it + 1}: Flipping the Qubits phase except first Qubit                                       ", end="")
+                print(f"\rIteration {it + 1}: Flipping the Qubits phase except first Qubit                     ", end="")
                 intermidary_qubit.vector *= -1           #inverts all of the phases of the qubit values             STEP 3a
                 intermidary_qubit.vector[0] *= -1              #inverts back the first qubits phase                 STEP 3b
-                print(f"\rIteration {it + 1}: Applying third and final Hadamard                                                  ", end="")
+                print(f"\rIteration {it + 1}: Applying third and final Hadamard                                ", end="")
                 final_state = F * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 4
                 it += 1                   #adds to the iteration counter
-                
-                    #allows to clear line without writing a custom print function in print_array
-            print()
-            print_array(f"Final state calculated. Time to iterate algorithm: {timer.elapsed()[1]:.4f} seconds")
+                print(f"\r                                                                                     Time elapsed:{timer.elapsed()[0]:.4f} secs", end="")
+                print(f"\r",end="")
+            print_array(f"\rFinal state calculated. Time to iterate algorithm: {timer.elapsed()[1]:.4f} secs                                                                        ")
             return final_state
         else:
             qub, had_op = self.init_states()
@@ -1033,23 +1034,22 @@ class Grover:                                               #this is the Grover 
             it = 0
             had_norm = 1/np.sqrt(2**self.n)   #applies the norm afterwards to be more efficient
             while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
-                print(f"\rIteration {it + 1}:                                                                                    Time elapsed:{timer.elapsed()[0]:.4f} secs", end="")
+                print(f"\rIteration {it + 1}:                                                                  ", end="")
                 if it != 0:
                     qub: Qubit = final_state
-                print(f"\rIteration {it + 1}: Applying first Hadamard                                                            ", end="")
+                print(f"\rIteration {it + 1}: Applying first Hadamard                                          ", end="")
                 initialized_qubit = had_op * qub       #applies a hadamard to every qubit                           STEP 1
-                print(f"\rIteration {it + 1}: Applying phase oracle and second Hadamard                                          ", end="")
+                print(f"\rIteration {it + 1}: Applying phase oracle and second Hadamard                        ", end="")
                 intermidary_qubit = had_op * self.phase_oracle(initialized_qubit, self.oracle_values)              #STEP 2   phase flips the given oracle values
-                print(f"\rIteration {it + 1}: Flipping the Qubits phase except first Qubit                                       ", end="")
+                print(f"\rIteration {it + 1}: Flipping the Qubits phase except first Qubit                     ", end="")
                 intermidary_qubit.vector *= -1           #inverts all of the phases of the qubit values             STEP 3a
                 intermidary_qubit.vector[0] *= -1              #inverts back the first qubits phase                 STEP 3b
-                print(f"\rIteration {it + 1}: Applying third and final Hadamard                                                  ", end="")
+                print(f"\rIteration {it + 1}: Applying third and final Hadamard                                ", end="")
                 final_state = had_op * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 4
                 final_state.vector *= had_norm**3             #applies the normalisation factor here
                 it += 1                   #adds to the iteration counter
-                print(f"\rIteration number: {it} ", end="")    #allows to clear line without writing a custom print function in print_array
-            print()
-            print_array(f"Final state calculated")
+                print(f"\r                                                                                     Time elapsed:{timer.elapsed()[0]:.4f} secs", end="")
+            print_array(f"\rFinal state calculated. Time to iterate algorithm: {timer.elapsed()[1]:.4f} secs                                                                        ")
             return final_state
 
     def compute_n(self) -> int:
@@ -1223,17 +1223,36 @@ oracle_values3 = [500, 5, 30]
 oracle_values4 = [500, 5, 4, 7, 8, 9, 99]
 oracle_value_test = [0]
 def main():
-    times_array = np.zeros((10, 3))
-    
-    for i in range(10):
-        n=i+2
-        test_timer = Timer()
-        Grover(oracle_value_test, n=n).run()
-        time_slow = test_timer.elapsed()[0]
-        test_timer = Timer()
-        Grover(oracle_value_test, n=n, fast=True).run()
-        time_fast = test_timer.elapsed()[0]
-        
-        times_array[i] = np.array([int(i+2), time_slow, time_fast])
-    print_array(f"Qubits, f time, s time")
-    print(times_array)
+    def comp_Grover_test(n, **kwargs):
+        g_loops = kwargs.get("g_loops", 10)
+        warmup_timer = Timer()
+        warmup = warmup_timer.elapsed()
+        loops = np.arange(2,n+1)
+        times_array = np.zeros((n-1, 3))
+        for i in loops:
+            n=int(i)
+            test_timer = Timer()
+            for j in range(g_loops): Grover(oracle_value_test, n=n).run()
+            time_slow = test_timer.elapsed()[0]
+            test_timer = Timer()
+            for j in range(g_loops): Grover(oracle_value_test, n=n, fast=True).run()
+            time_fast = test_timer.elapsed()[0]
+            times_array[i-2] = np.array([n, time_slow/g_loops, time_fast/g_loops])
+        print_array(f"Qubits, s time, f time")
+        print(times_array)
+    def time_test(n, fast=False, iterations=None, **kwargs):
+        g_loops = kwargs.get("g_loops", 10)
+        warmup_timer = Timer()
+        warmup = warmup_timer.elapsed
+        loops = np.arange(2,n+1)
+        times_array = np.zeros((n-1, 2))
+        for i in loops:
+            n=int(i)
+            test_timer = Timer()
+            for j in range(g_loops): Grover(oracle_value_test, n=n, fast=fast, iterations=iterations).run()
+            time = test_timer.elapsed()[0]
+            times_array[i-2] = np.array([n, time/g_loops])
+        print_array(f"Qubits, time")
+        print(times_array)
+    comp_Grover_test(6)
+    time_test(24, fast=True, g_loops=1, iterations=1)
