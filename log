@@ -7,5 +7,9 @@ Week 5:
 Roo:Set up the github, added code, started Grovers algorithm
 Seán: Studied Shor's and explained to group but decided too complicated
 Week FLW:
-Roo: Finished Grovers
+Roo: Refactored Measure and Density to be more readable and added Circuit
 Seán: Latex on Grovers
+Week 6:
+Roo: Refactored Grovers and added Quantum information measurements and also partial trace
+Week 7:
+Roo: Again refactored Grovers implementing FWHT and sped up most operations by implementing np.sum. Also added single gate addition to circuit
