@@ -1,7 +1,7 @@
 import time
 start = time.time()
 import numpy as np                                              #mostly used to make 1D arrays
-from random import choices                                            #used for measuring
+from random import choices, randint                                            #used for measuring
 import atexit
 import matplotlib.pyplot as plt
 from rich.console import Console
@@ -170,8 +170,16 @@ def comp_Grover_test(n, **kwargs):
             times_array[i-2] = np.array([n, time_slow/g_loops, time_fast/g_loops])
         print_array(f"Qubits, s time, f time")
         print(times_array)
-def time_test(n, fast=False, iterations=None, **kwargs):
+
+def time_test(n, fast=True, iterations=None, **kwargs):
+    it_type = kwargs.get("it_type", None)
+    oracle_value_test = [0]
     g_loops = kwargs.get("g_loops", 10)
+    rand = kwargs.get("rand", None)
+    if rand:
+        oracle_value_test = np.zeros(rand)
+        for i in range(rand):
+            oracle_value_test[i] = randint(0,2**n - 1)
     warmup_timer = Timer()
     warmup = warmup_timer.elapsed
     loops = np.arange(2,n+1)
@@ -179,7 +187,10 @@ def time_test(n, fast=False, iterations=None, **kwargs):
     for i in loops:
         n=int(i)
         test_timer = Timer()
-        for j in range(g_loops): Grover(oracle_value_test, n=n, fast=fast, iterations=iterations).run()
+        if it_type and rand:
+            Grover(rand, fast=fast).run()
+        else:
+            for j in range(g_loops): Grover(oracle_value_test, n=n, fast=fast, iterations=iterations).run()
         time = test_timer.elapsed()[0]
         times_array[i-2] = np.array([n, time/g_loops])
     print_array(f"Qubits, time")
@@ -481,9 +492,8 @@ class Gate:            #creates a gate class to enable unique properties
         
     def __mul__(self, other):       #matrix multiplication
         if isinstance(self, FWHT):
+            sqrt2_inv = 1/np.sqrt(2)
             vec = other.vector
-            sqrt2_inv = 1 / np.sqrt(2)
-            norm  = sqrt2_inv ** (other.n)
             for i in range(other.n):                                            #loops through each size of qubit below the size of the state
                 step_size = 2**(i + 1)                                          #is the dim of the current qubit tieration size 
                 half_step = step_size // 2                                      #half the step size to go between odd indexes
@@ -491,9 +501,8 @@ class Gate:            #creates a gate class to enable unique properties
                 inner_range = np.arange(half_step)                               
                 indices = outer_range + inner_range                        
                 a, b = vec[indices], vec[indices + half_step]
-                vec[indices] = a + b
-                vec[indices + half_step] = a - b                            #normalisation has been taken out giving a slight speed up in performance
-            vec *= norm
+                vec[indices] = (a + b) * sqrt2_inv
+                vec[indices + half_step] = (a - b) * sqrt2_inv                            #normalisation has been taken out giving a slight speed up in performance
             return other
         elif isinstance(self, Gate):
             if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
@@ -987,14 +996,21 @@ class Circuit:
     
     
 class Grover:                                               #this is the Grover algorithms own class
-    def __init__(self, oracle_values: list, **kwargs):
+    def __init__(self, *args, **kwargs):
         self.fast = kwargs.get("fast", False)
         self.n_cap: int = int(kwargs.get("n_cap",17 if self.fast else 12))         
         self.n = kwargs.get("n", None)
         self.it = kwargs.get("iterations", None)         
-        self.oracle_values: list = oracle_values
+        self.oracle_values = []
+        self.rand_ov = 0
         self.results = kwargs.get("results", [])
+        for arg in args:
+            if isinstance(arg, list): 
+                self.oracle_values.extend(arg)  
+            elif isinstance(arg, int):
+                self.rand_ov = arg
         
+            
 
     def __str__(self):
         return f"{self.name}\n{self.results}"
@@ -1058,8 +1074,7 @@ class Grover:                                               #this is the Grover 
             qub, had_op = self.init_states()
             print_array(f"Running algorithm:")
             it = 0
-            sqrt2_inv = 1 / np.sqrt(2)
-            norm  = sqrt2_inv ** (3 * self.n * self.it)
+            had_norm = 1/np.sqrt(2**self.n)
             while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
                 print(f"\rIteration {it + 1}:                                                                  ", end="")
                 if it != 0:
@@ -1073,7 +1088,7 @@ class Grover:                                               #this is the Grover 
                 intermidary_qubit.vector[0] *= -1              #inverts back the first qubits phase                 STEP 3b
                 print(f"\rIteration {it + 1}: Applying third and final Hadamard                                ", end="")
                 final_state = had_op * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 4
-                final_state.vector *=  norm             #applies the normalisation factor here
+                final_state.vector *=  had_norm**3             #applies the normalisation factor here
                 it += 1                   #adds to the iteration counter
                 print(f"\r                                                                                     Time elapsed:{timer.elapsed()[0]:.4f} secs", end="")
             print(f"\r",end="")
@@ -1112,7 +1127,11 @@ class Grover:                                               #this is the Grover 
     
     def run(self) -> "Grover":     #Grovers algorithm, can input the number of qubits and also a custom amount of iterations
         Grover_timer = Timer()
-        console.rule(f"Grovers search with oracle values: {self.oracle_values}", style="grover_header")
+        if self.rand_ov:
+            console.rule(f"Grovers search with random oracle values", style="grover_header")
+            self.oracle_values = np.zeros(self.rand_ov)
+        else:
+            console.rule(f"Grovers search with oracle values: {self.oracle_values}", style="grover_header")
         if self.n == None:               #if the number of qubits required is not given then run:
             self.n = self.compute_n()
             search_space: int = 2**self.n       #computes the final search space for the chosen n
@@ -1122,8 +1141,15 @@ class Grover:                                               #this is the Grover 
             print_array(f"Using {self.n} Qubits with a search space of {search_space}")
         else:
             raise QC_error(qc_dat.error_class)
-        op_iter = self.optimal_iterations(self.n)[0]
 
+        if self.rand_ov:
+            self.oracle_values = []
+            for i in range(self.rand_ov):
+                self.oracle_values.append(randint(0, 2**self.n - 1))
+            self.rand_ov = self.oracle_values
+
+
+        op_iter = self.optimal_iterations(self.n)[0]
         if self.it == None:     #now picks an iteration value
             self.it = round(op_iter)
             if self.it < 1:    #obviously we cant have no iterations so it atleast does 1 iteration
@@ -1144,7 +1170,10 @@ class Grover:                                               #this is the Grover 
         sorted_arr = top_probs(final_state.list_proj_probs(), len(self.oracle_values))         #finds the n top probabilities
         print_array(f"Outputing:")
         output = Grover(final_state.name, n=self.n, results=sorted_arr)         #creates a Grover instance
-        output.name = f"The States of the Grover Search with Oracle Values {self.oracle_values}, after {int(self.it)} iterations is: "
+        if self.rand_ov:
+            output.name = f"The States of the Grover Search with random Oracle Values {self.oracle_values}, after {int(self.it)} iterations is: "
+        else:
+            output.name = f"The States of the Grover Search with Oracle Values {self.oracle_values}, after {int(self.it)} iterations is: "
         print_array(output)                #prints that Grover instance
         console.rule(f"Total Time to run Grover's Algorithm: {Grover_timer.elapsed()[0]:.4f} seconds", style="grover_header")
         print()
@@ -1248,9 +1277,8 @@ def quant_fourier_trans(qub):          #also for shors although used in other al
 
 oracle_values = [9,4,3,2,5,6,12,15]
 oracle_values2 = [1,2,3,4, 664, 77,5]
-oracle_values3 = [500, 5, 30]
+oracle_values3 = [4, 5, 30, 41]
 oracle_values4 = [500, 5, 4, 7, 8, 9, 99]
-oracle_value_test = [0,1,2,3]
+oracle_value_test = [1,2,3]
 def main():
-    Grover(oracle_values, n=5, fast=True).run()
-    Grover(oracle_values2, n=10, fast=True).run()
+    Grover(oracle_values).run()
