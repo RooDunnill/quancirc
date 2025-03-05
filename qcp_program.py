@@ -904,25 +904,34 @@ class Measure(Density):
         new_mat = top_probs(self.list_proj_probs(), topn)
         return new_mat
     
-    def list_proj_probs(self) -> np.ndarray:
-        if self.fast:   
-            vector = self.state.vector
-            new_mat = np.multiply(vector, np.conj(vector)).real
-            return new_mat
-        else:
-            if self.measurement_state == "all" and isinstance(self.density, Density):
+    def list_proj_probs(self, qubit: int = None, povm: list = None) -> np.ndarray:
+        if povm is not None:
+            probs = np.array([np.real(np.trace(E @ self.density.rho)) for E in povm], dtype=np.float64)
+            return probs
+        
+        if qubit is None:
+            if self.fast:
+                vector = self.state.vector
+                return np.real(np.multiply(vector, np.conj(vector)))
+            elif isinstance(self.density, Density):
                 if self.rho is None:
                     self.rho = self.density.rho
                 return np.array([self.rho[i + i * self.dim].real for i in range(self.dim)], dtype=np.float64)
             else:
                 raise QC_error(qc_dat.error_kwargs)
         
-    def proj_measure_state(self) -> str:
-        PD = self.list_proj_probs()
-        measurement = choices(range(self.dim), weights=PD)[0]
-        num_bits = int(np.ceil(np.log2(self.dim)))
-        measurement = f"Measured the state: |{bin(measurement)[2:].zfill(num_bits)}>"
-        return measurement        
+    def proj_measure_state(self, qubit: int = None, povm: list = None) -> str:
+        PD = self.list_proj_probs(qubit, povm)
+        measurement = choices(range(len(PD)), weights=PD)[0]
+        if povm is not None:
+            return f"Measured POVM outcome: {measurement}"
+        
+        if qubit is None:
+            num_bits = int(np.log2(self.dim))
+            result = f"Measured the state: |{bin(measurement)[2:].zfill(num_bits)}>"
+            self.state.vector[measurement] = 1
+            self.state.vector = self.state.vector / np.linalg.norm(self.state.vector)
+            return result
 
 def format_ket_notation(list_probs, **kwargs) -> str:
     list_type = kwargs.get("type", "all")
@@ -1309,7 +1318,7 @@ class print_array:    #made to try to make matrices look prettier
                 np.set_printoptions(linewidth=(10))
                 console.print(f"{array.name}",markup=True, style="measure")
                 for ket_val, prob_val in zip(ket_mat,array.list_proj_probs()):
-                    console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{self.prec}f}%",markup=True, style="measure")
+                    console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {100*prob_val:.{self.prec}f}%",markup=True, style="measure")
             else:
                 console.print(array,markup=True,style="measure")
         elif isinstance(array, Gate):
@@ -1368,3 +1377,4 @@ def main():
     Grover(oracle_values2, fast=True, iter_calc="round").run()
     Grover(oracle_values2, fast=True, iter_calc="floor").run()
     Grover(oracle_values2, fast=True, iter_calc="balanced").run()
+    print_array(Measure(state=Qubit.q0(n=4)))
