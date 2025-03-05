@@ -395,7 +395,8 @@ q0 = Qubit.q0()
 q1 = Qubit.q1()
 qp = Qubit.qp()
 qm = Qubit.qm()
-
+qpi = Qubit.qpi()
+qmi = Qubit.qmi()
 
 class Gate:            #creates a gate class to enable unique properties
     def __init__(self, **kwargs):
@@ -647,7 +648,7 @@ class FWHT(Gate):
 
 class QFT(Gate):
     def __init__(self):
-        self.name = f"Qunatum Fourier Transform"
+        self.name = f"Quantum Fourier Transform"
         self.info = f"An efficient way to compute the Quantum Fourier transform over all qubits in a state"
         self.matrix = np.zeros(4)
         self.length: int = len(self.matrix)
@@ -695,7 +696,6 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             elif calc_state.state_type == "mixed":
                 return self.mixed_state(calc_state)
 
-        
     def generic_density(self, calc_state: Qubit, **kwargs) -> np.ndarray:       #taken from the old density matrix function
         state_vector = calc_state.vector
         calc_state_dim = len(state_vector)
@@ -1080,8 +1080,6 @@ class Grover:                                               #this is the Grover 
             elif isinstance(arg, int):
                 self.rand_ov = arg
         
-            
-
     def __str__(self):
         return f"{self.name}\n{self.results}"
     
@@ -1365,12 +1363,18 @@ Q = QFT()
 
 
 oracle_values = [9,4,3,2,5,6,12,15, 16]
-oracle_values2 = [1,2,3,4, 664, 77,5, 10, 12,14,16, 333, 334, 335, 400, 401, 41, 42]
+oracle_values2 = [1,2,3,4, 664, 77,5, 10, 12,14,16, 333, 334, 335, 400, 401, 41, 42, 1000]
 oracle_values3 = [4, 5, 30, 41]
 oracle_values4 = [500, 5, 4, 7, 8, 9, 99]
 oracle_value_test = [1,2,3]
+large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,12090,13074]
 def main():
+    Grover(16, fast=True, iter_calc="round").run()
+    Grover(16, fast=True, iter_calc="floor").run()
+    Grover(16, fast=True, iter_calc="balanced").run()
     Grover(oracle_values2, fast=True, iter_calc="round").run()
     Grover(oracle_values2, fast=True, iter_calc="floor").run()
     Grover(oracle_values2, fast=True, iter_calc="balanced").run()
-    print_array(Measure(state=Qubit.q0(n=3)).measure_state())
+    Grover(large_oracle_values, fast=True, iter_calc="round").run()
+    Grover(large_oracle_values, fast=True, iter_calc="floor").run()
+    Grover(large_oracle_values, fast=True, iter_calc="balanced").run()
