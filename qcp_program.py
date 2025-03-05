@@ -1282,3 +1282,4 @@ oracle_values4 = [500, 5, 4, 7, 8, 9, 99]
 oracle_value_test = [1,2,3]
 def main():
     Grover(oracle_values).run()
+    Grover(oracle_values, n=8, fast=True).run()
