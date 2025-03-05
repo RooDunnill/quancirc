@@ -108,21 +108,22 @@ class QC_error(Exception):                 #a custom error class to raise custom
     def __str__(self):
         return f"{self.message}"
  
-def trace(matrix) -> float:                #calculates the trace of a matrix, either for a gate class or for a normal array
+def trace(matrix) -> float:
     """Just computes the trace of a matrix, mostly used as a checker"""
-    if isinstance(matrix, Gate):
-        tr = 0
-        for i in range(matrix.dim):
-            tr += matrix.matrix[i+i*matrix.dim]
-        return tr
+    tr = 0
+    if isinstance(matrix, Density):
+        matrix = matrix.rho
+    elif isinstance(matrix, Gate):
+        matrix = matrix.matrix
     elif isinstance(matrix, np.ndarray):
-        dim = int(np.sqrt(len(matrix)))
-        tr = 0
-        for i in range(dim):
-            tr += matrix[i+i*dim]
-        return tr
+        pass
     else:
-        raise QC_error(qc_dat.error_class)
+        raise TypeError(f"Given value can't be of type {type(matrix)}, must be a numpy array, Gate or Density class")
+
+    dim = int(np.sqrt(len(matrix)))
+    for i in range(dim):
+        tr += matrix[i + i * dim]
+    return tr
     
 def reshape_matrix(matrix: np.ndarray) -> np.ndarray:
     length = len(matrix)
@@ -313,6 +314,8 @@ class Qubit:                                           #creates the qubit class
         qmi_vector = np.array([n+0j,0-n*1j],dtype=np.complex128)
         return cls(name="|-i>", vector=qmi_vector)
 
+    def __str__(self):
+        return self.__rich__()
     
     def __rich__(self):
             if self.state_type == "mixed":
@@ -519,8 +522,8 @@ class Gate:            #creates a gate class to enable unique properties
                 inner_range = np.arange(half_step)                               
                 indices = outer_range + inner_range                        
                 a, b = vec[indices], vec[indices + half_step]
-                vec[indices] = (a + b)
-                vec[indices + half_step] = (a - b)                            #normalisation has been taken out giving a slight speed up in performance
+                vec[indices] = (a + b) / np.sqrt(2)
+                vec[indices + half_step] = (a - b) / np.sqrt(2)                           #normalisation has been taken out giving a slight speed up in performance
             return other
         else:
             raise TypeError(f"This can't act on this type, only on Qubits")
@@ -597,12 +600,17 @@ class Gate:            #creates a gate class to enable unique properties
             elif isinstance(other, np.ndarray):
                 other_dim = int(np.sqrt(len(other)))
                 if self.dim == other_dim:
-                    new_mat = Gate.mul_flat(self.matrix, other)
+                    new_mat = Gate.mul_flat(self.rho, other) if isinstance(self, Density) else Gate.mul_flat(self.matrix, other)
                     self.matrix = np.array(new_mat, dtype=np.complex128)
                     return self
+                else:
+                    raise QC_error(f"{self} and {other} must be the same dimensions")
             else:
-                raise QC_error(qc_dat.error_class)
+                raise TypeError(f"The second matrix is of type {type(other)} and isn't compatible")
         elif isinstance(self, np.ndarray):
+            if isinstance(other, np.ndarray):
+                new_mat = Gate.mul_flat(self, other)
+                return new_mat
             if isinstance(other, Gate):
                 new_mat = Gate.mul_flat(self, other.matrix)
                 other.matrix = new_mat
@@ -656,6 +664,8 @@ class QFT(Gate):
         self.n: int =  0 if self.dim == 0 else int(np.log2(self.dim))
 
 
+
+
 class Density(Gate):       #makes a matrix of the probabilities, useful for entangled states
     def __init__(self, **kwargs):
         self.state = kwargs.get("state", None)
@@ -682,7 +692,6 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         self.rho_a = kwargs.get("rho_a", None if self.state_a is None else self.construct_density_matrix(self.state_a))
         self.rho_b = kwargs.get("rho_b", None if self.state_b is None else self.construct_density_matrix(self.state_b))
 
-        
     def __str__(self):
         return f"{self.name}\n{self.rho}"
     
@@ -863,9 +872,7 @@ class Measure(Density):
         self.state = kwargs.get("state", None)
         self.name = kwargs.get("name", f"Measurement of state")
         self.fast = kwargs.get("fast", False)
-        if self.fast:
-            pass
-        else:
+        if not self.fast:
             if self.state is not None:
                 self.density: Density = kwargs.get("density", Density(state=self.state))
                 self.rho: np.ndarray = self.density.rho
@@ -900,9 +907,9 @@ class Measure(Density):
         topn = kwargs.get("n", 8)
         return top_probs(self.list_probs(), topn)
     
-    def list_probs(self, qubit: int = None, povm: list = None) -> np.ndarray:
+    def list_probs(self, qubit: int = None, povm= None) -> np.ndarray:
         if povm is not None:
-            probs = np.array([np.real(np.trace(self.density * E)) for E in povm], dtype=np.float64)
+            probs = np.array([np.real(trace(P * self.density.rho)) for P in povm], dtype=np.float64)
             return probs
         
         if qubit is None:
@@ -916,18 +923,20 @@ class Measure(Density):
             else:
                 raise QC_error(qc_dat.error_kwargs)
         
-    def measure_state(self, qubit: int = None, povm: list = None) -> str:
+    def measure_state(self, qubit: int = None, povm: list = None, text = False) -> str:
         PD = self.list_probs(qubit, povm)
         measurement = choices(range(len(PD)), weights=PD)[0]
         if povm is not None:
-            return f"Measured POVM outcome: {measurement}"
+            return f"Measured POVM outcome: {povm[measurement]}"
         
         if qubit is None:
-            num_bits = int(np.log2(self.dim))
-            result = f"Measured the state: |{bin(measurement)[2:].zfill(num_bits)}>"
+            num_bits = int(np.log2(self.state.dim))
+            if text:
+                print_array(f"Measured the state: |{bin(measurement)[2:].zfill(num_bits)}>")
+            self.state.vector[:] = 0
             self.state.vector[measurement] = 1
             self.state.vector = self.state.vector / np.linalg.norm(self.state.vector)
-            return result
+            return self.state
 
 def format_ket_notation(list_probs, **kwargs) -> str:
     list_type = kwargs.get("type", "all")
@@ -945,6 +954,19 @@ def format_ket_notation(list_probs, **kwargs) -> str:
             print_out += (f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{prec}f}%\n")
         return print_out
 
+
+X_Gate = Gate.X_Gate()             #initialises the default gates
+Y_Gate = Gate.Y_Gate()
+Z_Gate = Gate.Z_Gate()
+Identity = Gate.Identity()
+Hadamard = Gate.Hadamard()
+CNot_flip = Gate.C_Gate(type="inverted" , info=qc_dat.C_Not_matrix,name="CNot_flip")
+CNot = Gate.C_Gate(info=qc_dat.C_Not_matrix,name="CNot")
+Swap = Gate.Swap()
+S_Gate = Gate.P_Gate(theta=np.pi/2)
+T_Gate = Gate.P_Gate(theta=np.pi/4)
+F = FWHT()
+Q = QFT()
 
 class Circuit:
     def __init__(self, **kwargs):
@@ -1100,45 +1122,42 @@ class Grover:                                               #this is the Grover 
     
     def init_states(self) -> tuple[Qubit, Gate]:
         timer = Timer()
-        spec_had_mat = np.array([1,1,1,-1])    #i use this so that all the matrix mults are by an integer value and not a float and then apply the float later
-        spec_had = Gate(name="Custom Hadamard for Grovers", info=qc_dat.Hadamard_info, matrix=spec_had_mat)
         qub = Qubit.q0(n=self.n)
         print_array(f"Initialising state {qub.name}")
-        had_op = spec_had                      
-        print_array(f"Initialising {self.n} x {self.n} Hadamard")
-        for i in range(self.n-1):    #creates the qubit and also the tensored hadamard for the given qubit size
-            had_op **= spec_had
-            print(f"\r{i+2} x {i+2} Hadamard created", end="")    #allows to clear line without writing a custom print function in print_array
-        print(f"\r",end="")
-        print_array(f"\rHadamard and Quantum State created, time to create was: {timer.elapsed()[0]:.4f}")
-        return qub, had_op
+        if self.fast:
+            print_array(f"Using FWHT to compute {self.n} x {self.n} Hadamard gate application")
+            had = FWHT()
+            return qub, had
+        else:
+            n_had = Hadamard                   
+            print_array(f"Initialising {self.n} x {self.n} Hadamard")
+            for i in range(self.n-1):    #creates the qubit and also the tensored hadamard for the given qubit size
+                n_had **= Hadamard
+                print(f"\r{i+2} x {i+2} Hadamard created", end="")    #allows to clear line without writing a custom print function in print_array
+            print(f"\r",end="")
+            print_array(f"\rHadamard and Quantum State created, time to create was: {timer.elapsed()[0]:.4f}")
+            return qub,n_had
 
     def iterate_alg(self) -> Qubit:
         it = 0
         timer = Timer()
-        if self.fast:
-            had_op = FWHT()
-            qub = Qubit.q0(n=self.n)
-            print_array(f"Running FWHT algorithm:")
-        else:
-            qub, had_op = self.init_states()
-            print_array(f"Running algorithm:")
-        it = 0
-        had_norm = 1/np.sqrt(2**self.n)
+        print_array(f"Running FWHT algorithm:") if self.fast else print_array(f"Running algorithm:")
+        qub, had = self.init_states()
         while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
             print(f"\rIteration {it + 1}:                                                                  ", end="")
             if it != 0:
                 qub: Qubit = final_state
             print(f"\rIteration {it + 1}: Applying first Hadamard                                          ", end="")
-            initialized_qubit = had_op * qub       #applies a hadamard to every qubit                           STEP 1
-            print(f"\rIteration {it + 1}: Applying phase oracle and second Hadamard                        ", end="")
-            intermidary_qubit = had_op * self.phase_oracle(initialized_qubit, self.oracle_values)              #STEP 2   phase flips the given oracle values
+            hadamard_qubit = had * qub       #applies a hadamard to every qubit                           STEP 1
+            print(f"\rIteration {it + 1}: Applying phase oracle                                            ", end="")
+            oracle_qubit = self.phase_oracle(hadamard_qubit, self.oracle_values)              #STEP 2   phase flips the given oracle values
+            print(f"\rIteration {it + 1}: Applying second Hadamard                                         ", end="")
+            intermidary_qubit = had * oracle_qubit                                            #STEP 3 Applies the hadamard again
             print(f"\rIteration {it + 1}: Flipping the Qubits phase except first Qubit                     ", end="")
-            intermidary_qubit.vector *= -1           #inverts all of the phases of the qubit values             STEP 3a
-            intermidary_qubit.vector[0] *= -1              #inverts back the first qubits phase                 STEP 3b
+            intermidary_qubit.vector *= -1           #inverts all of the phases of the qubit values             STEP 4a
+            intermidary_qubit.vector[0] *= -1              #inverts back the first qubits phase                 STEP 4b
             print(f"\rIteration {it + 1}: Applying third and final Hadamard                                ", end="")
-            final_state = had_op * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 4
-            final_state.vector *=  had_norm**3             #applies the normalisation factor here
+            final_state = had * intermidary_qubit        #applies yet another hadamard gate to the qubits    STEP 5
             it += 1                   #adds to the iteration counter
             print(f"\r                                                                                     Time elapsed:{timer.elapsed()[0]:.4f} secs", end="")
         print(f"\r",end="")
@@ -1247,8 +1266,10 @@ class Grover:                                               #this is the Grover 
                 self.it = round(op_iter)
             elif self.iter_calc == "floor":
                 self.it = int(np.floor(op_iter))
+            elif self.iter_calc == "balanced":
+                self.it = int(np.floor(op_iter))
             else:
-                raise QC_error(f"Invalid keyword argument")
+                raise QC_error(f"Invalid keyword argument {self.iter_calc} of {type(self.iter_calc)}")
             
             if self.it < 1:    #obviously we cant have no iterations so it atleast does 1 iteration
                 self.it = 1.0       #more of a failsafe, will almost certainly be wrong as the percentage diff from the it value to 1 will be large?
@@ -1329,27 +1350,25 @@ class print_array:    #made to try to make matrices look prettier
             console.print(array,markup=True,style="info")
 
 
-X_Gate = Gate.X_Gate()             #initialises the default gates
-Y_Gate = Gate.Y_Gate()
-Z_Gate = Gate.Z_Gate()
-Identity = Gate.Identity()
-Hadamard = Gate.Hadamard()
-CNot_flip = Gate.C_Gate(type="inverted" , info=qc_dat.C_Not_matrix,name="CNot_flip")
-CNot = Gate.C_Gate(info=qc_dat.C_Not_matrix,name="CNot")
-Swap = Gate.Swap()
-S_Gate = Gate.P_Gate(theta=np.pi/2)
-T_Gate = Gate.P_Gate(theta=np.pi/4)
-F = FWHT()
-Q = QFT()
+
 
 
 oracle_values = [9,4,3,2,5,6,12,15,16]
 oracle_values2 = [1,2,3,4,664,77,5,10,12,14,16,333,334,335,400,401,41,42,1000]
-oracle_values3 = [4,5,30,41]
+oracle_values3 = [1,10]
 oracle_values4 = [500,5,4,7,8,9,99]
 oracle_value_test = [1,2,3]
 large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,12090,13074]
 def main():
-    Grover([4,5,6,7], fast=True, iter_calc="round").run()
-    Grover([4,5,6,7], fast=True, iter_calc="floor").run()
-    Grover([4,5,6,7], fast=True, iter_calc="balanced").run()
+
+    povm1 = np.array([1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+    povm2 = np.array([0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0])
+    povm3 = np.array([0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0])
+    povm4 = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1])
+    qub = q0 @ qm
+    print_array(qub)
+    print_array(Measure(state=qub).list_probs(povm=[povm1,povm2,povm3,povm4]))
+    print_array(Measure(state=qub).measure_state(povm=[povm1,povm2,povm3,povm4]))
+    print_array(Measure(state=qub).list_probs())
+    test = Measure(state=qub).measure_state(text=True)
+    print_array(test)
