@@ -998,7 +998,7 @@ class Circuit:
 class Grover:                                               #this is the Grover algorithms own class
     def __init__(self, *args, **kwargs):
         self.fast = kwargs.get("fast", False)
-        self.n_cap: int = int(kwargs.get("n_cap",17 if self.fast else 12))         
+        self.n_cap: int = int(kwargs.get("n_cap",14 if self.fast else 12))         
         self.n = kwargs.get("n", None)
         self.it = kwargs.get("iterations", None)         
         self.oracle_values = []
@@ -1283,3 +1283,8 @@ oracle_value_test = [1,2,3]
 def main():
     Grover(oracle_values).run()
     Grover(oracle_values, n=8, fast=True).run()
+    Grover(5).run()
+    F = FWHT()
+    test_state = Qubit(type="seperable", vectors=[q0,q1,q0])
+    print_array(F * test_state)
+    print_array(Hadamard @ Hadamard @ Hadamard * test_state)
