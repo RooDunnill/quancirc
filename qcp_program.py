@@ -278,9 +278,16 @@ class Qubit:                                           #creates the qubit class
         return cls(name=q0_name, vector=q0_vector)
 
     @classmethod
-    def q1(cls):
+    def q1(cls, **kwargs):
+        n = kwargs.get("n", 1)
         q1_vector = [0,1]
-        return cls(name="|1>", vector=q1_vector)
+        q1_name = f"|1>"
+        if n != 1:
+            q1_vector = np.zeros(2**n, dtype=np.complex128)
+            q1_vector[-1] = 1
+            ones_str = "1" * n
+            q1_name = f"|{ones_str}>"
+        return cls(name=q1_name, vector=q1_vector)
 
     @classmethod
     def qp(cls):
@@ -293,7 +300,21 @@ class Qubit:                                           #creates the qubit class
         n = 1/np.sqrt(2)
         qm_vector = [n,-n]
         return cls(name="|->", vector=qm_vector)
+    
+    @classmethod
+    def qpi(cls):
+        n =1/np.sqrt(2)
+        qpi_vector = np.array([n+0j,0+n*1j],dtype=np.complex128)
+        return cls(name="|i>", vector=qpi_vector)
+    
+    @classmethod
+    def qmi(cls):
+        n =1/np.sqrt(2)
+        qmi_vector = np.array([n+0j,0-n*1j],dtype=np.complex128)
+        return cls(name="|-i>", vector=qmi_vector)
         
+    @classmethod
+    def qmi(cls:)
     def __str__(self):
         return f"{self.name}\n{self.vector}"   #did this so that the matrix prints neatly
     
@@ -1043,14 +1064,15 @@ class Circuit:
     
 class Grover:                                               #this is the Grover algorithms own class
     def __init__(self, *args, **kwargs):
-        self.fast = kwargs.get("fast", False)
-        self.n_cap: int = int(kwargs.get("n_cap",14 if self.fast else 12))         
+        self.fast = kwargs.get("fast", True)
+        self.n_cap: int = int(kwargs.get("n_cap",16 if self.fast else 12))         
         self.n = kwargs.get("n", None)
         self.it = kwargs.get("iterations", None)         
         self.oracle_values = []
         self.rand_ov = 0
         self.results = kwargs.get("results", [])
         self.iter_calc = kwargs.get("iter_calc", None)
+        self.balanced_param = kwargs.get("balanced_param", 100)
         for arg in args:
             if isinstance(arg, list): 
                 self.oracle_values.extend(arg)  
@@ -1143,7 +1165,6 @@ class Grover:                                               #this is the Grover 
             return final_state
 
     def compute_n(self) -> int:
-        
         if isinstance(self.n_cap, int):
             print_array(f"Using up to {self.n_cap} Qubits to run the search")
             max_oracle = max(self.oracle_values)
@@ -1155,7 +1176,6 @@ class Grover:                                               #this is the Grover 
             if self.it == None:
                 print_array(f"No iteration value given, so will now calculate the optimal iterations")
                 n_qubit_range = np.arange(n_qubit_min, self.n_cap + 1, dtype=int)
-                
                 if self.iter_calc == None or self.iter_calc == "round":
                     int_val = 0
                     print_array(f"Now computing n for the optimal iteration closest to a whole number")
@@ -1181,8 +1201,36 @@ class Grover:                                               #this is the Grover 
                                 self.n: int = i
                                 int_val: float = int_dist
                     return self.n
+                elif self.iter_calc == "balanced":
+                    if isinstance(self.balanced_param, int):
+                        int_val_floor = 1
+                        int_val_round = 0
+                        print_array(f"Now computing n for the optimal iteration using a balanced algorithm")
+                        for i in n_qubit_range:   #goes through the range of possible qubit values from the smallest possible for the given oracle values up to the cap
+                            op_iter = self.optimal_iterations(i)[0]
+                            if op_iter >= 1:
+                                int_dist_floor: float = op_iter - np.floor(op_iter)  #finds the float value
+                                int_dist_round: float = 2*abs(int_dist_floor-0.5) 
+                                print_array(f"Optimal iterations for {i} Qubits is: {op_iter:.3f}")
+                                if int_dist_floor < int_val_floor:            #iterates through to find the smallest distance from an integer
+                                    n_floor: int = i
+                                    int_val_floor: float = int_dist_floor
+                                if int_dist_round > int_val_round:            #iterates through to find the smallest distance from an integer
+                                    n_round: int = i
+                                    int_val_round: float = int_dist_round
+                        if (1-int_val_round) < int_val_floor / self.balanced_param:
+                            self.n = n_round
+                            self.iter_calc = "round"
+                            print_array(f"The optimal iteration is computed through rounding")
+                        else:
+                            self.n = n_floor
+                            self.iter_calc = "floor"
+                            print_array(f"The optimal iteration is computed by flooring")
+                        return self.n
+                    else:
+                        return TypeError(f"balanced_param cannot be of type {type(self.balanced_param)}, expected str")
                 else:
-                    raise TypeError(f"self.iter_calc cannot be of type {type(self.iter_calc)}, expected str")
+                    raise TypeError(f"iter_calc cannot be of type {type(self.iter_calc)}, expected str")
             else:
                 self.n = n_qubit_min
                 print_array(f"Running the given {self.it} iterations with the minimum number of qubits {self.n}")
@@ -1218,9 +1266,9 @@ class Grover:                                               #this is the Grover 
             if self.iter_calc == "round" or self.iter_calc == None:
                 self.it = round(op_iter)
             elif self.iter_calc == "floor":
-                self.it = np.floor(op_iter)
+                self.it = int(np.floor(op_iter))
             else:
-                raise TypeError(f"self.iter_calc cannot be of type {type(self.iter_calc)}, expected str")
+                raise QC_error(f"Invalid keyword argument")
             
             if self.it < 1:    #obviously we cant have no iterations so it atleast does 1 iteration
                 self.it = 1.0000       #more of a failsafe, will almost certainly be wrong as the percentage diff from the it value to 1 will be large?
@@ -1311,45 +1359,16 @@ CNot = Gate.C_Gate(info=qc_dat.C_Not_matrix,name="CNot")
 Swap = Gate.Swap()
 S_Gate = Gate.P_Gate(theta=np.pi/2)
 T_Gate = Gate.P_Gate(theta=np.pi/4)
-
-qub = q1 @ q1 @ q1
-def fractional_binary(qub,m):             #for shors
-    num_bits = int(np.ceil(np.log2(qub.dim)))
-    x_vals = qub.name[1:1+num_bits]
-    frac_bin = ("0." + x_vals)
-    val = 0
-    if m <= num_bits:
-        for i in range(m):
-            val += float(frac_bin[i+2])*2**-(i+1)
-            print(float(frac_bin[i+2]))
-        print("new func")
-        return val
-qub = q1 @ q1 @ q1 
-
-def quant_fourier_trans(qub):          #also for shors although used in other algorithms
-    old_name = qub.name
-    n = int(np.ceil(np.log2(qub.dim)))
-    frac_init = fractional_binary(qub,1)
-    four_qub_init = Qubit(vector=np.array([1,np.exp(2*1j*np.pi*frac_init)]))
-    print_array(four_qub_init)
-    four_qub_init.norm()
-    four_qub_sum = four_qub_init
-    for j in range(n-1):
-        frac = fractional_binary(qub,j+2)
-        four_qub = Qubit(vector=np.array([1,np.exp(2*1j*np.pi*frac)]))
-        four_qub.norm()
-        print_array(four_qub)
-        four_qub_sum **= four_qub
-    four_qub_sum.name = f"QFT of {old_name}"
-    return four_qub_sum
+F = FWHT()
+Q = QFT()
 
 
 oracle_values = [9,4,3,2,5,6,12,15, 16]
-oracle_values2 = [1,2,3,4, 664, 77,5, 10, 12,14]
+oracle_values2 = [1,2,3,4, 664, 77,5, 10, 12,14,16, 333, 334, 335, 400, 401, 41, 42]
 oracle_values3 = [4, 5, 30, 41]
 oracle_values4 = [500, 5, 4, 7, 8, 9, 99]
 oracle_value_test = [1,2,3]
 def main():
     Grover(oracle_values2, fast=True, iter_calc="round").run()
     Grover(oracle_values2, fast=True, iter_calc="floor").run()
-    
+    Grover(oracle_values2, fast=True, iter_calc="balanced").run()
