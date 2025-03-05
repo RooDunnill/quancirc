@@ -1165,7 +1165,6 @@ class Grover:                                               #this is the Grover 
         final_state = self.iterate_alg()
         print_array(f"Computing Probability Distribution of States")
         final_state = Measure(state=final_state, fast=True)
-
         print_array(f"Finding the probabilities for the top n Probabilities (n is the number of oracle values)")
         sorted_arr = top_probs(final_state.list_proj_probs(), len(self.oracle_values))         #finds the n top probabilities
         print_array(f"Outputing:")
@@ -1275,16 +1274,17 @@ def quant_fourier_trans(qub):          #also for shors although used in other al
     return four_qub_sum
 
 
-oracle_values = [9,4,3,2,5,6,12,15]
+oracle_values = [9,4,3,2,5,6,12,15, 16]
 oracle_values2 = [1,2,3,4, 664, 77,5]
 oracle_values3 = [4, 5, 30, 41]
 oracle_values4 = [500, 5, 4, 7, 8, 9, 99]
 oracle_value_test = [1,2,3]
 def main():
-    Grover(oracle_values).run()
-    Grover(oracle_values, n=8, fast=True).run()
-    Grover(5).run()
+    test1 =Grover(oracle_values, n=8, iterations = 3).run()
+    test2 = Grover(oracle_values, n=8, fast=True, iterations = 3).run()
     F = FWHT()
     test_state = Qubit(type="seperable", vectors=[q0,q1,q0])
     print_array(F * test_state)
     print_array(Hadamard @ Hadamard @ Hadamard * test_state)
+    if test1 == test2:
+        print("yay")
