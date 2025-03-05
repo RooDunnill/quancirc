@@ -70,3 +70,18 @@ print_array((Hadamard @ Hadamard) * Qubit(type="seperable", vectors=[q0,q0]))
 had_mult_test = Qubit(type="seperable", vectors=[q0,q0])
 print_array(had_mult_test)
 print_array((Hadamard @ Hadamard) * had_mult_test)
+oracle_values = [9,4,3,2,5,6,12,15,16]
+oracle_values2 = [1,2,3,4,664,77,5,10,12,14,16,333,334,335,400,401,41,42,1000]
+oracle_values3 = [4,5,30,41]
+oracle_values4 = [500,5,4,7,8,9,99]
+oracle_value_test = [1,2,3]
+large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,12090,13074]
+Grover(16, fast=True, iter_calc="round").run()
+Grover(16, fast=True, iter_calc="floor").run()
+Grover(16, fast=True, iter_calc="balanced").run()
+Grover(oracle_values2, fast=True, iter_calc="round").run()
+Grover(oracle_values2, fast=True, iter_calc="floor").run()
+Grover(oracle_values2, fast=True, iter_calc="balanced").run()
+Grover(large_oracle_values, fast=True, iter_calc="round").run()
+Grover(large_oracle_values, fast=True, iter_calc="floor").run()
+Grover(large_oracle_values, fast=True, iter_calc="balanced").run()
