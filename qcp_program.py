@@ -490,8 +490,8 @@ class Gate:            #creates a gate class to enable unique properties
         else:
             raise QC_error(qc_dat.error_class)
         
-    def __mul__(self, other):       #matrix multiplication
-        if isinstance(self, FWHT):
+    def FWHT(self, other):
+        if isinstance(other, Qubit):
             sqrt2_inv = 1/np.sqrt(2)
             vec = other.vector
             for i in range(other.n):                                            #loops through each size of qubit below the size of the state
@@ -504,6 +504,43 @@ class Gate:            #creates a gate class to enable unique properties
                 vec[indices] = (a + b) * sqrt2_inv
                 vec[indices + half_step] = (a - b) * sqrt2_inv                            #normalisation has been taken out giving a slight speed up in performance
             return other
+        else:
+            raise TypeError(f"This can't act on this type, only on Qubits")
+
+    def fractional_binary(qub,m):             #for shors
+        num_bits = int(np.ceil(np.log2(qub.dim)))
+        x_vals = qub.name[1:1+num_bits]
+        frac_bin = ("0." + x_vals)
+        val = 0
+        if m <= num_bits:
+            for i in range(m):
+                val += float(frac_bin[i+2])*2**-(i+1)
+                print(float(frac_bin[i+2]))
+            print("new func")
+            return val
+
+
+    def QFT(self, other):          #also for shors although used in other algorithms
+        old_name = other.name
+        n = int(np.ceil(np.log2(other.dim)))
+        frac_init = fractional_binary(other,1)
+        four_qub_init = Qubit(vector=np.array([1,np.exp(2*1j*np.pi*frac_init)]))
+        four_qub_init.norm()
+        four_qub_sum = four_qub_init
+        for j in range(n-1):
+            frac = fractional_binary(other,j+2)
+            four_qub = Qubit(vector=np.array([1,np.exp(2*1j*np.pi*frac)]))
+            four_qub.norm()
+            four_qub_sum **= four_qub
+        four_qub_sum.name = f"QFT of {old_name}"
+        return four_qub_sum
+
+
+    def __mul__(self, other):       #matrix multiplication
+        if isinstance(self, FWHT):
+            return self.FWHT(other)
+        elif isinstance(self, QFT):
+            return self.QFT(other)
         elif isinstance(self, Gate):
             if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
                 if self.dim == other.dim:
@@ -585,6 +622,15 @@ class FWHT(Gate):
     def __init__(self):
         self.name = f"Fast Walsh Hadamard Transform"
         self.info = f"An efficient way to apply a Hadamard to every qubit"
+        self.matrix = np.zeros(4)
+        self.length: int = len(self.matrix)
+        self.dim: int = int(np.sqrt(self.length))
+        self.n: int =  0 if self.dim == 0 else int(np.log2(self.dim))
+
+class QFT(Gate):
+    def __init__(self):
+        self.name = f"Qunatum Fourier Transform"
+        self.info = f"An efficient way to compute the Quantum Fourier transform over all qubits in a state"
         self.matrix = np.zeros(4)
         self.length: int = len(self.matrix)
         self.dim: int = int(np.sqrt(self.length))
@@ -1004,6 +1050,7 @@ class Grover:                                               #this is the Grover 
         self.oracle_values = []
         self.rand_ov = 0
         self.results = kwargs.get("results", [])
+        self.iter_calc = kwargs.get("iter_calc", None)
         for arg in args:
             if isinstance(arg, list): 
                 self.oracle_values.extend(arg)  
@@ -1096,6 +1143,7 @@ class Grover:                                               #this is the Grover 
             return final_state
 
     def compute_n(self) -> int:
+        
         if isinstance(self.n_cap, int):
             print_array(f"Using up to {self.n_cap} Qubits to run the search")
             max_oracle = max(self.oracle_values)
@@ -1107,17 +1155,34 @@ class Grover:                                               #this is the Grover 
             if self.it == None:
                 print_array(f"No iteration value given, so will now calculate the optimal iterations")
                 n_qubit_range = np.arange(n_qubit_min, self.n_cap + 1, dtype=int)
-                int_val = 0
-                for i in n_qubit_range:   #goes through the range of possible qubit values from the smallest possible for the given oracle values up to the cap
-                    op_iter = self.optimal_iterations(i)[0]
-                    if op_iter >= 1:
-                        int_dist: float = op_iter - np.floor(op_iter)  #finds the float value
-                        int_dist: float = abs(int_dist-0.5)             #shifts them down so its the distance from any integer
-                        print_array(f"Optimal iterations for {i} Qubits is: {op_iter:.3f}")
-                        if int_dist > int_val:            #iterates through to find the smallest distance from an integer
-                            self.n: int = i
-                            int_val: float = int_dist
-                return self.n
+                
+                if self.iter_calc == None or self.iter_calc == "round":
+                    int_val = 0
+                    print_array(f"Now computing n for the optimal iteration closest to a whole number")
+                    for i in n_qubit_range:   #goes through the range of possible qubit values from the smallest possible for the given oracle values up to the cap
+                        op_iter = self.optimal_iterations(i)[0]
+                        if op_iter >= 1:
+                            int_dist: float = op_iter - np.floor(op_iter)  #finds the float value
+                            int_dist: float = abs(int_dist-0.5)             #shifts them down so its the distance from any integer
+                            print_array(f"Optimal iterations for {i} Qubits is: {op_iter:.3f}")
+                            if int_dist > int_val:            #iterates through to find the smallest distance from an integer
+                                self.n: int = i
+                                int_val: float = int_dist
+                    return self.n
+                elif self.iter_calc == "floor":
+                    int_val = 1
+                    print_array(f"Now computing n for the optimal iteration closest to the number below it")
+                    for i in n_qubit_range:   #goes through the range of possible qubit values from the smallest possible for the given oracle values up to the cap
+                        op_iter = self.optimal_iterations(i)[0]
+                        if op_iter >= 1:
+                            int_dist: float = op_iter - np.floor(op_iter)  #finds the float value
+                            print_array(f"Optimal iterations for {i} Qubits is: {op_iter:.3f}")
+                            if int_dist < int_val:            #iterates through to find the smallest distance from an integer
+                                self.n: int = i
+                                int_val: float = int_dist
+                    return self.n
+                else:
+                    raise TypeError(f"self.iter_calc cannot be of type {type(self.iter_calc)}, expected str")
             else:
                 self.n = n_qubit_min
                 print_array(f"Running the given {self.it} iterations with the minimum number of qubits {self.n}")
@@ -1148,10 +1213,15 @@ class Grover:                                               #this is the Grover 
                 self.oracle_values.append(randint(0, 2**self.n - 1))
             self.rand_ov = self.oracle_values
 
-
         op_iter = self.optimal_iterations(self.n)[0]
         if self.it == None:     #now picks an iteration value
-            self.it = round(op_iter)
+            if self.iter_calc == "round" or self.iter_calc == None:
+                self.it = round(op_iter)
+            elif self.iter_calc == "floor":
+                self.it = np.floor(op_iter)
+            else:
+                raise TypeError(f"self.iter_calc cannot be of type {type(self.iter_calc)}, expected str")
+            
             if self.it < 1:    #obviously we cant have no iterations so it atleast does 1 iteration
                 self.it = 1.0000       #more of a failsafe, will almost certainly be wrong as the percentage diff from the it value to 1 will be large?
                 print_array(f"Computing 1 iteration, most likely will not be very accurate")
@@ -1275,16 +1345,11 @@ def quant_fourier_trans(qub):          #also for shors although used in other al
 
 
 oracle_values = [9,4,3,2,5,6,12,15, 16]
-oracle_values2 = [1,2,3,4, 664, 77,5]
+oracle_values2 = [1,2,3,4, 664, 77,5, 10, 12,14]
 oracle_values3 = [4, 5, 30, 41]
 oracle_values4 = [500, 5, 4, 7, 8, 9, 99]
 oracle_value_test = [1,2,3]
 def main():
-    test1 =Grover(oracle_values, n=8, iterations = 3).run()
-    test2 = Grover(oracle_values, n=8, fast=True, iterations = 3).run()
-    F = FWHT()
-    test_state = Qubit(type="seperable", vectors=[q0,q1,q0])
-    print_array(F * test_state)
-    print_array(Hadamard @ Hadamard @ Hadamard * test_state)
-    if test1 == test2:
-        print("yay")
+    Grover(oracle_values2, fast=True, iter_calc="round").run()
+    Grover(oracle_values2, fast=True, iter_calc="floor").run()
+    
