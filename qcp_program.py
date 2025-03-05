@@ -552,6 +552,15 @@ class Gate:            #creates a gate class to enable unique properties
         four_qub_sum.name = f"QFT of {old_name}"
         return four_qub_sum
 
+    @staticmethod
+    def mul_flat(first, second):
+        new_mat = np.zeros(len(first),dtype=np.complex128)
+        dim = int(np.sqrt(len(first)))
+        dim_range = np.arange(dim)
+        for i in range(dim):
+            for k in range(dim):
+                new_mat[k+(i * dim)] = np.sum(first[dim_range+(i * dim)]*second[k+(dim_range* dim)])
+        return new_mat
 
     def __mul__(self, other):       #matrix multiplication
         if isinstance(self, FWHT):
@@ -559,13 +568,20 @@ class Gate:            #creates a gate class to enable unique properties
         elif isinstance(self, QFT):
             return self.QFT(other)
         elif isinstance(self, Gate):
-            if isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
+            if isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
                 if self.dim == other.dim:
-                    new_mat = np.zeros(self.length,dtype=np.complex128)
-                    dim_range = np.arange(self.dim)
+                    new_mat = np.zeros(self.dim,dtype=np.complex128)
                     for i in range(self.dim):
-                        for k in range(self.dim):
-                            new_mat[k+(i * self.dim)] = np.sum(self.matrix[dim_range+(i * other.dim)]*other.matrix[k+(dim_range* self.dim)])
+                        row = self.matrix[i * self.dim:(i + 1) * self.dim]
+                        new_mat[i] = np.sum(row[:] * other.vector[:])
+                    other.vector = new_mat
+                    other.name = self.name + other.name
+                    return other
+                else:
+                    raise QC_error(qc_dat.error_mat_dim)
+            elif isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
+                if self.dim == other.dim:
+                    new_mat = Gate.mul_flat(self.matrix, other.matrix)
                     if isinstance(other, Density):
                         new_info = "This is the density matrix of: "f"{self.name}"" and "f"{other.name}"
                         new_name: str = f"{self.name} * {other.name}"
@@ -577,34 +593,19 @@ class Gate:            #creates a gate class to enable unique properties
                         return self
                 else:
                     raise QC_error(qc_dat.error_mat_dim)
-            elif isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
-                if self.dim == other.dim:
-                    new_mat = np.zeros(self.dim,dtype=np.complex128)
-                    for i in range(self.dim):
-                        row = self.matrix[i * self.dim:(i + 1) * self.dim]
-                        new_mat[i] = np.sum(row[:] * other.vector[:])
-                    other.vector = new_mat
-                    other.name = self.name + other.name
-                    return other
-                else:
-                    raise QC_error(qc_dat.error_mat_dim)
+            elif isinstance(other, np.ndarray):
+                other_dim = int(np.sqrt(len(other)))
+                if self.dim == other_dim:
+                    new_mat = Gate.mul_flat(self.matrix, other)
+                    self.matrix = np.array(new_mat, dtype=np.complex128)
+                    return self
             else:
                 raise QC_error(qc_dat.error_class)
         elif isinstance(self, np.ndarray):
-            self_length = len(self)
-            self_dim = np.sqrt(self_length)
-            other_length = len(other)
-            other_dim = np.sqrt(other_length)
-            if self_dim == other_dim:
-                new_mat = np.zeros(self_length,dtype=np.complex128)
-                dim_range = np.arange(self.dim)
-                for i in range(self_dim):
-                    for k in range(self_dim):
-                            new_mat[k+(i * self_dim)] = np.sum(self[dim_range+(i * other_dim)]*other[k+(dim_range * self_dim)])
-                    return new_mat
-            else:
-                raise QC_error(qc_dat.error_mat_dim)
-        
+            if isinstance(other, Gate):
+                new_mat = Gate.mul_flat(self, other.matrix)
+                other.matrix = new_mat
+                return other
         else:
             raise QC_error(qc_dat.error_class)
     
@@ -857,7 +858,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
 
 class Measure(Density):
     def __init__(self, **kwargs):
-        self.measurement_state = kwargs.get("m_state", "all")
+        self.measurement_qubit = kwargs.get("m_qubit", "all")
         self.measure_type: str = kwargs.get("type", "projective")
         self.state = kwargs.get("state", None)
         self.name = kwargs.get("name", f"Measurement of state")
@@ -871,7 +872,7 @@ class Measure(Density):
             else:
                 self.density = kwargs.get("density", None)
                 self.rho = self.density.rho if isinstance(self.density, Density) else kwargs.get("rho", None)
-            self.measurement = self.measure()
+            self.measurement = self.measure_state()
 
     @property
     def length(self) -> int:
@@ -889,24 +890,19 @@ class Measure(Density):
         return f"Measure"
     
     def __rich__(self):
-        return f"[bold]{self.name}[/bold]\n[not bold]{self.list_proj_probs()}[/not bold]"
-    
-    def measure(self) -> str:
-        if self.measure_type == "projective":
-            return self.proj_measure_state()
+        return f"[bold]{self.name}[/bold]\n[not bold]{self.list_probs()}[/not bold]"
 
     def measure_probs(self) -> str:
         if self.measure_type == "projective":
-            return self.list_proj_probs()
+            return self.list_probs()
         
     def topn_measure_probs(self, **kwargs) -> np.ndarray:
         topn = kwargs.get("n", 8)
-        new_mat = top_probs(self.list_proj_probs(), topn)
-        return new_mat
+        return top_probs(self.list_probs(), topn)
     
-    def list_proj_probs(self, qubit: int = None, povm: list = None) -> np.ndarray:
+    def list_probs(self, qubit: int = None, povm: list = None) -> np.ndarray:
         if povm is not None:
-            probs = np.array([np.real(np.trace(E @ self.density.rho)) for E in povm], dtype=np.float64)
+            probs = np.array([np.real(np.trace(self.density * E)) for E in povm], dtype=np.float64)
             return probs
         
         if qubit is None:
@@ -920,8 +916,8 @@ class Measure(Density):
             else:
                 raise QC_error(qc_dat.error_kwargs)
         
-    def proj_measure_state(self, qubit: int = None, povm: list = None) -> str:
-        PD = self.list_proj_probs(qubit, povm)
+    def measure_state(self, qubit: int = None, povm: list = None) -> str:
+        PD = self.list_probs(qubit, povm)
         measurement = choices(range(len(PD)), weights=PD)[0]
         if povm is not None:
             return f"Measured POVM outcome: {measurement}"
@@ -1027,8 +1023,8 @@ class Circuit:
             print_array(self.state)
         return self.state
     
-    def list_proj_probs(self, text=True) -> Measure:
-        self.prob_distribution = Measure(state=self.state).list_proj_probs()
+    def list_probs(self, text=True) -> Measure:
+        self.prob_distribution = Measure(state=self.state).list_probs()
         if text:
             print_array(f"The projective probability distribution is:")
             print_array(format_ket_notation(self.prob_distribution))
@@ -1036,14 +1032,14 @@ class Circuit:
     
     def topn_probabilities(self, text=True, **kwargs) -> Measure:
         topn = kwargs.get("n", 8)
-        self.top_prob_dist = top_probs(self.list_proj_probs(text=False), topn)
+        self.top_prob_dist = top_probs(self.list_probs(text=False), topn)
         if text:
             print_array(f"The top {topn} probabilities are:")
             print_array(format_ket_notation(self.top_prob_dist, type="topn", num_bits=int(np.ceil(np.log2(self.state.dim)))))
         return self.top_prob_dist
     
-    def proj_measure_state(self, text=True) -> Measure:
-        self.measure_state = Measure(state=self.state).proj_measure_state()
+    def measure_state(self, text=True) -> Measure:
+        self.measure_state = Measure(state=self.state).measure_state()
         if text:
             print_array(f"The measured state is:")
             print_array(self.measure_state)
@@ -1055,9 +1051,9 @@ class Circuit:
         else:
             self.compute_final_gate(text=False)
             self.apply_final_gate(text=False)
-            self.list_proj_probs(text=False)
+            self.list_probs(text=False)
             self.topn_probabilities(text=False)
-            self.proj_measure_state(text=False)
+            self.measure_state(text=False)
         return self.__rich__()
 
     def return_info(self, attr):
@@ -1289,7 +1285,7 @@ class Grover:                                               #this is the Grover 
         print_array(f"Computing Probability Distribution of States")
         final_state = Measure(state=final_state, fast=True)
         print_array(f"Finding the probabilities for the top n Probabilities (n is the number of oracle values)")
-        sorted_arr = top_probs(final_state.list_proj_probs(), len(self.oracle_values))         #finds the n top probabilities
+        sorted_arr = top_probs(final_state.list_probs(), len(self.oracle_values))         #finds the n top probabilities
         print_array(f"Outputing:")
         output = Grover(final_state.name, n=self.n, results=sorted_arr)         #creates a Grover instance
         if self.rand_ov:
@@ -1317,7 +1313,7 @@ class print_array:    #made to try to make matrices look prettier
                 num_bits = int(np.ceil(np.log2(array.dim)))
                 np.set_printoptions(linewidth=(10))
                 console.print(f"{array.name}",markup=True, style="measure")
-                for ket_val, prob_val in zip(ket_mat,array.list_proj_probs()):
+                for ket_val, prob_val in zip(ket_mat,array.list_probs()):
                     console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {100*prob_val:.{self.prec}f}%",markup=True, style="measure")
             else:
                 console.print(array,markup=True,style="measure")
@@ -1377,4 +1373,4 @@ def main():
     Grover(oracle_values2, fast=True, iter_calc="round").run()
     Grover(oracle_values2, fast=True, iter_calc="floor").run()
     Grover(oracle_values2, fast=True, iter_calc="balanced").run()
-    print_array(Measure(state=Qubit.q0(n=4)))
+    print_array(Measure(state=Qubit.q0(n=3)).measure_state())
