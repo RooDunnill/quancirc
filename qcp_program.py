@@ -312,11 +312,7 @@ class Qubit:                                           #creates the qubit class
         n =1/np.sqrt(2)
         qmi_vector = np.array([n+0j,0-n*1j],dtype=np.complex128)
         return cls(name="|-i>", vector=qmi_vector)
-        
-    @classmethod
-    def qmi(cls:)
-    def __str__(self):
-        return f"{self.name}\n{self.vector}"   #did this so that the matrix prints neatly
+
     
     def __rich__(self):
             if self.state_type == "mixed":
