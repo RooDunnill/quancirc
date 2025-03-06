@@ -224,6 +224,7 @@ def binary_entropy(prob: float) -> float:
 
 class Qubit:                                           #creates the qubit class
     def __init__(self, **kwargs) -> None:
+        self.detailed = kwargs.get("detailed", None)
         self.state_type: str = kwargs.get("type", "pure")                   #the default qubit is a single pure qubit |0>
         self.name: str = kwargs.get("name","|Quantum State>")
         self.vector = np.array(kwargs.get("vector",np.array([1,0])),dtype=np.complex128)
@@ -237,15 +238,26 @@ class Qubit:                                           #creates the qubit class
                     self.build_mixed_state(kwargs)
             elif self.state_type == "seperable":
                 self.build_seperable_state(kwargs)
+        if self.detailed:
+            self.density = Density(state=self)
+            self.vne = self.density.vn_entropy()
+            if self.state_type == "mixed":
+                self.se = self.density.shannon_entropy()
 
     def build_mixed_state(self, kwargs):
         if isinstance(kwargs.get("vectors")[0], Qubit):
-            self.vector = np.array(kwargs.get("vectors",[]))
-        else:
+            qubit_vectors = np.array(kwargs.get("vectors",[]))
+            vector_list = []
+            for i in qubit_vectors:
+                vector_list.append(i)
+            self.vector = vector_list
+        elif isinstance(kwargs.get("vectors")[0], (list, np.ndarray)):
             self.vector = np.array(kwargs.get("vectors",[]),dtype=np.complex128)
+        else:
+            raise TypeError(f"Invalid type of type{kwargs.get("vectors")[0]}, expected Qubit class, list or np.ndarray")
         self.weights = kwargs.get("weights", [])
         if len(self.weights) != len(self.vector):
-            raise QC_error(qc_dat.errror_mixed_state)
+            raise QC_error(f"The state must have one weight value {self.weights}, for each vector {self.vector}")
             
     def build_seperable_state(self, kwargs):
         qubit_states = np.array(kwargs.get("vectors",[]))
@@ -319,7 +331,13 @@ class Qubit:                                           #creates the qubit class
     
     def __rich__(self):
             if self.state_type == "mixed":
-                return f"[bold]{self.name}[/bold]\n[not bold]Vectors:\n {self.vector}[/not bold]\n and Weights:\n {self.weights}"
+                if isinstance(self.vector[0], np.ndarray):
+                    return f"[bold]{self.name}[/bold]\n[not bold]Vectors:\n {self.vector}[/not bold]\n and Weights:\n {self.weights}"
+                else:
+                    print_out = f"{self.name}\nWeights: {self.weights}\n"
+                    for i in self.vector:
+                        print_out += f"State: {i}\n"
+                    return print_out
             return f"[bold]{self.name}[/bold]\n[not bold]{self.vector}[/not bold]"
     
     def __matmul__(self, other):               #this is an n x n tensor product function
@@ -719,33 +737,32 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             raise QC_error(qc_dat.error_trace)
             
     def mixed_state(self, calc_state: Qubit, **kwargs) -> np.ndarray:
-        calc_state_dim = len(calc_state)
-        state_vector: np.ndarray = calc_state.vector
-        qubit_conj: np.ndarray = np.conj(state_vector)
+        state_vector = calc_state.vector
         if isinstance(state_vector[0], np.ndarray):
-            rho = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
-            rho_sub = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
-            for k in range(len(state_vector)):
-                for i in range(calc_state_dim):
-                    for j in range(calc_state_dim):
-                        rho_sub[j+(i * calc_state_dim)] += qubit_conj[k][i]*state_vector[k][j]
-                rho += calc_state.weights[k]*rho_sub
-                rho_sub = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
-            rho_trace: float = trace(rho)
-            if abs(1 - rho_trace) < 1e-5:
-                return rho
-            else:
-                print(f"The calculated trace is {rho_trace}")
-                raise QC_error(qc_dat.error_trace)
+            state_vector: np.ndarray = calc_state.vector
+            calc_state_dim = len(state_vector[0])
         elif isinstance(state_vector[0], Qubit):
-            rho = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
+            print_array(calc_state)
+            state_vector = np.zeros((len(calc_state.vector),calc_state.dim))
+            for i in range(len(calc_state.vector)):
+                state_vector[i] = calc_state.vector[i].vector
+            print_array(state_vector)
+            calc_state_dim = len(state_vector[0])
+        qubit_conj: np.ndarray = np.conj(state_vector)
+        rho = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
+        rho_sub = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
+        for k in range(len(state_vector)):
+            for i in range(calc_state_dim):
+                for j in range(calc_state_dim):
+                    rho_sub[j+(i * calc_state_dim)] += qubit_conj[k][i]*state_vector[k][j]
+            rho += calc_state.weights[k]*rho_sub
             rho_sub = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
-            for k in range(calc_state_dim):
-                den = Density(state=state_vector[k],type="pure")
-                rho += den.rho * calc_state.weights[k]
+        rho_trace: float = trace(rho)
+        if abs(1 - rho_trace) < 1e-5:
             return rho
         else:
-            raise QC_error(qc_dat.error_class)
+            print(f"The calculated trace is {rho_trace}")
+            raise QC_error(qc_dat.error_trace)
 
 
     def fidelity(self) -> float:
@@ -769,7 +786,9 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         self.trace_dist = np.sum(0.5 * np.abs(diff_mat[dim_range + rho_a_dim * dim_range]))
         return self.trace_dist
 
-    def vn_entropy(self, rho: np.ndarray) -> float:
+    def vn_entropy(self, rho: np.ndarray=None) -> float:
+        if self.rho is not None and rho is None:
+            rho = self.rho
         if isinstance(rho, np.ndarray):
             reshaped_rho = reshape_matrix(rho)
             eigenvalues, eigenvectors = np.linalg.eig(reshaped_rho)
@@ -782,6 +801,18 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             return entropy
         else:
             raise QC_error(f"No rho matrix provided")
+        
+    def shannon_entropy(self, rho: np.ndarray=None) -> float:
+        if self.state is not None and self.state_type == "mixed":
+            entropy = 0
+            for weights in self.state.weights:
+                if weights > 0:
+                    entropy -= weights * np.log2(weights)
+            if entropy < 1e-10:
+                entropy = 0.0
+            return entropy
+        else:
+            raise QC_error(f"No mixed state provided")
         
     def quantum_conditional_entropy(self, rho=None) -> float:    #rho is the one that goes first in S(A|B)
         if all(isinstance(i, np.ndarray) for i in (self.rho, self.rho_a, self.rho_b)):
@@ -1359,6 +1390,7 @@ oracle_values3 = [1,10]
 oracle_values4 = [500,5,4,7,8,9,99]
 oracle_value_test = [1,2,3]
 large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,12090,13074]
+
 def main():
 
     povm1 = np.array([1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
@@ -1372,3 +1404,13 @@ def main():
     print_array(Measure(state=qub).list_probs())
     test = Measure(state=qub).measure_state(text=True)
     print_array(test)
+    vne_test = Qubit(type="seperable", vectors=[qp,qm,q1], detailed=True)
+    print_array(vne_test.density)
+    se_test = Qubit(type="mixed", vectors=[q0,q1], weights=[0.2,0.8],detailed=True)
+    print_array(se_test)
+    print_array(se_test.density)
+    print_array(se_test.se)
+    se_test = Qubit(type="mixed", vectors=[[1,0],[0,1]], weights=[0.2,0.8],detailed=True)
+    print_array(se_test)
+    print_array(se_test.density)
+    print_array(se_test.se)
