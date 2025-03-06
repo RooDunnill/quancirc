@@ -691,14 +691,17 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             self.name = kwargs.get("name", desc_name)
         else:
             raise DensityError(f"The inputted state must be a Qubit class, not of type {type(self.state)}")
-        self.rho = kwargs.get("rho", None if self.state is None else self.construct_density_matrix(self.state))
-        self.length = len(self.rho) if self.state is None else self.state.dim**2
-        self.dim = int(np.sqrt(self.length))
-        self.n = int(np.log2(self.dim))
         self.state_a = kwargs.get("state_a", None)
         self.state_b = kwargs.get("state_b", None)
         self.rho_a = kwargs.get("rho_a", None if self.state_a is None else self.construct_density_matrix(self.state_a))
         self.rho_b = kwargs.get("rho_b", None if self.state_b is None else self.construct_density_matrix(self.state_b))
+        self.rho = kwargs.get("rho", None if self.state is None else self.construct_density_matrix(self.state))
+        if self.rho is not None:
+            self.length = len(self.rho) if self.state is None else self.state.dim**2
+            self.dim = int(np.sqrt(self.length))
+            self.n = int(np.log2(self.dim))
+        
+        
 
     def __str__(self):
         return self.__rich__()
@@ -874,7 +877,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             new_mat = self.rho - other.rho
             return Density(name=new_name, info=qc_dat.Density_matrix_info, rho=np.array(new_mat))
         else:
-            raise DensityError(f"Matrix subtraction cannot be of type {type{self}} and type {type(other)}, expected two Density classes")
+            raise DensityError(f"Matrix subtraction cannot be of type {type(self)} and type {type(other)}, expected two Density classes")
         
     def __add__(self, other: "Density") -> "Density":
         new_name: str = f"{self.name} + {other.name}"
@@ -883,7 +886,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             new_mat = self.rho + other.rho
             return Density(name=new_name, info=qc_dat.Density_matrix_info, rho=np.array(new_mat))
         else:
-            raise DensityError(f"Matrix addition cannot be of type {type{self}} and type {type(other)}, expected two Density classes")
+            raise DensityError(f"Matrix addition cannot be of type {type(self)} and type {type(other)}, expected two Density classes")
 
 
 class Measure(Density):
@@ -1405,4 +1408,7 @@ def main():
     print_array(se_test.density)
     print_array(se_test.se)
     print_array(Q * q0)
-    print_array(Hadamard * Hadamard @ q0)
+    rho_Alice = np.array([1/3,0,0,0,1/3,0,0,0,1/3])
+    rho_Bob = np.array([1/2,0,0,0,1/2,0,0,0,0])
+    trace_calc = Density(rho_a=rho_Alice, rho_b=rho_Bob)
+    print_array(trace_calc.trace_distance())
