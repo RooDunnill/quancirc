@@ -1107,8 +1107,8 @@ class Circuit:
             raise QuantumCircuitError(f"This parameter {attr} of type {type(attr)} does not exist")
         return getattr(self, attr)  
         
-    
-    
+
+
 class Grover:                                               #this is the Grover algorithms own class
     def __init__(self, *args, **kwargs):
         self.fast = kwargs.get("fast", True)
@@ -1322,6 +1322,7 @@ class Grover:                                               #this is the Grover 
         return output              #returns the value
 
 
+
 class print_array:    #made to try to make matrices look prettier
     def __init__(self, array):
         self.console = Console()  # Use Rich's Console for rich printing
@@ -1412,3 +1413,16 @@ def main():
     rho_Bob = np.array([1/2,0,0,0,1/2,0,0,0,0])
     trace_calc = Density(rho_a=rho_Alice, rho_b=rho_Bob)
     print_array(trace_calc.trace_distance())
+    o_v = [26,1161,805,1666,323,1744]
+    Grover(o_v).run()
+    Grover(o_v, iterations=13, n=11).run()
+    Grover(o_v, iterations=14, n=11).run()
+    Grover(o_v, iterations=15, n=11).run()
+    Grover(o_v, iterations=16, n=11).run()
+    Grover(o_v, iterations=34, n=11).run()
+    Grover(o_v, iterations=35, n=11).run()
+    Grover(o_v, iterations=36, n=11).run()
+    Grover(o_v, iterations=28, n=11).run()
+    Grover(o_v, iterations=56, n=11).run()
+    search_space = 2**11
+    print_array(((np.pi/4)*np.sqrt((search_space)) - 0.5))
