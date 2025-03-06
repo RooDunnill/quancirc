@@ -25,6 +25,7 @@ console = Console(style="none",theme=custom_theme, highlight=False)
 
 
 class Timer:
+    """A basic timer to time the time of functions and also the time of the whole program"""
     def __init__(self):
         self.start_time = time.perf_counter()
         self.last_time = self.start_time
@@ -37,6 +38,7 @@ class Timer:
         return interval_time, total_time
     
 def prog_end():    #made it to make the code at the end of the program a little neater
+    """Runs at the end of the program to call the timer and plot only at the end"""
     if __name__ == "__main__":
         main()
     stop = time.time()
@@ -168,7 +170,7 @@ def binary_entropy(prob: float) -> float:
 
 
 class Qubit:                                           #creates the qubit class
-    """The class to use to define and initialise Qubits and Quantum States"""
+    """The class to define and initialise Qubits and Quantum States"""
     def __init__(self, **kwargs) -> None:
         self.detailed = kwargs.get("detailed", None)
         self.state_type: str = kwargs.get("type", "pure")                   #the default qubit is a single pure qubit |0>
@@ -188,6 +190,7 @@ class Qubit:                                           #creates the qubit class
                 self.se = self.density.shannon_entropy()
 
     def build_mixed_state(self, kwargs):
+        """Takes the kwargs and creates a mixed state, mostly just checks types and extracts numpy arrays if Qubits are given"""
         if isinstance(kwargs.get("vectors")[0], Qubit):
             qubit_vectors = np.array(kwargs.get("vectors",[]))
             vector_list = []
@@ -203,6 +206,7 @@ class Qubit:                                           #creates the qubit class
             raise QC_error(f"The state must have one weight value {self.weights}, for each vector {self.vector}")
             
     def build_seperable_state(self, kwargs):
+        """Tensors the given parameters of a seperable states together into one vector"""
         qubit_states = np.array(kwargs.get("vectors",[]))
         if isinstance(qubit_states[0], np.ndarray):                         #creates the vector for the seperable states for custom vector states
             qubit_states = np.array(kwargs.get("vectors",[]), dtype = np.complex128)
@@ -223,6 +227,7 @@ class Qubit:                                           #creates the qubit class
 
     @classmethod                 #creates the default qubits, using class methods allows you to define an instance within the class
     def q0(cls, **kwargs):
+        """The |0> Qubit"""
         n = kwargs.get("n", 1)
         q0_vector = [1,0]
         q0_name = f"|0>"
@@ -235,6 +240,7 @@ class Qubit:                                           #creates the qubit class
 
     @classmethod
     def q1(cls, **kwargs):
+        """The |1> Qubit"""
         n = kwargs.get("n", 1)
         q1_vector = [0,1]
         q1_name = f"|1>"
@@ -247,24 +253,28 @@ class Qubit:                                           #creates the qubit class
 
     @classmethod
     def qp(cls):
+        """The |+> Qubit"""
         n = 1/np.sqrt(2)
         qp_vector = [n,n]
         return cls(name="|+>", vector=qp_vector)
 
     @classmethod
     def qm(cls):
+        """The |-> Qubit"""
         n = 1/np.sqrt(2)
         qm_vector = [n,-n]
         return cls(name="|->", vector=qm_vector)
     
     @classmethod
     def qpi(cls):
+        """The |i> Qubit"""
         n =1/np.sqrt(2)
         qpi_vector = np.array([n+0j,0+n*1j],dtype=np.complex128)
         return cls(name="|i>", vector=qpi_vector)
     
     @classmethod
     def qmi(cls):
+        """The |-i> Qubit"""
         n =1/np.sqrt(2)
         qmi_vector = np.array([n+0j,0-n*1j],dtype=np.complex128)
         return cls(name="|-i>", vector=qmi_vector)
@@ -941,6 +951,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             DensityError(f"self.rho cannot be of type {type(self.rho)}, expected numpy array")
 
     def __sub__(self, other: "Density") -> "Density":
+        """Allows for subtraction of two rho matrices, used in trace distance"""
         new_name: str = f"{self.name} - {other.name}"
         new_mat = np.zeros(self.length,dtype=np.complex128)
         if isinstance(self, Density) and isinstance(other, Density):
@@ -950,6 +961,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             raise DensityError(f"Matrix subtraction cannot be of type {type(self)} and type {type(other)}, expected two Density classes")
         
     def __add__(self, other: "Density") -> "Density":
+        """Allows for addition of rho matrices, used in creating a density matrix of a mixed state"""
         new_name: str = f"{self.name} + {other.name}"
         new_mat = np.zeros(self.length,dtype=np.complex128)
         if isinstance(self, Density) and isinstance(other, Density):
@@ -975,25 +987,16 @@ class Measure(Density):
                 self.density = kwargs.get("density", None)
                 self.rho = self.density.rho if isinstance(self.density, Density) else kwargs.get("rho", None)
             self.measurement = self.measure_state()
-
-    @property
-    def length(self) -> int:
-        return len(self.rho)
-    
-    @property
-    def dim(self) -> int:
-        return int(np.sqrt(self.length))
-    
-    @property
-    def n(self) -> int:
-        return int(np.log2(self.dim))
+        if self.rho:
+            self.length = len(self.rho)
+            self.dim = int(np.sqrt(self.length))
+            self.n = int(np.log2(self.dim))
 
     def __str__(self):
         return self.__rich__()
     
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.list_probs()}[/not bold]"
-
         
     def topn_measure_probs(self, **kwargs) -> np.ndarray:
         """Gives the top n probabilities"""
@@ -1005,7 +1008,6 @@ class Measure(Density):
         if povm is not None:
             probs = np.array([np.real(trace(P * self.density.rho)) for P in povm], dtype=np.float64)
             return probs
-        
         if qubit is None:
             if self.fast:
                 vector = self.state.vector
