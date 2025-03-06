@@ -228,10 +228,7 @@ class Qubit:                                           #creates the qubit class
         self.state_type: str = kwargs.get("type", "pure")                   #the default qubit is a single pure qubit |0>
         self.name: str = kwargs.get("name","|Quantum State>")
         self.vector = np.array(kwargs.get("vector",np.array([1,0])),dtype=np.complex128)
-        if self.vector.ndim == 1:
-            self.dim: int = len(self.vector)                    #used constantly in all calcs so defined it universally
-        else:
-            self.dim: int = len(self.vector[0])
+        self.dim: int = len(self.vector) if self.vector.ndim == 1 else len(self.vector[0])                   #used constantly in all calcs so defined it universally
         self.n: int = int(np.log2(self.dim))
         if "vectors" in kwargs:
             if self.state_type == "mixed":
@@ -500,7 +497,7 @@ class Gate:            #creates a gate class to enable unique properties
             return cls(name=f"2 Qubit Swap gate", matrix=n_is_2)
 
     def __str__(self):
-        return f"{self.name}\n{self.matrix}"
+        return self.__rich__()
 
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.matrix}[/not bold]"
@@ -711,7 +708,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         self.rho_b = kwargs.get("rho_b", None if self.state_b is None else self.construct_density_matrix(self.state_b))
 
     def __str__(self):
-        return f"{self.name}\n{self.rho}"
+        return self.__rich__()
     
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.rho}[/not bold]"
@@ -925,7 +922,7 @@ class Measure(Density):
         return int(np.log2(self.dim))
 
     def __str__(self):
-        return f"Measure"
+        return self.__rich__()
     
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.list_probs()}[/not bold]"
@@ -1017,7 +1014,7 @@ class Circuit:
         self.measurement = None
 
     def __str__(self):
-        return f"{self.final_state}"
+        return self.__rich__()
     
     def __rich__(self):
         console.rule(f"Running Quantum Circuit with {self.n} Qubits:", style="circuit_header", characters="/")
