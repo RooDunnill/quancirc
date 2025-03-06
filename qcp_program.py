@@ -217,6 +217,7 @@ def binary_entropy(prob: float) -> float:
 
 
 class Qubit:                                           #creates the qubit class
+    """The class to use to define and initialise Qubits and Quantum States"""
     def __init__(self, **kwargs) -> None:
         self.detailed = kwargs.get("detailed", None)
         self.state_type: str = kwargs.get("type", "pure")                   #the default qubit is a single pure qubit |0>
@@ -411,6 +412,7 @@ qpi = Qubit.qpi()
 qmi = Qubit.qmi()
 
 class Gate:            #creates a gate class to enable unique properties
+    """The class that makes up the unitary matrices that implement the gate functions"""
     def __init__(self, **kwargs):
         self.name = kwargs.get("name", None)
         self.info = kwargs.get("info", None)
@@ -675,6 +677,7 @@ class QFT(Gate):
 
 
 class Density(Gate):       #makes a matrix of the probabilities, useful for entangled states
+    """The class that computes density matrices of Quantum states and can provide probability information for the state"""
     def __init__(self, **kwargs):
         self.state = kwargs.get("state", None)
         if self.state is None:
@@ -890,6 +893,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
 
 
 class Measure(Density):
+    """The class in which all measurements and probabilities are computed"""
     def __init__(self, **kwargs):
         self.measurement_qubit = kwargs.get("m_qubit", "all")
         self.measure_type: str = kwargs.get("type", "projective")
@@ -993,6 +997,7 @@ F = FWHT()
 Q = QFT()
 
 class Circuit:
+    """The compiler to run an actual circuit with"""
     def __init__(self, **kwargs):
         self.gates = []
         self.state = kwargs.get("state", None)
@@ -1023,10 +1028,12 @@ class Circuit:
         console.rule(f"", style="circuit_header")
 
     def print_gates(self):
+        """Just used to print specific gates, mostly for debugging purposes"""
         for gate in reversed(self.gates):
             print_array(gate)
 
     def add_gate(self, gate: Gate, text=True):
+        """Used to add a combined n x n gates to the gate array to then combine into one unitary gate"""
         self.gates.append(gate)
         if text:
             if gate.dim < 9:
@@ -1036,6 +1043,7 @@ class Circuit:
                 print_array(f"Adding the {gate.dim} x {gate.dim} gate: {gate.name} to the circuit")
 
     def add_single_gate(self, gate: Gate, gate_location: int, text=True):
+        """Adds a gate to a single qubit rather than inputting the entire combined gate"""
         if self.n:
             if isinstance(gate_location, int):
                 upper_id = Gate.Identity(n=gate_location)
@@ -1052,6 +1060,7 @@ class Circuit:
                     print_array(f"Adding the {self.n} x {self.n} gate: {gate.name} to the circuit")
 
     def compute_final_gate(self, text=True) -> Gate:
+        """Combines all gates in the gate list together to produce one unitary final gate"""
         self.final_gate = self.start_gate
         for gate in reversed(self.gates):
             self.final_gate = self.final_gate * gate
@@ -1063,6 +1072,7 @@ class Circuit:
         return self.final_gate
     
     def apply_final_gate(self, text=True) -> Qubit:
+        """Applies the final gate to the Quantum state"""
         self.state = self.final_gate * self.state
         if text:
             print_array(f"The final state is:")
@@ -1070,6 +1080,7 @@ class Circuit:
         return self.state
     
     def list_probs(self, text=True) -> Measure:
+        """Produces a list of probabilities of measurement outcomes of the state at any point"""
         self.prob_distribution = Measure(state=self.state).list_probs()
         if text:
             print_array(f"The projective probability distribution is:")
@@ -1077,6 +1088,7 @@ class Circuit:
         return self.prob_distribution
     
     def topn_probabilities(self, text=True, **kwargs) -> Measure:
+        """Only prints or returns a set number of states, mostly useful for large qubit sizes"""
         topn = kwargs.get("n", 8)
         self.top_prob_dist = top_probs(self.list_probs(text=False), topn)
         if text:
@@ -1085,6 +1097,7 @@ class Circuit:
         return self.top_prob_dist
     
     def measure_state(self, text=True) -> Measure:
+        """Measures the state from the list of probabilities"""
         self.measure_state = Measure(state=self.state).measure_state()
         if text:
             print_array(f"The measured state is:")
@@ -1092,6 +1105,7 @@ class Circuit:
         return self.measure_state
 
     def run(self):
+        """Can be used to run the whole program on an inital state and set of gates, can be used without this function also"""
         if self.gates == []:
             raise QuantumCircuitError(qc_dat.error_empty_circuit)
         else:
@@ -1103,6 +1117,7 @@ class Circuit:
         return self.__rich__()
 
     def return_info(self, attr):
+        """Mostly used for debugging but can return a specific attribute of the class"""
         if not hasattr(self, attr): 
             raise QuantumCircuitError(f"This parameter {attr} of type {type(attr)} does not exist")
         return getattr(self, attr)  
@@ -1110,6 +1125,7 @@ class Circuit:
 
 
 class Grover:                                               #this is the Grover algorithms own class
+    """The class to run and analyse Grovers algorithm"""
     def __init__(self, *args, **kwargs):
         self.fast = kwargs.get("fast", True)
         self.n_cap: int = int(kwargs.get("n_cap",16 if self.fast else 12))         
@@ -1136,15 +1152,18 @@ class Grover:                                               #this is the Grover 
         return print_out
 
     def phase_oracle(self, qub: Qubit, oracle_values: list) -> Qubit:          #the Grover phase oracle
+        """Computes the phase flip produced from the oracle values"""
         qub.vector[oracle_values] *= -1 
         return qub
     
     def optimal_iterations(self, n: int) -> tuple[float, int]:
+        """Calculates the best number of iterations for a given number of qubits"""
         search_space: int = 2**n
         op_iter: float = (np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5
         return op_iter, search_space
     
     def init_states(self) -> tuple[Qubit, Gate]:
+        """Creates the Quantum state and the Hadamard gates needed for the algorithm"""
         timer = Timer()
         qub = Qubit.q0(n=self.n)
         print_array(f"Initialising state {qub.name}")
@@ -1163,6 +1182,7 @@ class Grover:                                               #this is the Grover 
             return qub,n_had
 
     def iterate_alg(self) -> Qubit:
+        """The main core algorithm of the program where the phase gates and Hadamard gates are applied"""
         it = 0
         timer = Timer()
         print_array(f"Running FWHT algorithm:") if self.fast else print_array(f"Running algorithm:")
@@ -1189,6 +1209,7 @@ class Grover:                                               #this is the Grover 
         return final_state
 
     def compute_n(self) -> int:
+        """Computes the optimal number of qubits and thus search space by finding a good iteration value based on the specific algorithm ran within"""
         if isinstance(self.n_cap, int):
             print_array(f"Using up to {self.n_cap} Qubits to run the search")
             max_oracle = max(self.oracle_values)
@@ -1263,6 +1284,7 @@ class Grover:                                               #this is the Grover 
             raise QC_error(f"The qubit limit cannot be of {type(self.n_cap)}, expected type int")
     
     def run(self) -> "Grover":     #Grovers algorithm, can input the number of qubits and also a custom amount of iterations
+        """This is the function to initiate the search and compiles the other functions together and prints the values out"""
         Grover_timer = Timer()
         if self.rand_ov:
             console.rule(f"Grovers search with random oracle values", style="grover_header")
@@ -1324,6 +1346,7 @@ class Grover:                                               #this is the Grover 
 
 
 class print_array:    #made to try to make matrices look prettier
+    """Custom print function to neatly arrange matrices and also print with a nice font"""
     def __init__(self, array):
         self.console = Console()  # Use Rich's Console for rich printing
         self.array = array
@@ -1386,7 +1409,7 @@ oracle_value_test = [1,2,3]
 large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,12090,13074]
 
 def main():
-
+    """Where you can run commands without it affecting porgrams that import this program"""
     povm1 = np.array([1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
     povm2 = np.array([0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0])
     povm3 = np.array([0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0])
