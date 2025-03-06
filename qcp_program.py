@@ -57,53 +57,8 @@ gate to be multiplied is at the bottom in a Quantum Circuit.
 Now printing the values of the computation:""",style="info")
 print("\n \n")
 
-class qc_dat:                    #defines a class to store variables in to recall from so that its all
-    C_Not_info = """This gate is used to change the behaviour of one qubit based on another. 
-    This sepecific function is mostly obselete now, it is preferred to use the C Gate class instead"""       #C_Not is mostly obsolete due to new C Gate class       #in one neat area
-    C_Not_matrix = [1,0,0,0,0,1,0,0,0,0,0,1,0,0,1,0]#2 Qubit CNot gate in one configuration, need to add more
-    X_Gate_info = "Used to flip the Qubit in the X basis. Often seen in the CNot gate."                             
-    Y_Gate_info = "Used to flip the Qubit in the Y basis."       
-    Z_Gate_info = "Used to flip the Qubit in the Z basis. This gate flips from 1 to 0 in the computational basis."                           
-    Hadamard_info = """The Hadamard gate is one of the most useful gates, used to convert the Qubit from
-    the computation basis to the plus, minus basis. When applied twice, it can lead back to its original value/
-    acts as an Identity matrix."""
-    U_Gate_info = """This is a gate that can be transformed into most elementary gates using the constants a,b and c.
-    For example a Hadamard gate can be defined with a = pi, b = 0 and c = pi while an X Gate can be defined by
-     a = pi/2 b = 0 and c = pi. """
-    Identity_info = """
-    Identity Matrix: This matrix leaves the product invariant after multiplication.
-    It is mainly used in this program to increase the dimension
-    of other matrices. This is used within the tensor products when
-    a Qubit has no gate action, but the others do."""
-    error_class = "the operation is not with the correct class"
-    error_mat_dim = "the dimensions of the matrices do not share the same value"
-    error_value = "the value selected is outside the correct range of options"
-    error_qubit_num = "you can't select the same qubit for both inputs of the operation gate and control gate."
-    error_qubit_pos = "one of the selected qubits must be 1 which represents the top left of the matrix rather than qubit 1."
-    Density_matrix_info = "test"
-    prob_dist_info = "this is a matrix of the probability of each measurement occuring within a group of qubits."
-    error_trace = "the trace does not equal 1 and so the calculation has gone wrong somewhere."
-    error_imag_prob = "the probability must be all real values."
-    error_norm = "the sum of these values must equal 1 to preserve probability."
-    error_iterations = "to customise the iterations value, you must provide the number of qubits used in the search"
-    qubit_info = """The Qubit is the quantum equivalent to the bit. However, due to the nature of 
-    Quantum Mechanics, it can take any value rather than just two. However, by measuring the state
-    in which it is in, you collapse the wavefunction and the Qubit becomes 1 of two values, 1 or 0."""
-    gate_info = """Gates are used to apply an operation to a Qubit. 
-    They are normally situated on a grid of n Qubits.
-    Using tensor products, we can combine all the gates 
-    at one time instance together to create one unitary matrix.
-    Then we can matrix multiply successive gates together to creat one
-    universal matrix that we can apply to the Qubit before measuring"""
-    error_mixed_state = "the mixed states must each have their own probability values"
-    error_density_vectors = "either the vectors are the wrong data type, or no vector has been provided to make a density matrix of"
-    error_kwargs = "not enough key word arguments provided"
-    error_empty_circuit = "the circuit is empty and needs atleast one gate to work"
-
-
- 
 def trace(matrix) -> float:
-    """Just computes the trace of a matrix, mostly used as a checker"""
+    """Computes the trace of a 1D matrix, mostly used as a checker"""
     tr = 0
     if isinstance(matrix, Density):
         matrix = matrix.rho
@@ -113,13 +68,13 @@ def trace(matrix) -> float:
         pass
     else:
         raise TypeError(f"Given value can't be of type {type(matrix)}, must be a numpy array, Gate or Density class")
-
     dim = int(np.sqrt(len(matrix)))
     for i in range(dim):
         tr += matrix[i + i * dim]
     return tr
     
 def reshape_matrix(matrix: np.ndarray) -> np.ndarray:
+    """Can reshape a 1D matrix into a square 2D matrix"""
     length = len(matrix)
     dim = int(np.sqrt(length))
     if dim**2 != length:
@@ -131,6 +86,7 @@ def reshape_matrix(matrix: np.ndarray) -> np.ndarray:
     return np.array(reshaped_matrix)
 
 def flatten_matrix(matrix: np.ndarray) -> np.ndarray:
+    """Can flatten a square 2D matrix into a 1D matrix"""
     dim = len(matrix)
     length = dim**2
     flattened_matrix = np.zeros(length, dtype=np.complex128)
@@ -138,17 +94,9 @@ def flatten_matrix(matrix: np.ndarray) -> np.ndarray:
         for i in range(dim):
             flattened_matrix[j * dim + i] += matrix[j][i]
     return flattened_matrix
-        
-def is_real(obj):                 #pretty irrelevant but is used for checking probs are real
-    if isinstance(obj, complex):
-        if np.imag(obj) < 1e-5:
-            return True
-    elif isinstance(obj, (int, float)):
-        return True
-    else:
-        return False
 
 def comp_Grover_test(n, **kwargs):
+        """Compares the fast Grover and the normal Grover"""
         g_loops = kwargs.get("g_loops", 10)
         warmup_timer = Timer()
         warmup = warmup_timer.elapsed()
@@ -167,6 +115,7 @@ def comp_Grover_test(n, **kwargs):
         print(times_array)
 
 def time_test(n, fast=True, iterations=None, **kwargs):
+    """Tests the Grover function and its speed with a number of parameters"""
     it_type = kwargs.get("it_type", None)
     oracle_value_test = [0]
     g_loops = kwargs.get("g_loops", 10)
@@ -192,6 +141,7 @@ def time_test(n, fast=True, iterations=None, **kwargs):
     print(times_array)
 
 def top_probs(prob_list: np.ndarray, n: int) -> np.ndarray:             #sorts through the probability distribution and finds the top n probabilities corresponding to the length n or the oracle values
+        """Computes the top n probabilities of a list of probabilities"""
         top_n = np.array([], dtype=prob_list.dtype)
         temp_lst = prob_list.copy()  
         for _ in range(n):
@@ -207,6 +157,7 @@ def top_probs(prob_list: np.ndarray, n: int) -> np.ndarray:             #sorts t
         return np.array(result, dtype=object)
 
 def binary_entropy(prob: float) -> float:
+    """Used to calculate the binary entropy of two probabilities"""
     if isinstance(prob, (float, int)):
         if int(prob) ==  0 or int(prob) == 1:
             return 0.0
@@ -333,6 +284,7 @@ class Qubit:                                           #creates the qubit class
             return f"[bold]{self.name}[/bold]\n[not bold]{self.vector}[/not bold]"
     
     def __matmul__(self, other):               #this is an n x n tensor product function
+        """The tensor product function for Qubits"""
         if isinstance(other, Qubit):           #although this tensors are all 1D  
             self_name_size = int(np.log2(self.dim))
             other_name_size = int(np.log2(other.dim)) 
@@ -364,13 +316,12 @@ class Qubit:                                           #creates the qubit class
             raise QubitError(f"Error from inputs type {type(self)} and {type(other)}, expected two Qubit class inputs")
 
     def norm(self):                 #dunno why this is here ngl, just one of the first functions i tried
+        """Normalises a Qubit so that the probabilities sum to 1"""
         normalise = np.sqrt(sum([i*np.conj(i) for i in self.vector]))
         self.vector = self.vector/normalise
 
-    def qubit_info(self):      
-        print(qc_dat.qubit_info)
-
     def bloch_plot(self):  #turn this into a class soon, pretty useless but might be worth for report or presentation
+        """A bloch plotter that can plot a single Qubit on the bloch sphere with Matplotlib"""
         plot_counter = 0
         vals = np.zeros(2,dtype=np.complex128)
         vals[0] = self.vector[0]
@@ -425,49 +376,60 @@ class Gate:            #creates a gate class to enable unique properties
 
     @classmethod                #again creates some of the default gates, for ease of use and neatness
     def X_Gate(cls):
+        """The X Gate, which can flip the Qubits in the X or computational basis"""
         X_matrix = [0,1,1,0]
-        return cls(name="X Gate", matrix=X_matrix,info=qc_dat.X_Gate_info)
+        return cls(name="X Gate", matrix=X_matrix)
     
     @classmethod
     def Y_Gate(cls):
+        """The Y Gate, which can flip the Qubits in the Y basis"""
         Y_matrix = [0,np.complex128(0-1j),np.complex128(0+1j),0]
-        return cls(name="Y Gate", matrix=Y_matrix,info=qc_dat.Y_Gate_info)
+        return cls(name="Y Gate", matrix=Y_matrix)
 
     @classmethod
     def Z_Gate(cls):
+        """The Z Gate, which can flip the Qubits in the Z basis or |+>, |-> basis"""
         Z_matrix = [1,0,0,-1]
-        return cls(name="Z Gate", matrix=Z_matrix, info=qc_dat.Z_Gate_info)
+        return cls(name="Z Gate", matrix=Z_matrix)
 
     @classmethod
     def Identity(cls, **kwargs):                     #eventually want to make this so its n dimensional
+        """The identity matrix, used mostly to represent empty wires in the circuit
+        Args:
+            n: int: creates an Identity matrix for n qubits, default is 1 Qubit
+        Returns:
+            Gate, the identity gate with either custom qubits or for a single Qubit"""
         n = kwargs.get("n", 1)
         if isinstance(n, int):
             if n == 0:
                 new_mat = np.array([1], dtype=np.complex128)
-                return cls(name="Identity Gate", matrix=new_mat, info=qc_dat.Identity_info, dim=0)
+                return cls(name="Identity Gate", matrix=new_mat, dim=0)
 
             dim = int(2**n)
             new_mat = np.zeros(dim**2, dtype=np.complex128)
             for i in range(dim):
                 new_mat[i+ dim * i] += 1
-            return cls(name="Identity Gate", matrix=new_mat, info=qc_dat.Identity_info)
+            return cls(name="Identity Gate", matrix=new_mat)
         else: 
             Id_matrix = [1,0,0,1]
-            return cls(name="Identity Gate", matrix=Id_matrix, info=qc_dat.Identity_info)
+            return cls(name="Identity Gate", matrix=Id_matrix)
     
     @classmethod          
     def Hadamard(cls):
+        """THe Hadamard Gate, commonly used to rotate between the computational or X basis and the |+>, |-> or Z basis"""
         n = 1/np.sqrt(2)
         H_matrix = [n,n,n,-n]
-        return cls(name="Hadamard", matrix=H_matrix, info=qc_dat.Hadamard_info)
+        return cls(name="Hadamard", matrix=H_matrix)
 
     @classmethod                                        #allows for the making of any phase gate of 2 dimensions
     def P_Gate(cls, theta):
+        """The phase Gate used to add a local phase to a Qubit"""
         P_matrix = [1,0,0,np.exp(np.complex128(0-1j)*theta)]
         return cls(name=f"Phase Gate with a phase {theta:.3f}", matrix=P_matrix)
 
     @classmethod                                #allows for any unitary gates with three given variables
     def U_Gate(cls, a, b, c):
+        """The Unitary Gate, which can approximate nearly any unitary 2 x 2 Gate"""
         U_matrix = [np.cos(a/2),
                     -np.exp(np.complex128(0-1j)*c)*np.sin(a/2),
                     np.exp(np.complex128(0+1j)*b)*np.sin(a/2),
@@ -476,6 +438,12 @@ class Gate:            #creates a gate class to enable unique properties
 
     @classmethod                             #creates any specific control gate
     def C_Gate(cls, **kwargs):
+        """The Control Gate, commonly seen in the form of the CNOT Gate, used to entangle Qubits
+        Args:
+            type: str: can either give "standard" type or "inverted" type
+            gate: Gate: selects the gate action, eg X for CNOT, defaults to X_Gate
+        Returns:
+            Gate: The specified Control Gate"""
         gate_type: str = kwargs.get("type", "standard")
         gate_action: Gate = kwargs.get("gate", X_Gate)
         new_gate: Gate = Identity & gate_action
@@ -487,6 +455,7 @@ class Gate:            #creates a gate class to enable unique properties
 
     @classmethod
     def Swap(cls, **kwargs):
+        """The Swap Gate, used to flip two Qubits in a circuit"""
         n_is_2 = [1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1]
         n: int = kwargs.get("n", 2)
         if n == 2:
@@ -499,6 +468,7 @@ class Gate:            #creates a gate class to enable unique properties
         return f"[bold]{self.name}[/bold]\n[not bold]{self.matrix}[/not bold]"
     
     def __matmul__(self, other: "Gate") -> "Gate":      #adopts the matmul notation to make an easy tensor product of two square matrices
+        """The tensor product for the two Qubit inputs"""
         if isinstance(other, Gate):
             new_info: str = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
             new_name: str = f"{self.name} @ {other.name}"
@@ -522,7 +492,8 @@ class Gate:            #creates a gate class to enable unique properties
         else:
             raise GateError(f"Error from inputs type {type(self)} and {type(other)}, expected two Gate class inputs")
         
-    def FWHT(self, other):
+    def FWHT(self, other: Qubit) -> Qubit:
+        """The Fast Walsh Hadamard Transform, used heavily in Grover's to apply the tensored Hadamard"""
         if isinstance(other, Qubit):
             sqrt2_inv = 1/np.sqrt(2)
             vec = other.vector
@@ -533,14 +504,15 @@ class Gate:            #creates a gate class to enable unique properties
                 inner_range = np.arange(half_step)                               
                 indices = outer_range + inner_range                        
                 a, b = vec[indices], vec[indices + half_step]
-                vec[indices] = (a + b) / np.sqrt(2)
-                vec[indices + half_step] = (a - b) / np.sqrt(2)                           #normalisation has been taken out giving a slight speed up in performance
+                vec[indices] = (a + b) * sqrt2_inv
+                vec[indices + half_step] = (a - b) * sqrt2_inv                        #normalisation has been taken out giving a slight speed up in performance
             return other
         else:
             raise TypeError(f"This can't act on this type, only on Qubits")
 
     @staticmethod
     def fractional_binary(qub,m):             #for shors
+        """The fractional binary calculator used solely in the Quantum Fourier Transform"""
         num_bits = int(np.ceil(np.log2(qub.dim)))
         x_vals = qub.name[1:1+num_bits]
         frac_bin = ("0." + x_vals)
@@ -551,7 +523,8 @@ class Gate:            #creates a gate class to enable unique properties
             return val
 
 
-    def QFT(self, other):          #also for shors although used in other algorithms
+    def QFT(self, other: Qubit) -> Qubit:          #also for shors although used in other algorithms
+        """The Quantum Fourier Transform, for now can only act on a Qubit and is not a matrix"""
         old_name = other.name
         n = int(np.ceil(np.log2(other.dim)))
         frac_init = Gate.fractional_binary(other,1)
@@ -568,15 +541,20 @@ class Gate:            #creates a gate class to enable unique properties
 
     @staticmethod
     def mul_flat(first, second):
-        new_mat = np.zeros(len(first),dtype=np.complex128)
-        dim = int(np.sqrt(len(first)))
-        dim_range = np.arange(dim)
-        for i in range(dim):
-            for k in range(dim):
-                new_mat[k+(i * dim)] = np.sum(first[dim_range+(i * dim)]*second[k+(dim_range* dim)])
-        return new_mat
+        """The matrix multiplier for flat arrays, used heavily in the dunder method __mul__"""
+        if isinstance(first, np.ndarray) and isinstance(second, np.ndarray):
+            new_mat = np.zeros(len(first),dtype=np.complex128)
+            dim = int(np.sqrt(len(first)))
+            dim_range = np.arange(dim)
+            for i in range(dim):
+                for k in range(dim):
+                    new_mat[k+(i * dim)] = np.sum(first[dim_range+(i * dim)]*second[k+(dim_range* dim)])
+            return new_mat
+        else:
+            raise GateError(f"The inputted parameters have the wrong type of type {type(first)} and {type(second)}, expected two numpy arrays")
 
     def __mul__(self, other):       #matrix multiplication
+        """The matrix multiplier, allowing multiple types of Gates and also applying Gates to Qubits"""
         if isinstance(self, FWHT):
             return self.FWHT(other)
         elif isinstance(self, QFT):
@@ -628,7 +606,8 @@ class Gate:            #creates a gate class to enable unique properties
         else:
             raise GateError(f"Matrix multiplication cannot occur with classes {type(self)} and {type(other)}")
     
-    def __and__(self, other: "Gate") -> "Gate":         #direct sum                   
+    def __and__(self, other: "Gate") -> "Gate":         #direct sum      
+        """The direct sum function, mostly used to create Control Gates"""             
         if isinstance(self, Gate) and isinstance(other, Gate):                   #DONT TOUCH WITH THE BINARY SHIFTS AS THIS ISNT IN POWERS OF 2
             new_info = "This is a direct sum of gates: "f"{self.name}"" and "f"{other.name}"
             new_name = f"{self.name} + {other.name}"
@@ -646,14 +625,12 @@ class Gate:            #creates a gate class to enable unique properties
             raise GateError(f"Direct sum cannot occur with types {type(self)} and {type(other)}, expected two Gate classes")
     
     def __iadd__(self, other: "Gate") -> "Gate":                                  #used almost exclusively for the CNot gate creator
+        """The iterative direct sum, to be able to loop direct sums, mostly used for COntrol Gate construction"""
         if isinstance(other, Gate):
             self = self & other
             return self
         else:
             raise GateError(f"Gate addition cannot occur with types {type(self)} and {type(other)}, expected two Gate classes")
-        
-    def gate_info(self):
-        print(qc_dat.gate_info)
 
 class FWHT(Gate):
     def __init__(self):
@@ -850,9 +827,11 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         Returns:
                 float: The Shannon entropy"""
         if self.state is not None and state is None:
-            state = self.state
-
-        if state is not None and state.state_type == "mixed":
+            if isinstance(self.state, Qubit):
+                state = self.state
+            else:
+                raise DensityError(f"self.state is of type {type(self.state)}, expected Qubit class")
+        if isinstance(state, Qubit) and state.state_type == "mixed":
             entropy = 0
             for weights in state.weights:
                 if weights > 0:
@@ -861,7 +840,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 entropy = 0.0
             return entropy
         else:
-            raise DensityError(f"No mixed Quantum state provided")
+            raise DensityError(f"No mixed Quantum state of type Qubit provided")
         
     def quantum_conditional_entropy(self, rho_a: np.ndarray=None, rho_b: np.ndarray=None) -> float:    #rho is the one that goes first in S(A|B)
         """Computes the quantum conditional entropy of two states
@@ -872,10 +851,13 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         Returns:
             self.cond_ent: if self.rho_a and self.rho_b are the default
             cond_ent: if using custom rho_a and rho_b"""
-        if self.rho_a is not None and rho_a is None:
-            rho_1 = self.rho_a
-        if self.rho_b is not None and rho_b is None:
-            rho_2 = self.rho_b
+        if isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarray):
+            if rho_a is None:
+                rho_1 = self.rho_a
+            if rho_b is None:
+                rho_2 = self.rho_b
+        else:
+            raise DensityError(f"Incorrect type {type(self.rho_a)} and type {type(self.rho_b)}, expeted both numpy arrays")
         cond_ent = self.vn_entropy(rho_1) - self.vn_entropy(rho_2)
         if rho_a is None and rho_b is None:
             self.cond_ent = cond_ent
@@ -897,28 +879,42 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         else:
             raise DensityError(f"You need to provide rho a, rho b and rho for this computation to work")
     
-    def quantum_relative_entropy(self, rho=None) -> float:   #rho is again the first value in S(A||B)  pretty sure this is wrong
-        """Computes the quantum relative entropy of two Quantum states"""
+    def quantum_relative_entropy(self, rho_a:np.ndarray=None, rho_b:np.ndarray=None) -> float:   #rho is again the first value in S(A||B)  pretty sure this is wrong
+        """Computes the quantum relative entropy of two Quantum states
+        Args:
+            self: The density instance
+            rho_a: Defaults to self.rho_a, but can take any given rho
+            rho_b: Defaults to self.rho_b, but can take any given rho
+        Returns:
+            float: returns the quantum relative entropy"""
         if isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarray):
-            rho_a = np.zeros(len(self.rho_a),dtype=np.complex128)
-            rho_b = np.zeros(len(self.rho_b),dtype=np.complex128)
-            for i, val in enumerate(self.rho_a):
-                rho_a[i] = val
-                rho_a[i] += 1e-10 if val == 0 else 0
-            for i, val in enumerate(self.rho_b):
-                rho_b[i] = val
-                rho_b[i] += 1e-10 if val == 0 else 0
-            if rho in ["rho_a","a","A"]:
-                quant_rel_ent = trace(rho_a*(flatten_matrix(logm(reshape_matrix(rho_a)) - logm(reshape_matrix(rho_b)))))
-                return quant_rel_ent
-            elif rho in ["rho_b","b","B"]:
-                quant_rel_ent = trace(rho_b*(flatten_matrix(logm(reshape_matrix(rho_b)) - logm(reshape_matrix(rho_a)))))
-                return quant_rel_ent
+            if rho_a is None:
+                rho_a = self.rho_a
+            if rho_b is None:
+                rho_b = self.rho_b
+        if isinstance(rho_a, np.ndarray) and isinstance(rho_b, np.ndarray):
+            rho_1 = np.zeros(len(rho_a),dtype=np.complex128)
+            rho_2 = np.zeros(len(rho_b),dtype=np.complex128)
+            for i, val in enumerate(rho_a):
+                rho_1[i] = val
+                rho_2[i] += 1e-10 if val == 0 else 0
+            for i, val in enumerate(rho_b):
+                rho_1[i] = val
+                rho_2[i] += 1e-10 if val == 0 else 0
+            quant_rel_ent = trace(rho_1*(flatten_matrix(logm(reshape_matrix(rho_1)) - logm(reshape_matrix(rho_2)))))
+            return quant_rel_ent
         else:
-            raise DensityError(f"You need to provide two rhos of the correct type")
+            raise DensityError(f"Incorrect type {type(self.rho_a)} and type {type(self.rho_b)}, expected both numpy arrays")
 
     def partial_trace(self, **kwargs) -> np.ndarray:
-        """Computes the partial trace of a state, can apply a trace from either 'side' and can trace out an arbitrary amount of qubits"""
+        """Computes the partial trace of a state, can apply a trace from either 'side' and can trace out an arbitrary amount of qubits
+        Args:
+            self: The density instance
+            **kwargs
+            trace_out_system:str : Chooses between A and B which to trace out, defaults to B
+            state_size:int : Chooses the number of Qubits in the trace out state, defaults to 1 Qubit
+        Returns:self.rho_a if trace_out_system = B
+                self.rho_b if trace_out_system = A"""
         trace_out_system = kwargs.get("trace_out", "B")
         trace_out_state_size = int(kwargs.get("state_size", 1))
         rho_length = len(self.rho)
@@ -949,7 +945,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         new_mat = np.zeros(self.length,dtype=np.complex128)
         if isinstance(self, Density) and isinstance(other, Density):
             new_mat = self.rho - other.rho
-            return Density(name=new_name, info=qc_dat.Density_matrix_info, rho=np.array(new_mat))
+            return Density(name=new_name, rho=np.array(new_mat))
         else:
             raise DensityError(f"Matrix subtraction cannot be of type {type(self)} and type {type(other)}, expected two Density classes")
         
@@ -958,7 +954,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         new_mat = np.zeros(self.length,dtype=np.complex128)
         if isinstance(self, Density) and isinstance(other, Density):
             new_mat = self.rho + other.rho
-            return Density(name=new_name, info=qc_dat.Density_matrix_info, rho=np.array(new_mat))
+            return Density(name=new_name, rho=np.array(new_mat))
         else:
             raise DensityError(f"Matrix addition cannot be of type {type(self)} and type {type(other)}, expected two Density classes")
 
@@ -1060,8 +1056,8 @@ Y_Gate = Gate.Y_Gate()
 Z_Gate = Gate.Z_Gate()
 Identity = Gate.Identity()
 Hadamard = Gate.Hadamard()
-CNot_flip = Gate.C_Gate(type="inverted" , info=qc_dat.C_Not_matrix,name="CNot_flip")
-CNot = Gate.C_Gate(info=qc_dat.C_Not_matrix,name="CNot")
+CNot_flip = Gate.C_Gate(type="inverted", name="CNot_flip")
+CNot = Gate.C_Gate(type="standard", name="CNot")
 Swap = Gate.Swap()
 S_Gate = Gate.P_Gate(theta=np.pi/2)
 T_Gate = Gate.P_Gate(theta=np.pi/4)
@@ -1179,7 +1175,7 @@ class Circuit:
     def run(self):
         """Can be used to run the whole program on an inital state and set of gates, can be used without this function also"""
         if self.gates == []:
-            raise QuantumCircuitError(qc_dat.error_empty_circuit)
+            raise QuantumCircuitError(f"Needs to have gates to be able to apply gates")
         else:
             self.compute_final_gate(text=False)
             self.apply_final_gate(text=False)
@@ -1371,7 +1367,7 @@ class Grover:                                               #this is the Grover 
             search_space: int = 2**self.n       #computes the search space for the n provided
             print_array(f"Using {self.n} Qubits with a search space of {search_space}")
         else:
-            raise QC_error(qc_dat.error_class)
+            raise QC_error(f"self.n is of the wrong type {type(self.n)}, expected type int")
 
         if self.rand_ov:
             self.oracle_values = []

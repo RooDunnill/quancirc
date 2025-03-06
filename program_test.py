@@ -30,8 +30,8 @@ print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
 print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
 print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy()}")
 print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy()}")
-print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
-print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
+print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy()}")
+print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy()}")
 
 qpp = qp @ qp
 qmm = qm @ qm
@@ -46,8 +46,8 @@ print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
 print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
 print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy()}")
 print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy()}")
-print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
-print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
+print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy()}")
+print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy()}")
 
 test_circuit = Circuit(n=3)
 test_circuit.add_single_gate(gate=Hadamard, gate_location=0)
