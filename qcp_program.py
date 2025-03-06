@@ -8,6 +8,7 @@ from rich.console import Console
 from rich.theme import Theme
 from scipy.linalg import sqrtm, logm
 import cProfile
+from qc_errors import *
 
 
 custom_theme = Theme({"qubit":"#587C53",                 #Fern Green
@@ -99,14 +100,7 @@ class qc_dat:                    #defines a class to store variables in to recal
     error_kwargs = "not enough key word arguments provided"
     error_empty_circuit = "the circuit is empty and needs atleast one gate to work"
 
-class QC_error(Exception):                 #a custom error class to raise custom errors from qc_dat
-    """Creates my own custom errors defined in qc_dat."""
-    def __init__(self, message):
-        self.message = message
-        super().__init__(self.message)
 
-    def __str__(self):
-        return f"{self.message}"
  
 def trace(matrix) -> float:
     """Just computes the trace of a matrix, mostly used as a checker"""
@@ -273,7 +267,7 @@ class Qubit:                                           #creates the qubit class
                 self.vector = self @ state.vector
                 self.name = f"|{self.name[1:self_name_size+1]}{state.name[1:state_name_size+1]}>"
         else:
-            raise QC_error(qc_dat.error_class)
+            raise QubitError(f"The Seperable Qubit states cannot be of type {type(qubit_states[0])}, expected Qubit or numpy array")
 
     @classmethod                 #creates the default qubits, using class methods allows you to define an instance within the class
     def q0(cls, **kwargs):
@@ -359,14 +353,14 @@ class Qubit:                                           #creates the qubit class
             self.vector = new_vector
             return self.vector    #returns a new Object with a new name too
         else:
-            raise QC_error(qc_dat.error_class)
+            raise QubitError(f"The tensor product operation cannot be applied to type {type(other)}, expected Qubit or numpy array")
 
     def __ipow__(self, other):                 #denoted **=
-        if isinstance(self, Qubit):  
+        if isinstance(self, Qubit) and isinstance(other, Qubit):  
             self = self @ other
             return self
         else:
-            raise QC_error(qc_dat.error_class)
+            raise QubitError(f"Error from inputs type {type(self)} and {type(other)}, expected two Qubit class inputs")
 
     def norm(self):                 #dunno why this is here ngl, just one of the first functions i tried
         normalise = np.sqrt(sum([i*np.conj(i) for i in self.vector]))
@@ -422,7 +416,7 @@ class Gate:            #creates a gate class to enable unique properties
         self.info = kwargs.get("info", None)
         self.matrix = np.array(kwargs.get("matrix", None),dtype=np.complex128)
         if self.matrix is None:
-            raise QC_error(qc_dat.error_kwargs)
+            raise GateError(f"Gates can only be initialised if they are provided with a matrix")
         self.length: int = len(self.matrix)
         self.dim: int = int(np.sqrt(self.length))
         self.n: int =  0 if self.dim == 0 else int(np.log2(self.dim))
@@ -517,14 +511,14 @@ class Gate:            #creates a gate class to enable unique properties
                             new_mat[index] += self.matrix[i+self.dim*m]*other.matrix[k+other.dim*j]
             return Gate(name=new_name, info=new_info, matrix=new_mat)
         else:
-            raise QC_error(qc_dat.error_class)
+            raise GateError(f"The tensor product cannot occure with type {type(self)} and type {type(other)}, expected two Gate class types")
 
     def __ipow__(self, other: "Gate") -> "Gate":    #denoted **=
         if isinstance(self, Gate):  
             self = self @ other
             return self
         else:
-            raise QC_error(qc_dat.error_class)
+            raise GateError(f"Error from inputs type {type(self)} and {type(other)}, expected two Gate class inputs")
         
     def FWHT(self, other):
         if isinstance(other, Qubit):
@@ -543,6 +537,7 @@ class Gate:            #creates a gate class to enable unique properties
         else:
             raise TypeError(f"This can't act on this type, only on Qubits")
 
+    @staticmethod
     def fractional_binary(qub,m):             #for shors
         num_bits = int(np.ceil(np.log2(qub.dim)))
         x_vals = qub.name[1:1+num_bits]
@@ -551,20 +546,18 @@ class Gate:            #creates a gate class to enable unique properties
         if m <= num_bits:
             for i in range(m):
                 val += float(frac_bin[i+2])*2**-(i+1)
-                print(float(frac_bin[i+2]))
-            print("new func")
             return val
 
 
     def QFT(self, other):          #also for shors although used in other algorithms
         old_name = other.name
         n = int(np.ceil(np.log2(other.dim)))
-        frac_init = fractional_binary(other,1)
+        frac_init = Gate.fractional_binary(other,1)
         four_qub_init = Qubit(vector=np.array([1,np.exp(2*1j*np.pi*frac_init)]))
         four_qub_init.norm()
         four_qub_sum = four_qub_init
         for j in range(n-1):
-            frac = fractional_binary(other,j+2)
+            frac = Gate.fractional_binary(other,j+2)
             four_qub = Qubit(vector=np.array([1,np.exp(2*1j*np.pi*frac)]))
             four_qub.norm()
             four_qub_sum **= four_qub
@@ -597,7 +590,7 @@ class Gate:            #creates a gate class to enable unique properties
                     other.name = self.name + other.name
                     return other
                 else:
-                    raise QC_error(qc_dat.error_mat_dim)
+                    raise QubitError(f"Both the gate and the Qubit must be of the same dimension to perform matrix multiplication. Gate has dim {self.dim}, Qubit {other.dim}")
             elif isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
                 if self.dim == other.dim:
                     new_mat = Gate.mul_flat(self.matrix, other.matrix)
@@ -611,7 +604,7 @@ class Gate:            #creates a gate class to enable unique properties
                         self.matrix = np.array(new_mat, dtype=np.complex128)
                         return self
                 else:
-                    raise QC_error(qc_dat.error_mat_dim)
+                    raise GateError(f"Both the gates must be of the same dimension to perform matrix multiplication. The gates have dim {self.dim} and {other.dim}")
             elif isinstance(other, np.ndarray):
                 other_dim = int(np.sqrt(len(other)))
                 if self.dim == other_dim:
@@ -619,7 +612,7 @@ class Gate:            #creates a gate class to enable unique properties
                     self.matrix = np.array(new_mat, dtype=np.complex128)
                     return self
                 else:
-                    raise QC_error(f"{self} and {other} must be the same dimensions")
+                    raise GateError(f"Both the arrays must be of the same dimension to perform matrix multiplication. The gates have dim {self.dim} and {other.dim}")
             else:
                 raise TypeError(f"The second matrix is of type {type(other)} and isn't compatible")
         elif isinstance(self, np.ndarray):
@@ -631,10 +624,10 @@ class Gate:            #creates a gate class to enable unique properties
                 other.matrix = new_mat
                 return other
         else:
-            raise QC_error(qc_dat.error_class)
+            raise GateError(f"Matrix multiplication cannot occur with classes {type(self)} and {type(other)}")
     
     def __and__(self, other: "Gate") -> "Gate":         #direct sum                   
-        if isinstance(other, Gate):                   #DONT TOUCH WITH THE BINARY SHIFTS AS THIS ISNT IN POWERS OF 2
+        if isinstance(self, Gate) and isinstance(other, Gate):                   #DONT TOUCH WITH THE BINARY SHIFTS AS THIS ISNT IN POWERS OF 2
             new_info = "This is a direct sum of gates: "f"{self.name}"" and "f"{other.name}"
             new_name = f"{self.name} + {other.name}"
             new_dim: int = self.dim + other.dim
@@ -648,14 +641,14 @@ class Gate:            #creates a gate class to enable unique properties
                     new_mat[self.dim+j+self.dim*new_dim+new_dim*i] += other.matrix[j+other.dim*i]
             return Gate(name=new_name, matrix=np.array(new_mat), info=new_info)
         else:
-            raise QC_error(qc_dat.error_class)
+            raise GateError(f"Direct sum cannot occur with types {type(self)} and {type(other)}, expected two Gate classes")
     
     def __iadd__(self, other: "Gate") -> "Gate":                                  #used almost exclusively for the CNot gate creator
         if isinstance(other, Gate):
             self = self & other
             return self
         else:
-            raise QC_error(qc_dat.error_class)
+            raise GateError(f"Gate addition cannot occur with types {type(self)} and {type(other)}, expected two Gate classes")
         
     def gate_info(self):
         print(qc_dat.gate_info)
@@ -697,7 +690,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                     desc_name =f"Density matrix of {self.state_type} qubit {self.state.name}:"
             self.name = kwargs.get("name", desc_name)
         else:
-            raise QC_error(qc_dat.error_class)
+            raise DensityError(f"The inputted state must be a Qubit class, not of type {type(self.state)}")
         self.rho = kwargs.get("rho", None if self.state is None else self.construct_density_matrix(self.state))
         self.length = len(self.rho) if self.state is None else self.state.dim**2
         self.dim = int(np.sqrt(self.length))
@@ -731,7 +724,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         if abs(1 -trace(rho)) < 1e-5:
             return rho
         else:
-            raise QC_error(qc_dat.error_trace)
+            raise QC_error(f"The trace of a density matrix must be 1, calculated trace is {trace(rho)}")
             
     def mixed_state(self, calc_state: Qubit, **kwargs) -> np.ndarray:
         state_vector = calc_state.vector
@@ -759,7 +752,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             return rho
         else:
             print(f"The calculated trace is {rho_trace}")
-            raise QC_error(qc_dat.error_trace)
+            raise QC_error(f"The trace of a density matrix must be 1, calculated trace is {trace(rho)}")
 
 
     def fidelity(self) -> float:
@@ -797,7 +790,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 entropy = 0.0
             return entropy
         else:
-            raise QC_error(f"No rho matrix provided")
+            raise DensityError(f"No rho matrix provided")
         
     def shannon_entropy(self, rho: np.ndarray=None) -> float:
         if self.state is not None and self.state_type == "mixed":
@@ -809,7 +802,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 entropy = 0.0
             return entropy
         else:
-            raise QC_error(f"No mixed state provided")
+            raise DensityError(f"No mixed state provided")
         
     def quantum_conditional_entropy(self, rho=None) -> float:    #rho is the one that goes first in S(A|B)
         if all(isinstance(i, np.ndarray) for i in (self.rho, self.rho_a, self.rho_b)):
@@ -820,14 +813,14 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 cond_ent = self.vn_entropy(self.rho) - self.vn_entropy(self.rho_b)
                 return cond_ent
         else:
-            raise QC_error("rho and rho a and rho b do not all have the same type")
+            raise DensityError("rho and rho a and rho b do not all have the same type")
             
     def quantum_mutual_info(self) -> float:
         if all(isinstance(i, np.ndarray) for i in (self.rho, self.rho_a, self.rho_b)):
             mut_info = self.vn_entropy(self.rho_a) + self.vn_entropy(self.rho_b) - self.vn_entropy(self.rho)
             return mut_info
         else:
-            raise QC_error(f"You need to provide rho a, rho b and rho for this computation to work")
+            raise DensityError(f"You need to provide rho a, rho b and rho for this computation to work")
     
     def quantum_relative_entropy(self, rho=None) -> float:   #rho is again the first value in S(A||B)  pretty sure this is wrong
         if isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarray):
@@ -846,7 +839,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 quant_rel_ent = trace(rho_b*(flatten_matrix(logm(reshape_matrix(rho_b)) - logm(reshape_matrix(rho_a)))))
                 return quant_rel_ent
         else:
-            raise QC_error(f"You need to provide two rhos of the correct type")
+            raise DensityError(f"You need to provide two rhos of the correct type")
 
     def partial_trace(self, **kwargs) -> np.ndarray:
         trace_out_system = kwargs.get("trace_out", "B")
@@ -872,7 +865,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                     self.rho_b = new_mat
                     return self.rho_b
         else:
-            QC_error(qc_dat.error_class)
+            DensityError(f"self.rho cannot be of type {type(self.rho)}, expected numpy array")
 
     def __sub__(self, other: "Density") -> "Density":
         new_name: str = f"{self.name} - {other.name}"
@@ -881,7 +874,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             new_mat = self.rho - other.rho
             return Density(name=new_name, info=qc_dat.Density_matrix_info, rho=np.array(new_mat))
         else:
-            raise QC_error(qc_dat.error_class)
+            raise DensityError(f"Matrix subtraction cannot be of type {type{self}} and type {type(other)}, expected two Density classes")
         
     def __add__(self, other: "Density") -> "Density":
         new_name: str = f"{self.name} + {other.name}"
@@ -890,7 +883,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             new_mat = self.rho + other.rho
             return Density(name=new_name, info=qc_dat.Density_matrix_info, rho=np.array(new_mat))
         else:
-            raise QC_error(qc_dat.error_class)
+            raise DensityError(f"Matrix addition cannot be of type {type{self}} and type {type(other)}, expected two Density classes")
 
 
 class Measure(Density):
@@ -949,7 +942,7 @@ class Measure(Density):
                     self.rho = self.density.rho
                 return np.array([self.rho[i + i * self.dim].real for i in range(self.dim)], dtype=np.float64)
             else:
-                raise QC_error(qc_dat.error_kwargs)
+                raise MeasurementError(f"Must either be running in fast, or self.density is of the wrong type {type(self.density)}, expected Density class")
         
     def measure_state(self, qubit: int = None, povm: list = None, text = False) -> str:
         PD = self.list_probs(qubit, povm)
@@ -1045,7 +1038,7 @@ class Circuit:
                 upper_id = Gate.Identity(n=gate_location)
                 lower_id = Gate.Identity(n=self.n - gate_location - 1)
             else:
-                raise QC_error(f"The gate location connot be of {type(gate_location)}, expect type int")
+                raise QuantumCircuitError(f"The gate location connot be of {type(gate_location)}, expect type int")
             ndim_gate = upper_id @ gate @ lower_id
             self.gates.append(ndim_gate)
             if text:
@@ -1097,7 +1090,7 @@ class Circuit:
 
     def run(self):
         if self.gates == []:
-            raise QC_error(qc_dat.error_empty_circuit)
+            raise QuantumCircuitError(qc_dat.error_empty_circuit)
         else:
             self.compute_final_gate(text=False)
             self.apply_final_gate(text=False)
@@ -1108,7 +1101,7 @@ class Circuit:
 
     def return_info(self, attr):
         if not hasattr(self, attr): 
-            raise QC_error(f"This parameter {attr} of type {type(attr)} does not exist")
+            raise QuantumCircuitError(f"This parameter {attr} of type {type(attr)} does not exist")
         return getattr(self, attr)  
         
     
@@ -1411,3 +1404,5 @@ def main():
     print_array(se_test)
     print_array(se_test.density)
     print_array(se_test.se)
+    print_array(Q * q0)
+    print_array(Hadamard * Hadamard @ q0)
