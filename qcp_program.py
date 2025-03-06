@@ -713,6 +713,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         return f"[bold]{self.name}[/bold]\n[not bold]{self.rho}[/not bold]"
     
     def construct_density_matrix(self, calc_state=None) -> np.ndarray:
+        """Assigns which density constructor to use for the given Qubit type"""
         if isinstance(calc_state, Qubit):
             if calc_state.state_type in ["pure", "seperable", "entangled"]:
                 return self.generic_density(calc_state)
@@ -720,6 +721,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 return self.mixed_state(calc_state)
 
     def generic_density(self, calc_state: Qubit, **kwargs) -> np.ndarray:       #taken from the old density matrix function
+        """Computes the density matrix for any pure combination of states"""
         state_vector = calc_state.vector
         calc_state_dim = len(state_vector)
         rho = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
@@ -733,6 +735,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             raise QC_error(f"The trace of a density matrix must be 1, calculated trace is {trace(rho)}")
             
     def mixed_state(self, calc_state: Qubit, **kwargs) -> np.ndarray:
+        """Computes the density matrix for a mixed Qubit state"""
         state_vector = calc_state.vector
         if isinstance(state_vector[0], np.ndarray):
             state_vector: np.ndarray = calc_state.vector
@@ -761,28 +764,68 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             raise QC_error(f"The trace of a density matrix must be 1, calculated trace is {trace(rho)}")
 
 
-    def fidelity(self) -> float:
-        if isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarray):
-            rho1 = reshape_matrix(self.rho_a)
-            rho2 = self.rho_b
-            sqrt_rho1: np.ndarray = sqrtm(rho1)
-            flat_sqrt_rho1 = flatten_matrix(sqrt_rho1)
-            product =  flat_sqrt_rho1 * rho2 * flat_sqrt_rho1
-            sqrt_product = sqrtm(reshape_matrix(product))
-            flat_sqrt_product = flatten_matrix(sqrt_product)
-            mat_trace = trace(flat_sqrt_product)
-            mat_trace_conj = np.conj(mat_trace)
-            self.fidelity_ab = mat_trace*mat_trace_conj
-            return self.fidelity_ab
+    def fidelity(self, rho_1: np.ndarray=None, rho_2: np.ndarray=None) -> float:
+        """Computes the fidelity between two states
+        Args:
+            self: The Density instance
+            rho_1: Defaults to self.rho_a, but can take any given rho
+            rho_2: Defaults to self.rho_b, but can take any given rho
+        Returns:
+            self.fidelity_ab: if self.rho_a and self.rho_b are the default
+            fidelity: if using custom rho_1 and rho_2"""
+        if self.rho_a is not None and rho_1 is None:
+            rho_1 = self.rho_a
+        if self.rho_b is not None and rho_2 is None:
+            rho_2 = self.rho_b
+            if isinstance(rho_1, np.ndarray) and isinstance(rho_2, np.ndarray):
+                rho_1 = reshape_matrix(rho_1)
+                sqrt_rho1: np.ndarray = sqrtm(rho_1)
+                flat_sqrt_rho1 = flatten_matrix(sqrt_rho1)
+                product =  flat_sqrt_rho1 * rho_2 * flat_sqrt_rho1
+                sqrt_product = sqrtm(reshape_matrix(product))
+                flat_sqrt_product = flatten_matrix(sqrt_product)
+                mat_trace = trace(flat_sqrt_product)
+                mat_trace_conj = np.conj(mat_trace)
+                fidelity = mat_trace*mat_trace_conj
+                if rho_1 is None and rho_2 is None:
+                    self.fidelity_ab = fidelity_ab
+                    return self.fidelity_ab
+                else:
+                    return fidelity
 
-    def trace_distance(self):
-        diff_mat = self.rho_a - self.rho_b
-        rho_a_dim = int(np.sqrt(len(self.rho_a)))
-        dim_range = np.arange(rho_a_dim)
-        self.trace_dist = np.sum(0.5 * np.abs(diff_mat[dim_range + rho_a_dim * dim_range]))
-        return self.trace_dist
+    def trace_distance(self, rho_1: np.ndarray=None, rho_2: np.ndarray=None) -> float:
+        """Computes the trace distance of two states
+        Args:
+            self: The Density instance
+            rho_1: Defaults to self.rho_a, but can take any given rho
+            rho_2: Defaults to self.rho_b, but can take any given rho
+        Returns:
+            self.trace_dist: if self.rho_a and self.rho_b are the default
+            trace_dist: if using custom rho_1 and rho_2"""
+        if self.rho_a is not None and rho_1 is None:
+            rho_1 = self.rho_a
+        if self.rho_b is not None and rho_2 is None:
+            rho_2 = self.rho_b
+        diff_mat = rho_1 - rho_2
+        rho_dim = int(np.sqrt(len(rho_1)))
+        dim_range = np.arange(rho_dim)
+        trace_dist = np.sum(0.5 * np.abs(diff_mat[dim_range + rho_dim * dim_range]))
+        if rho_1 is None and rho_2 is None:
+            self.trace_dist = trace_dist
+            return self.trace_dist
+        else:
+            return trace_dist
+        
 
     def vn_entropy(self, rho: np.ndarray=None) -> float:
+        """Computes the Von Neumann entropy of a state
+        Args:
+            self: The Density instance
+            rho: Defaults to self.rho if no rho given
+                 Can compute vne for any given rho
+        Returns:
+            float: The Von Neumann entropy
+        """
         if self.rho is not None and rho is None:
             rho = self.rho
         if isinstance(rho, np.ndarray):
@@ -798,30 +841,56 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         else:
             raise DensityError(f"No rho matrix provided")
         
-    def shannon_entropy(self, rho: np.ndarray=None) -> float:
-        if self.state is not None and self.state_type == "mixed":
+    def shannon_entropy(self, state: Qubit=None) -> float:
+        """computes the shannon entropy of a mixed state
+        Args:
+            self: The density instance
+            state: Defaults to self.state if no state given
+                   Can compute se for any given state
+        Returns:
+                float: The Shannon entropy"""
+        if self.state is not None and state is None:
+            state = self.state
+
+        if state is not None and state.state_type == "mixed":
             entropy = 0
-            for weights in self.state.weights:
+            for weights in state.weights:
                 if weights > 0:
                     entropy -= weights * np.log2(weights)
             if entropy < 1e-10:
                 entropy = 0.0
             return entropy
         else:
-            raise DensityError(f"No mixed state provided")
+            raise DensityError(f"No mixed Quantum state provided")
         
-    def quantum_conditional_entropy(self, rho=None) -> float:    #rho is the one that goes first in S(A|B)
-        if all(isinstance(i, np.ndarray) for i in (self.rho, self.rho_a, self.rho_b)):
-            if rho == "rho_a" or "a" or "A":
-                cond_ent = self.vn_entropy(self.rho) - self.vn_entropy(self.rho_a)
-                return cond_ent
-            elif rho == "rh0_b" or "b" or "B":
-                cond_ent = self.vn_entropy(self.rho) - self.vn_entropy(self.rho_b)
-                return cond_ent
+    def quantum_conditional_entropy(self, rho_a: np.ndarray=None, rho_b: np.ndarray=None) -> float:    #rho is the one that goes first in S(A|B)
+        """Computes the quantum conditional entropy of two states
+        Args:
+            self: The density instance
+            rho_a: Defaults to self.rho_a, but can take any given rho
+            rho_b: Defaults to self.rho_b, but can take any given rho
+        Returns:
+            self.cond_ent: if self.rho_a and self.rho_b are the default
+            cond_ent: if using custom rho_a and rho_b"""
+        if self.rho_a is not None and rho_a is None:
+            rho_1 = self.rho_a
+        if self.rho_b is not None and rho_b is None:
+            rho_2 = self.rho_b
+        cond_ent = self.vn_entropy(rho_1) - self.vn_entropy(rho_2)
+        if rho_a is None and rho_b is None:
+            self.cond_ent = cond_ent
+            return self.cond_ent
         else:
-            raise DensityError("rho and rho a and rho b do not all have the same type")
+            return cond_ent
             
     def quantum_mutual_info(self) -> float:
+        """Computes the quantum mutual information of a system
+        Args:
+            self: The density instance
+                  Takes the internal self.rho, self.rho_a and self.rho_b as inputs
+                  self.rho is the overall system while rho_a and rho_b are the traced out components of the system
+        Returns:
+            float: returns the quantum mutual information of the three rho matrices"""
         if all(isinstance(i, np.ndarray) for i in (self.rho, self.rho_a, self.rho_b)):
             mut_info = self.vn_entropy(self.rho_a) + self.vn_entropy(self.rho_b) - self.vn_entropy(self.rho)
             return mut_info
@@ -829,6 +898,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             raise DensityError(f"You need to provide rho a, rho b and rho for this computation to work")
     
     def quantum_relative_entropy(self, rho=None) -> float:   #rho is again the first value in S(A||B)  pretty sure this is wrong
+        """Computes the quantum relative entropy of two Quantum states"""
         if isinstance(self.rho_a, np.ndarray) and isinstance(self.rho_b, np.ndarray):
             rho_a = np.zeros(len(self.rho_a),dtype=np.complex128)
             rho_b = np.zeros(len(self.rho_b),dtype=np.complex128)
@@ -848,6 +918,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             raise DensityError(f"You need to provide two rhos of the correct type")
 
     def partial_trace(self, **kwargs) -> np.ndarray:
+        """Computes the partial trace of a state, can apply a trace from either 'side' and can trace out an arbitrary amount of qubits"""
         trace_out_system = kwargs.get("trace_out", "B")
         trace_out_state_size = int(kwargs.get("state_size", 1))
         rho_length = len(self.rho)
@@ -927,15 +998,14 @@ class Measure(Density):
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.list_probs()}[/not bold]"
 
-    def measure_probs(self) -> str:
-        if self.measure_type == "projective":
-            return self.list_probs()
         
     def topn_measure_probs(self, **kwargs) -> np.ndarray:
+        """Gives the top n probabilities"""
         topn = kwargs.get("n", 8)
         return top_probs(self.list_probs(), topn)
     
     def list_probs(self, qubit: int = None, povm= None) -> np.ndarray:
+        """Gives the prob lists of a Quantum state"""
         if povm is not None:
             probs = np.array([np.real(trace(P * self.density.rho)) for P in povm], dtype=np.float64)
             return probs
@@ -952,6 +1022,7 @@ class Measure(Density):
                 raise MeasurementError(f"Must either be running in fast, or self.density is of the wrong type {type(self.density)}, expected Density class")
         
     def measure_state(self, qubit: int = None, povm: list = None, text = False) -> str:
+        """Measures the state and also computes the collapsed state"""
         PD = self.list_probs(qubit, povm)
         measurement = choices(range(len(PD)), weights=PD)[0]
         if povm is not None:
@@ -967,6 +1038,7 @@ class Measure(Density):
             return self.state
 
 def format_ket_notation(list_probs, **kwargs) -> str:
+    """Used for printing out as it gives each state and the ket associated with it"""
     list_type = kwargs.get("type", "all")
     num_bits = kwargs.get("num_bits", int(np.ceil(np.log2(len(list_probs)))))
     prec = kwargs.get("precision", 3)
@@ -1435,17 +1507,4 @@ def main():
     rho_Alice = np.array([1/3,0,0,0,1/3,0,0,0,1/3])
     rho_Bob = np.array([1/2,0,0,0,1/2,0,0,0,0])
     trace_calc = Density(rho_a=rho_Alice, rho_b=rho_Bob)
-    print_array(trace_calc.trace_distance())
-    o_v = [26,1161,805,1666,323,1744]
-    Grover(o_v).run()
-    Grover(o_v, iterations=13, n=11).run()
-    Grover(o_v, iterations=14, n=11).run()
-    Grover(o_v, iterations=15, n=11).run()
-    Grover(o_v, iterations=16, n=11).run()
-    Grover(o_v, iterations=34, n=11).run()
-    Grover(o_v, iterations=35, n=11).run()
-    Grover(o_v, iterations=36, n=11).run()
-    Grover(o_v, iterations=28, n=11).run()
-    Grover(o_v, iterations=56, n=11).run()
-    search_space = 2**11
-    print_array(((np.pi/4)*np.sqrt((search_space)) - 0.5))
+    

@@ -28,8 +28,8 @@ print_array(f"Rho A after tracing out B\n{test_den_object.partial_trace(trace_ou
 print_array(f"Trace Distance between A and B: {test_den_object.trace_distance()}")
 print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
 print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
-print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy(rho="A")}")
-print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy(rho="B")}")
+print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy()}")
+print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy()}")
 print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
 print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
 
@@ -44,8 +44,8 @@ print_array(f"Rho A after tracing out B\n{test_den_object.partial_trace(trace_ou
 print_array(f"Trace Distance between A and B: {test_den_object.trace_distance()}")
 print_array(f"Fidelity between state A and B: {test_den_object.fidelity()}")
 print_array(f"Quantum Mutual Information S(A:B): {test_den_object.quantum_mutual_info()}")
-print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy(rho="A")}")
-print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy(rho="B")}")
+print_array(f"Quantum Conditional Entropy S(A|B): {test_den_object.quantum_conditional_entropy()}")
+print_array(f"Quantum Conditional Entropy S(B|A): {test_den_object.quantum_conditional_entropy()}")
 print_array(f"Quantum Relative Entropy S(A||B): {test_den_object.quantum_relative_entropy(rho="A")}")
 print_array(f"Quantum Relative Entropy S(B||A): {test_den_object.quantum_relative_entropy(rho="B")}")
 
