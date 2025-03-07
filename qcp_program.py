@@ -167,6 +167,13 @@ def binary_entropy(prob: float) -> float:
             return -prob*np.log2(prob) - (1 - prob)*np.log2(1 - prob)
     else:
         raise QC_error(f"Binary value must be a float")
+    
+def diagonal(matrix):
+    dim = int(np.sqrt(len(matrix)))
+    new_mat = np.zeros(dim, dtype=np.complex128)
+    for i in range(dim):
+        new_mat[i] = matrix[i+i*dim]
+    return new_mat
 
 
 class Qubit:                                           #creates the qubit class
@@ -479,7 +486,20 @@ class Gate:            #creates a gate class to enable unique properties
     
     def __matmul__(self, other: "Gate") -> "Gate":      #adopts the matmul notation to make an easy tensor product of two square matrices
         """The tensor product for the two Qubit inputs"""
-        if isinstance(other, Gate):
+        if isinstance(self, Density) and isinstance(other, Density):
+            new_info: str = "This is a tensor product of density mats: "f"{self.name}"" and "f"{other.name}"
+            new_name: str = f"{self.name} @ {other.name}"
+            new_length: int = self.length*other.length
+            new_mat = np.zeros(new_length,dtype=np.complex128)
+            new_dim: int = self.dim * other.dim
+            for m in range(self.dim):
+                for i in range(self.dim):
+                    for j in range(other.dim):             #4 is 100 2 is 10
+                        for k in range(other.dim):   #honestly, this works but is trash and looks like shit
+                            index = k+j*new_dim+other.dim*i+other.dim*new_dim*m
+                            new_mat[index] += self.rho[i+self.dim*m]*other.rho[k+other.dim*j]
+            return Density(name=new_name, info=new_info, rho=new_mat)
+        if isinstance(self, Gate) and isinstance(other, Gate):
             new_info: str = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
             new_name: str = f"{self.name} @ {other.name}"
             new_length: int = self.length*other.length
@@ -983,14 +1003,18 @@ class Measure(Density):
             if self.state is not None:
                 self.density: Density = kwargs.get("density", Density(state=self.state))
                 self.rho: np.ndarray = self.density.rho
+                if self.rho is not None:
+                    self.length = len(self.rho)
+                    self.dim = int(np.sqrt(self.length))
+                    self.n = int(np.log2(self.dim))
             else:
                 self.density = kwargs.get("density", None)
                 self.rho = self.density.rho if isinstance(self.density, Density) else kwargs.get("rho", None)
-            self.measurement = self.measure_state()
-        if self.rho:
-            self.length = len(self.rho)
-            self.dim = int(np.sqrt(self.length))
-            self.n = int(np.log2(self.dim))
+                if self.rho is not None:
+                    self.length = len(self.rho)
+                    self.dim = int(np.sqrt(self.length))
+                    self.n = int(np.log2(self.dim))
+        self.pm_state = None
 
     def __str__(self):
         return self.__rich__()
@@ -1015,14 +1039,42 @@ class Measure(Density):
             elif isinstance(self.density, Density):
                 if self.rho is None:
                     self.rho = self.density.rho
-                return np.array([self.rho[i + i * self.dim].real for i in range(self.dim)], dtype=np.float64)
+                probs = np.array([self.rho[i + i * self.density.dim].real for i in range(self.density.dim)], dtype=np.float64)
+                return probs
             else:
                 raise MeasurementError(f"Must either be running in fast, or self.density is of the wrong type {type(self.density)}, expected Density class")
+        if qubit:
+            trace_density = self.density
+            if qubit == 1:
+                A_rho = np.array([1+1j])
+                B_rho = trace_density.partial_trace(trace_out="A", state_size = qubit)
+            elif qubit == self.n:
+                A_rho = trace_density.partial_trace(trace_out="B", state_size = self.n - qubit + 1)
+                B_rho == np.array([1+1j])
+            elif isinstance(qubit, int):
+                A_rho = trace_density.partial_trace(trace_out="B", state_size = self.n - qubit + 1)
+                B_rho = trace_density.partial_trace(trace_out="A", state_size = qubit)
+            else:
+                raise MeasurementError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
+            trace_density.partial_trace(trace_out="A", state_size = qubit - 1)
+            trace_density.rho = trace_density.rho_b
+            measure_rho = trace_density.partial_trace(trace_out="B", state_size = self.n - qubit)
+            measure_den = Density(rho=measure_rho)
+            if povm is not None:
+                probs = np.array([np.real(trace(P * measure_den.rho)) for P in povm], dtype=np.float64)
+                return probs, measure_rho, A_rho, B_rho
+            if povm is None:
+                probs = np.array([measure_den.rho[i + i * measure_den.dim].real for i in range(measure_den.dim)], dtype=np.float64)
+                return probs, measure_rho, A_rho, B_rho
+            
         
     def measure_state(self, qubit: int = None, povm: list = None, text = False) -> str:
         """Measures the state and also computes the collapsed state"""
-        PD = self.list_probs(qubit, povm)
-        measurement = choices(range(len(PD)), weights=PD)[0]
+        if qubit:
+            probs, measure_rho, A_rho, B_rho = self.list_probs(qubit, povm)
+        else:
+            probs = self.list_probs(qubit, povm)
+        measurement = choices(range(len(probs)), weights=probs)[0]
         if povm is not None:
             return f"Measured POVM outcome: {povm[measurement]}"
         
@@ -1034,6 +1086,17 @@ class Measure(Density):
             self.state.vector[measurement] = 1
             self.state.vector = self.state.vector / np.linalg.norm(self.state.vector)
             return self.state
+        elif isinstance(qubit, int):
+            num_bits = int(np.log2(1))
+            if text:
+                print_array(f"Measured the {qubit} qubit in state |{bin(measurement)[2:].zfill(num_bits)}>")
+            print_array(A_rho)
+            print_array(B_rho)
+            print_array(measure_rho)
+            post_measurement_den = Density(rho=A_rho) @ Density(rho=measure_rho) @ Density(rho=B_rho)
+            return Qubit(vector=diagonal(post_measurement_den.rho))
+        else:
+            MeasurementError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
 
 def format_ket_notation(list_probs, **kwargs) -> str:
     """Used for printing out as it gives each state and the ket associated with it"""
@@ -1480,29 +1543,13 @@ large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,
 
 def main():
     """Where you can run commands without it affecting porgrams that import this program"""
-    povm1 = np.array([1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
-    povm2 = np.array([0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0])
-    povm3 = np.array([0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0])
-    povm4 = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1])
-    qub = q0 @ qm
-    print_array(qub)
-    print_array(Measure(state=qub).list_probs(povm=[povm1,povm2,povm3,povm4]))
-    print_array(Measure(state=qub).measure_state(povm=[povm1,povm2,povm3,povm4]))
-    print_array(Measure(state=qub).list_probs())
-    test = Measure(state=qub).measure_state(text=True)
-    print_array(test)
-    vne_test = Qubit(type="seperable", vectors=[qp,qm,q1], detailed=True)
-    print_array(vne_test.density)
-    se_test = Qubit(type="mixed", vectors=[q0,q1], weights=[0.2,0.8],detailed=True)
-    print_array(se_test)
-    print_array(se_test.density)
-    print_array(se_test.se)
-    se_test = Qubit(type="mixed", vectors=[[1,0],[0,1]], weights=[0.2,0.8],detailed=True)
-    print_array(se_test)
-    print_array(se_test.density)
-    print_array(se_test.se)
-    print_array(Q * q0)
-    rho_Alice = np.array([1/3,0,0,0,1/3,0,0,0,1/3])
-    rho_Bob = np.array([1/2,0,0,0,1/2,0,0,0,0])
-    trace_calc = Density(rho_a=rho_Alice, rho_b=rho_Bob)
     
+    qub = Qubit(type="seperable", vectors=[q0,q1,q0,q0])
+    print_array(Density(state=qub).partial_trace(trace_out="B", state_size=3))
+    prob_test = Measure(state=qub).list_probs(qubit=2)
+    measure_test = Measure(state=qub).list_probs()
+    print_array(f"This is the prob list of the function: \n{measure_test}")
+    print_array(f"This is the probs of the individual qubit: \n{prob_test[0]}")
+    prob_test = Measure(state=qub).measure_state(qubit=2)
+    print_array(prob_test)
+    print_array(Q * q0)
