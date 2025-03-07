@@ -161,7 +161,7 @@ def top_probs(prob_list: np.ndarray, n: int) -> np.ndarray:             #sorts t
 def binary_entropy(prob: float) -> float:
     """Used to calculate the binary entropy of two probabilities"""
     if isinstance(prob, (float, int)):
-        if int(prob) ==  0 or int(prob) == 1:
+        if prob ==  0 or prob == 1:
             return 0.0
         else:
             return -prob*np.log2(prob) - (1 - prob)*np.log2(1 - prob)
@@ -748,11 +748,9 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             state_vector: np.ndarray = calc_state.vector
             calc_state_dim = len(state_vector[0])
         elif isinstance(state_vector[0], Qubit):
-            print_array(calc_state)
-            state_vector = np.zeros((len(calc_state.vector),calc_state.dim))
+            state_vector = np.zeros((len(calc_state.vector),calc_state.dim), dtype=np.complex128)
             for i in range(len(calc_state.vector)):
                 state_vector[i] = calc_state.vector[i].vector
-            print_array(state_vector)
             calc_state_dim = len(state_vector[0])
         qubit_conj: np.ndarray = np.conj(state_vector)
         rho = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
@@ -823,7 +821,6 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         else:
             return trace_dist
         
-
     def vn_entropy(self, rho: np.ndarray=None) -> float:
         """Computes the Von Neumann entropy of a state
         Args:
@@ -1553,3 +1550,13 @@ def main():
     prob_test = Measure(state=qub).measure_state(qubit=2)
     print_array(prob_test)
     print_array(Q * q0)
+    print(binary_entropy(0.125*0.5))
+    print(-1/8*np.log2(1/8) - (1 - 1/8)*np.log2(1 - 1/8))
+    print(np.log2(7/8))
+    print(3/8-7/8*np.log2(7/8))
+    qcs_coursework = Qubit(type="mixed", vectors=[q0, qp], weights=[0.5,0.5], detailed=True)
+    print_array(qcs_coursework.vne)
+    print_array(binary_entropy(1/4))
+    print_array(np.linalg.eig(reshape_matrix(np.array([0.75,0.25,0.25,0.25]))))
+    print_array(-0.853553*np.log2(0.853553)-0.146447*np.log2(0.146447))
+    print_array(Density(state_a = q1, state_b = qpi).fidelity())
