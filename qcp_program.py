@@ -1024,8 +1024,8 @@ class Measure(Density):
         topn = kwargs.get("n", 8)
         return top_probs(self.list_probs(), topn)
     
-    def list_probs(self, qubit: int = None, povm= None) -> np.ndarray:
-        """Gives the prob lists of a Quantum state"""
+    def list_probs(self, qubit: int=None, povm: np.ndarray=None) -> np.ndarray:
+        """Gives the prob lists of a Quantum state, can measure non projectively for the whole state and projectively for single Qubits"""
         if povm is not None:
             probs = np.array([np.real(trace(P * self.density.rho)) for P in povm], dtype=np.float64)
             return probs
@@ -1065,8 +1065,8 @@ class Measure(Density):
                 return probs, measure_rho, A_rho, B_rho
             
         
-    def measure_state(self, qubit: int = None, povm: list = None, text = False) -> str:
-        """Measures the state and also computes the collapsed state"""
+    def measure_state(self, qubit: int = None, povm: np.ndarray = None, text: bool = False) -> str:
+        """Measures the state and also computes the collapsed state. Can measure non projectively for all Qubits and projectively for single Qubits"""
         if qubit:
             probs, measure_rho, A_rho, B_rho = self.list_probs(qubit, povm)
         else:
@@ -1095,7 +1095,7 @@ class Measure(Density):
         else:
             MeasurementError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
 
-def format_ket_notation(list_probs, **kwargs) -> str:
+def format_ket_notation(list_probs: np.ndarray, **kwargs) -> str:
     """Used for printing out as it gives each state and the ket associated with it"""
     list_type = kwargs.get("type", "all")
     num_bits = kwargs.get("num_bits", int(np.ceil(np.log2(len(list_probs)))))
@@ -1139,10 +1139,13 @@ class Circuit:
                 new_vector = np.zeros(2**self.n, dtype=np.complex128)
                 new_vector[0] = 1
                 self.state = Qubit(vector=new_vector)
+        if self.state.n != self.n:
+            raise QuantumCircuitError(f"The initial Quantum state of qubit size {self.state.n} must have the same qubits as the size of the circuit of size {self.n}")
         self.start_gate: Gate = Gate.Identity(n=self.n)
         console.rule(f"Initialising a Quantum Circuit with {self.n} Qubits", style="circuit_header")
         console.rule("", style="circuit_header")
         self.measurement = None
+        self.final_gate = None
 
     def __str__(self):
         return self.__rich__()
@@ -1162,7 +1165,7 @@ class Circuit:
         for gate in reversed(self.gates):
             print_array(gate)
 
-    def add_gate(self, gate: Gate, text=True):
+    def add_gate(self, gate: Gate, text: bool=True):
         """Used to add a combined n x n gates to the gate array to then combine into one unitary gate"""
         self.gates.append(gate)
         if text:
@@ -1172,12 +1175,12 @@ class Circuit:
             else:
                 print_array(f"Adding the {gate.dim} x {gate.dim} gate: {gate.name} to the circuit")
 
-    def add_single_gate(self, gate: Gate, gate_location: int, text=True):
+    def add_single_gate(self, gate: Gate, gate_location: int, text: bool=True):
         """Adds a gate to a single qubit rather than inputting the entire combined gate"""
         if self.n:
             if isinstance(gate_location, int):
-                upper_id = Gate.Identity(n=gate_location)
-                lower_id = Gate.Identity(n=self.n - gate_location - 1)
+                upper_id = Gate.Identity(n=gate_location - 1)
+                lower_id = Gate.Identity(n=self.n - gate_location)
             else:
                 raise QuantumCircuitError(f"The gate location connot be of {type(gate_location)}, expect type int")
             ndim_gate = upper_id @ gate @ lower_id
@@ -1198,37 +1201,39 @@ class Circuit:
         if text:
             print_array(f"The final Gate is:")
             print_array(self.final_gate)
-        
         return self.final_gate
     
     def apply_final_gate(self, text=True) -> Qubit:
         """Applies the final gate to the Quantum state"""
+        if self.final_gate is None:
+            self.final_gate = self.compute_final_gate()
         self.state = self.final_gate * self.state
+        self.final_gate = None
         if text:
             print_array(f"The final state is:")
             print_array(self.state)
         return self.state
     
-    def list_probs(self, text=True) -> Measure:
+    def list_probs(self, qubit: int=None, povm: np.ndarray=None, text: bool=True) -> Measure:
         """Produces a list of probabilities of measurement outcomes of the state at any point"""
-        self.prob_distribution = Measure(state=self.state).list_probs()
+        self.prob_distribution = Measure(state=self.state).list_probs(qubit, povm)
         if text:
-            print_array(f"The projective probability distribution is:")
+            print_array(f"The projective probability distribution is:") 
             print_array(format_ket_notation(self.prob_distribution))
         return self.prob_distribution
     
-    def topn_probabilities(self, text=True, **kwargs) -> Measure:
+    def topn_probabilities(self, qubit: int=None, povm: np.ndarray=None, text:bool=True, **kwargs) -> Measure:
         """Only prints or returns a set number of states, mostly useful for large qubit sizes"""
         topn = kwargs.get("n", 8)
-        self.top_prob_dist = top_probs(self.list_probs(text=False), topn)
+        self.top_prob_dist = top_probs(self.list_probs(qubit, povm, text=False), topn)
         if text:
             print_array(f"The top {topn} probabilities are:")
             print_array(format_ket_notation(self.top_prob_dist, type="topn", num_bits=int(np.ceil(np.log2(self.state.dim)))))
         return self.top_prob_dist
     
-    def measure_state(self, text=True) -> Measure:
+    def measure_state(self, qubit: int=None, povm: np.ndarray=None, text: bool=True) -> Measure:
         """Measures the state from the list of probabilities"""
-        self.measure_state = Measure(state=self.state).measure_state()
+        self.measure_state = Measure(state=self.state).measure_state(qubit, povm)
         if text:
             print_array(f"The measured state is:")
             print_array(self.measure_state)
@@ -1475,6 +1480,8 @@ class Grover:                                               #this is the Grover 
 
 
 
+
+
 class print_array:    #made to try to make matrices look prettier
     """Custom print function to neatly arrange matrices and also print with a nice font"""
     def __init__(self, array):
@@ -1539,24 +1546,27 @@ oracle_value_test = [1,2,3]
 large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,12090,13074]
 
 def main():
-    """Where you can run commands without it affecting porgrams that import this program"""
+    """Where you can run commands without it affecting programs that import this program"""
     
-    qub = Qubit(type="seperable", vectors=[q0,q1,q0,q0])
-    print_array(Density(state=qub).partial_trace(trace_out="B", state_size=3))
-    prob_test = Measure(state=qub).list_probs(qubit=2)
-    measure_test = Measure(state=qub).list_probs()
-    print_array(f"This is the prob list of the function: \n{measure_test}")
-    print_array(f"This is the probs of the individual qubit: \n{prob_test[0]}")
-    prob_test = Measure(state=qub).measure_state(qubit=2)
-    print_array(prob_test)
-    print_array(Q * q0)
-    print(binary_entropy(0.125*0.5))
-    print(-1/8*np.log2(1/8) - (1 - 1/8)*np.log2(1 - 1/8))
-    print(np.log2(7/8))
-    print(3/8-7/8*np.log2(7/8))
-    qcs_coursework = Qubit(type="mixed", vectors=[q0, qp], weights=[0.5,0.5], detailed=True)
-    print_array(qcs_coursework.vne)
-    print_array(binary_entropy(1/4))
-    print_array(np.linalg.eig(reshape_matrix(np.array([0.75,0.25,0.25,0.25]))))
-    print_array(-0.853553*np.log2(0.853553)-0.146447*np.log2(0.146447))
-    print_array(Density(state_a = q1, state_b = qpi).fidelity())
+    example_circuit = Circuit(n=4)
+    example_circuit.add_gate(Identity @ Identity @ Identity @ Hadamard)
+    example_circuit.add_gate(X_Gate @ X_Gate @ Identity @ Hadamard)
+    example_circuit.add_single_gate(gate=Hadamard, gate_location=2)
+    example_circuit.measure_state(qubit=3)
+    example_circuit.add_single_gate(gate=Hadamard, gate_location=2)
+
+    example_circuit.apply_final_gate()
+    example_circuit.list_probs()
+
+    example_circuit.add_gate(S_Gate @ T_Gate @ X_Gate @ Z_Gate)
+    example_circuit.add_gate(CNot @ Identity @ Identity)
+    example_circuit.apply_final_gate()
+    example_circuit.list_probs()
+    print_array(X_Gate @ Identity)
+
+    Bell = Circuit(n=3)
+    Bell.add_single_gate(gate=Hadamard, gate_location=1)
+    Bell.add_gate(gate=Hadamard @ Identity @ Identity)
+    Bell.apply_final_gate()
+    Bell.list_probs()
+    Bell.print_gates()
