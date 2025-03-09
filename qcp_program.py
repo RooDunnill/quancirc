@@ -441,7 +441,7 @@ class Gate:            #creates a gate class to enable unique properties
     @classmethod                                        #allows for the making of any phase gate of 2 dimensions
     def P_Gate(cls, theta):
         """The phase Gate used to add a local phase to a Qubit"""
-        P_matrix = [1,0,0,np.exp(np.complex128(0-1j)*theta)]
+        P_matrix = [1,0,0,np.exp(1j*theta)]
         return cls(name=f"Phase Gate with a phase {theta:.3f}", matrix=P_matrix)
 
     @classmethod                                #allows for any unitary gates with three given variables
@@ -791,9 +791,9 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 flat_sqrt_product = flatten_matrix(sqrt_product)
                 mat_trace = trace(flat_sqrt_product)
                 mat_trace_conj = np.conj(mat_trace)
-                fidelity = mat_trace*mat_trace_conj
+                fidelity = (mat_trace*mat_trace_conj).real
                 if rho_1 is None and rho_2 is None:
-                    self.fidelity_ab = fidelity_ab
+                    self.fidelity_ab = fidelity
                     return self.fidelity_ab
                 else:
                     return fidelity
@@ -1179,8 +1179,8 @@ class Circuit:
         """Adds a gate to a single qubit rather than inputting the entire combined gate"""
         if self.n:
             if isinstance(gate_location, int):
-                upper_id = Gate.Identity(n=gate_location - 1)
-                lower_id = Gate.Identity(n=self.n - gate_location * gate.n)
+                upper_id = Gate.Identity(n=gate_location)   #Gate location starts from Qubit 0
+                lower_id = Gate.Identity(n=self.n - gate_location * gate.n - gate.n)        #gate_location * gate.n accounts for the size of the gate applied
             else:
                 raise QuantumCircuitError(f"The gate location connot be of {type(gate_location)}, expect type int")
             ndim_gate = upper_id @ gate @ lower_id
@@ -1258,7 +1258,6 @@ class Circuit:
             raise QuantumCircuitError(f"This parameter {attr} of type {type(attr)} does not exist")
         return getattr(self, attr)  
         
-
 
 class Grover:                                               #this is the Grover algorithms own class
     """The class to run and analyse Grovers algorithm"""
@@ -1480,9 +1479,6 @@ class Grover:                                               #this is the Grover 
         return output              #returns the value
 
 
-
-
-
 class print_array:    #made to try to make matrices look prettier
     """Custom print function to neatly arrange matrices and also print with a nice font"""
     def __init__(self, array):
@@ -1536,9 +1532,6 @@ class print_array:    #made to try to make matrices look prettier
             console.print(array,markup=True,style="info")
 
 
-
-
-
 oracle_values = [9,4,3,2,5,6,12,15,16]
 oracle_values2 = [1,2,3,4,664,77,5,10,12,14,16,333,334,335,400,401,41,42,1000]
 oracle_values3 = [1,10]
@@ -1550,24 +1543,10 @@ def main():
     """Where you can run commands without it affecting programs that import this program"""
     
     example_circuit = Circuit(n=4)
-    example_circuit.add_gate(Identity @ Identity @ Identity @ Hadamard)
-    example_circuit.add_gate(X_Gate @ X_Gate @ Identity @ Hadamard)
-    example_circuit.add_single_gate(gate=Hadamard, gate_location=2)
-    example_circuit.measure_state(qubit=3)
-    example_circuit.add_single_gate(gate=Hadamard, gate_location=2)
-
+    example_circuit.add_single_gate(gate=Hadamard, gate_location=0)
+    example_circuit.add_gate(Z_Gate @ Hadamard @ Identity @ X_Gate)
+    example_circuit.add_gate(S_Gate @ S_Gate @ Hadamard @ Hadamard)
+    example_circuit.add_gate(Hadamard @ Hadamard @ Hadamard @ Hadamard)
+    example_circuit.add_single_gate(CNot, gate_location=0)
     example_circuit.apply_final_gate()
     example_circuit.list_probs()
-
-    example_circuit.add_gate(S_Gate @ T_Gate @ X_Gate @ Z_Gate)
-    example_circuit.add_gate(CNot @ Identity @ Identity)
-    example_circuit.apply_final_gate()
-    example_circuit.list_probs()
-    print_array(X_Gate @ Identity)
-
-    Bell = Circuit(n=2)
-    Bell.add_single_gate(gate=Hadamard, gate_location=1)
-    Bell.add_single_gate(gate=CNot, gate_location=1)
-    Bell.apply_final_gate()
-    Bell.list_probs()
-    Bell.print_gates()
