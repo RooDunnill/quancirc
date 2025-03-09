@@ -30,7 +30,7 @@ class Timer:
         self.start_time = time.perf_counter()
         self.last_time = self.start_time
 
-    def elapsed(self):
+    def elapsed(self):                                   #allows for two timing modes, one for overall and one for multiple increments between calls
         current_time = time.perf_counter()
         interval_time = current_time - self.last_time 
         total_time = current_time - self.start_time 
@@ -40,11 +40,11 @@ class Timer:
 def prog_end():    #made it to make the code at the end of the program a little neater
     """Runs at the end of the program to call the timer and plot only at the end"""
     if __name__ == "__main__":
-        main()
+        main()                #calls functions in main
     stop = time.time()
     interval: float = stop - start
-    console.rule(f"{interval:.3f} seconds elapsed",style="main_header")
-    plt.show()
+    console.rule(f"{interval:.3f} seconds elapsed",style="main_header")         #gives final time of the code
+    plt.show()                             #makes sure to plot graphs after the function
 atexit.register(prog_end)
 
 console.rule(style="main_header")     #creates the start message
@@ -59,7 +59,7 @@ gate to be multiplied is at the bottom in a Quantum Circuit.
 Now printing the values of the computation:""",style="info")
 print("\n \n")
 
-def trace(matrix) -> float:
+def trace(matrix) -> float:                 #used an np.trace doesnt calculate 1D matrices
     """Computes the trace of a 1D matrix, mostly used as a checker"""
     tr = 0
     if isinstance(matrix, Density):
@@ -75,7 +75,7 @@ def trace(matrix) -> float:
         tr += matrix[i + i * dim]
     return tr
     
-def reshape_matrix(matrix: np.ndarray) -> np.ndarray:
+def reshape_matrix(matrix: np.ndarray) -> np.ndarray: 
     """Can reshape a 1D matrix into a square 2D matrix"""
     length = len(matrix)
     dim = int(np.sqrt(length))
@@ -107,7 +107,7 @@ def comp_Grover_test(n, **kwargs):
         for i in loops:
             n=int(i)
             test_timer = Timer()
-            for j in range(g_loops): Grover(oracle_value_test, n=n, fast=False).run()
+            for j in range(g_loops): Grover(oracle_value_test, n=n, fast=False).run()         #runs each variant of the function for g_loops times and times each one
             time_slow = test_timer.elapsed()[0]
             test_timer = Timer()
             for j in range(g_loops): Grover(oracle_value_test, n=n, fast=True).run()
@@ -116,7 +116,7 @@ def comp_Grover_test(n, **kwargs):
         print_array(f"Qubits, s time, f time")
         print(times_array)
 
-def time_test(n, fast=True, iterations=None, **kwargs):
+def time_test(n, fast=True, iterations=None, **kwargs):                 #times a Grovers run over variable n qubits
     """Tests the Grover function and its speed with a number of parameters"""
     it_type = kwargs.get("it_type", None)
     oracle_value_test = [0]
@@ -136,7 +136,7 @@ def time_test(n, fast=True, iterations=None, **kwargs):
         if it_type and rand:
             Grover(rand, fast=fast).run()
         else:
-            for j in range(g_loops): Grover(oracle_value_test, n=n, fast=fast, iterations=iterations).run()
+            for j in range(g_loops): Grover(oracle_value_test, n=n, fast=fast, iterations=iterations).run()           #used purely for the "fast" variant
         time = test_timer.elapsed()[0]
         times_array[i-2] = np.array([n, time/g_loops])
     print_array(f"Qubits, time")
@@ -146,7 +146,7 @@ def top_probs(prob_list: np.ndarray, **kwargs) -> np.ndarray:             #sorts
         """Computes the top n probabilities of a list of probabilities"""
         n = kwargs.get("n", 8)
         non_zero_count = np.count_nonzero(prob_list)
-        n = non_zero_count if non_zero_count <= n else n
+        n = non_zero_count if non_zero_count <= n else n              #uses less than the given input if there are only a few non zero values
         top_n = np.array([], dtype=prob_list.dtype)
         temp_lst = prob_list.copy()  
         for _ in range(n):
@@ -171,7 +171,8 @@ def binary_entropy(prob: float) -> float:
     else:
         raise QC_error(f"Binary value must be a float")
     
-def diagonal(matrix):
+def diagonal(matrix):                 
+    """Creates a matrix of diagonal elements from a 1D array"""
     dim = int(np.sqrt(len(matrix)))
     new_mat = np.zeros(dim, dtype=np.complex128)
     for i in range(dim):
@@ -189,15 +190,15 @@ class Qubit:                                           #creates the qubit class
         self.dim: int = len(self.vector) if self.vector.ndim == 1 else len(self.vector[0])                   #used constantly in all calcs so defined it universally
         self.n: int = int(np.log2(self.dim))
         if "vectors" in kwargs:
-            if self.state_type == "mixed":
+            if self.state_type == "mixed":              #calls mixed state to handle the kwargs
                     self.build_mixed_state(kwargs)
             elif self.state_type == "seperable":
                 self.build_seperable_state(kwargs)
         if self.detailed:
-            self.density = Density(state=self)
+            self.density = Density(state=self)          #this stops it from computing this lengthy calc for every Qubit object created
             self.vne = self.density.vn_entropy()
             if self.state_type == "mixed":
-                self.se = self.density.shannon_entropy()
+                self.se = self.density.shannon_entropy()           #calcs entropy for classical values, not 100% sure on this yet
 
     def build_mixed_state(self, kwargs):
         """Takes the kwargs and creates a mixed state, mostly just checks types and extracts numpy arrays if Qubits are given"""
@@ -208,7 +209,7 @@ class Qubit:                                           #creates the qubit class
                 vector_list.append(i)
             self.vector = vector_list
         elif isinstance(kwargs.get("vectors")[0], (list, np.ndarray)):
-            self.vector = np.array(kwargs.get("vectors",[]),dtype=np.complex128)
+            self.vector = np.array(kwargs.get("vectors",[]),dtype=np.complex128) 
         else:
             raise TypeError(f"Invalid type of type{kwargs.get("vectors")[0]}, expected Qubit class, list or np.ndarray")
         self.weights = kwargs.get("weights", [])
@@ -382,7 +383,7 @@ qm = Qubit.qm()
 qpi = Qubit.qpi()
 qmi = Qubit.qmi()
 
-class Gate:            #creates a gate class to enable unique properties
+class Gate:    
     """The class that makes up the unitary matrices that implement the gate functions"""
     def __init__(self, **kwargs):
         self.name = kwargs.get("name", None)
@@ -413,7 +414,7 @@ class Gate:            #creates a gate class to enable unique properties
         return cls(name="Z Gate", matrix=Z_matrix)
 
     @classmethod
-    def Identity(cls, **kwargs):                     #eventually want to make this so its n dimensional
+    def Identity(cls, **kwargs):    
         """The identity matrix, used mostly to represent empty wires in the circuit
         Args:
             n: int: creates an Identity matrix for n qubits, default is 1 Qubit
@@ -422,9 +423,8 @@ class Gate:            #creates a gate class to enable unique properties
         n = kwargs.get("n", 1)
         if isinstance(n, int):
             if n == 0:
-                new_mat = np.array([1], dtype=np.complex128)
+                new_mat = np.array([1], dtype=np.complex128)     #better to set up like this than just not make it for some functions that require tensor products
                 return cls(name="Identity Gate", matrix=new_mat, dim=0)
-
             dim = int(2**n)
             new_mat = np.zeros(dim**2, dtype=np.complex128)
             for i in range(dim):
@@ -444,7 +444,7 @@ class Gate:            #creates a gate class to enable unique properties
     @classmethod                                        #allows for the making of any phase gate of 2 dimensions
     def P_Gate(cls, theta, **kwargs):
         """The phase Gate used to add a local phase to a Qubit"""
-        name = kwargs.get("name", f"Phase Gate with a phase {theta:.3f}")
+        name = kwargs.get("name", f"Phase Gate with a phase {theta:.3f}")    #allows custom naming to creats S and T named gates
         P_matrix = [1,0,0,np.exp(1j*theta)]
         return cls(name=name, matrix=P_matrix)
 
@@ -453,7 +453,7 @@ class Gate:            #creates a gate class to enable unique properties
         """The Unitary Gate, which can approximate nearly any unitary 2 x 2 Gate"""
         U_matrix = [np.cos(a/2),
                     -np.exp(np.complex128(0-1j)*c)*np.sin(a/2),
-                    np.exp(np.complex128(0+1j)*b)*np.sin(a/2),
+                    np.exp(np.complex128(0+1j)*b)*np.sin(a/2),                  #not hugely used, just thought it was cool to implement
                     np.exp(np.complex128(0+1j)*(b+c))*np.cos(a/2)]
         return cls(name=f"Unitary Gate with values (a:{a:.3f}, b:{b:.3f}, c:{c:.3f})", matrix=U_matrix)
 
@@ -547,14 +547,18 @@ class Gate:            #creates a gate class to enable unique properties
     @staticmethod
     def fractional_binary(qub,m):             #for shors
         """The fractional binary calculator used solely in the Quantum Fourier Transform"""
-        num_bits = int(np.ceil(np.log2(qub.dim)))
-        x_vals = qub.name[1:1+num_bits]
-        frac_bin = ("0." + x_vals)
-        val = 0
-        if m <= num_bits:
-            for i in range(m):
-                val += float(frac_bin[i+2])*2**-(i+1)
-            return val
+        bin_name_check = qub.name[1:-2]
+        if all(b in "01" for b in bin_name_check):
+            num_bits = int(np.ceil(np.log2(qub.dim)))
+            x_vals = qub.name[1:1+num_bits]        #creates the value from the name as the default names for Qubits have their binary ket rep, is a little risky tho
+            frac_bin = ("0." + x_vals)             #as custom names or error in names will result in an error
+            val = 0
+            if m <= num_bits:
+                for i in range(m):
+                    val += float(frac_bin[i+2])*2**-(i+1)
+                return val
+        else:
+            raise QC_error(f"The fractional binary reads the binary values in the name of the Qubit, the name of this Qubit is not made of binary values, Qubit name is {qub.name}")
 
 
     def QFT(self, other: Qubit) -> Qubit:          #also for shors although used in other algorithms
@@ -750,26 +754,25 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         state_vector = calc_state.vector
         if isinstance(state_vector[0], np.ndarray):
             state_vector: np.ndarray = calc_state.vector
-            calc_state_dim = len(state_vector[0])
+            calc_state_dim = len(state_vector[0])         
         elif isinstance(state_vector[0], Qubit):
             state_vector = np.zeros((len(calc_state.vector),calc_state.dim), dtype=np.complex128)
             for i in range(len(calc_state.vector)):
-                state_vector[i] = calc_state.vector[i].vector
+                state_vector[i] = calc_state.vector[i].vector          #takes the vectors out of the Qubit object to compute
             calc_state_dim = len(state_vector[0])
         qubit_conj: np.ndarray = np.conj(state_vector)
         rho = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
         rho_sub = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
         for k in range(len(state_vector)):
-            for i in range(calc_state_dim):
+            for i in range(calc_state_dim):        #creates the density matrix for each state vector
                 for j in range(calc_state_dim):
                     rho_sub[j+(i * calc_state_dim)] += qubit_conj[k][i]*state_vector[k][j]
             rho += calc_state.weights[k]*rho_sub
             rho_sub = np.zeros(calc_state_dim*calc_state_dim,dtype=np.complex128)
         rho_trace: float = trace(rho)
-        if abs(1 - rho_trace) < 1e-5:
+        if abs(1 - rho_trace) < 1e-5:     #checks its computed properly
             return rho
         else:
-            print(f"The calculated trace is {rho_trace}")
             raise QC_error(f"The trace of a density matrix must be 1, calculated trace is {trace(rho)}")
 
 
@@ -788,11 +791,11 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             rho_2 = self.rho_b
             if isinstance(rho_1, np.ndarray) and isinstance(rho_2, np.ndarray):
                 rho_1 = reshape_matrix(rho_1)
-                sqrt_rho1: np.ndarray = sqrtm(rho_1)
-                flat_sqrt_rho1 = flatten_matrix(sqrt_rho1)
+                sqrt_rho1: np.ndarray = sqrtm(rho_1)           #has to be 2D to use this function
+                flat_sqrt_rho1 = flatten_matrix(sqrt_rho1)     #flattens back down for matrix multiplication
                 product =  flat_sqrt_rho1 * rho_2 * flat_sqrt_rho1
-                sqrt_product = sqrtm(reshape_matrix(product))
-                flat_sqrt_product = flatten_matrix(sqrt_product)
+                sqrt_product = sqrtm(reshape_matrix(product))             #reshapse and sqrts in the same line
+                flat_sqrt_product = flatten_matrix(sqrt_product)           #flattens to take trace of, could be more efficient to use np.trace but i like avoiding external functions where possible
                 mat_trace = trace(flat_sqrt_product)
                 mat_trace_conj = np.conj(mat_trace)
                 fidelity = (mat_trace*mat_trace_conj).real
@@ -841,9 +844,9 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             eigenvalues, eigenvectors = np.linalg.eig(reshaped_rho)
             entropy = 0
             for ev in eigenvalues:
-                if ev > 0:
+                if ev > 0:    #prevents ev=0 which would create an infinity from the log2
                     entropy -= ev * np.log2(ev)
-            if entropy < 1e-10:
+            if entropy < 1e-10:         #rounds the value if very very small
                 entropy = 0.0
             return entropy
         else:
@@ -865,7 +868,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         if isinstance(state, Qubit) and state.state_type == "mixed":
             entropy = 0
             for weights in state.weights:
-                if weights > 0:
+                if weights > 0:    #again to stop infinities
                     entropy -= weights * np.log2(weights)
             if entropy < 1e-10:
                 entropy = 0.0
@@ -904,7 +907,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                   self.rho is the overall system while rho_a and rho_b are the traced out components of the system
         Returns:
             float: returns the quantum mutual information of the three rho matrices"""
-        if all(isinstance(i, np.ndarray) for i in (self.rho, self.rho_a, self.rho_b)):
+        if all(isinstance(i, np.ndarray) for i in (self.rho, self.rho_a, self.rho_b)):   #compact way to check all three variables
             mut_info = self.vn_entropy(self.rho_a) + self.vn_entropy(self.rho_b) - self.vn_entropy(self.rho)
             return mut_info
         else:
@@ -928,7 +931,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             rho_2 = np.zeros(len(rho_b),dtype=np.complex128)
             for i, val in enumerate(rho_a):
                 rho_1[i] = val
-                rho_2[i] += 1e-10 if val == 0 else 0
+                rho_2[i] += 1e-10 if val == 0 else 0          #regularises it for when the log is taken
             for i, val in enumerate(rho_b):
                 rho_1[i] = val
                 rho_2[i] += 1e-10 if val == 0 else 0
@@ -958,7 +961,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         if isinstance(self.rho, np.ndarray):
             if trace_out_system == "B":
                     for k in range(reduced_dim):
-                        for i in range(reduced_dim):
+                        for i in range(reduced_dim):           #the shapes of tracing A and B look quite different but follow a diagonalesc pattern
                             new_mat[i+k*reduced_dim] = np.sum(self.rho[traced_out_dim_range+traced_out_dim_range*rho_dim+i*traced_out_dim+k*rho_dim*traced_out_dim])
                     self.rho_a = new_mat
                     return self.rho_a
@@ -1023,10 +1026,10 @@ class Measure(Density):
     def __rich__(self):
         return f"[bold]{self.name}[/bold]\n[not bold]{self.list_probs()}[/not bold]"
         
-    def topn_measure_probs(self, **kwargs) -> np.ndarray:
+    def topn_measure_probs(self, qubit: int=None, povm: np.ndarray=None, **kwargs) -> np.ndarray:
         """Gives the top n probabilities"""
         topn = kwargs.get("n", 8)
-        return top_probs(self.list_probs(), topn)
+        return top_probs(self.list_probs(qubit, povm), topn)
     
     def list_probs(self, qubit: int=None, povm: np.ndarray=None) -> np.ndarray:
         """Gives the prob lists of a Quantum state, can measure non projectively for the whole state and projectively for single Qubits"""
@@ -1044,7 +1047,7 @@ class Measure(Density):
                 return probs
             else:
                 raise MeasurementError(f"Must either be running in fast, or self.density is of the wrong type {type(self.density)}, expected Density class")
-        if qubit:
+        if qubit is not None:
             trace_density = self.density
             if qubit == 1:
                 A_rho = np.array([1+1j])
@@ -1052,6 +1055,8 @@ class Measure(Density):
             elif qubit == self.n:
                 A_rho = trace_density.partial_trace(trace_out="B", state_size = self.n - qubit + 1)
                 B_rho == np.array([1+1j])
+            elif qubit == 0:
+                raise MeasurementError(f"Use general function without specifying qubits if your circuit is 1 qubit")
             elif isinstance(qubit, int):
                 A_rho = trace_density.partial_trace(trace_out="B", state_size = self.n - qubit + 1)
                 B_rho = trace_density.partial_trace(trace_out="A", state_size = qubit)
@@ -1086,7 +1091,7 @@ class Measure(Density):
             self.state.vector[:] = 0
             self.state.vector[measurement] = 1
             self.state.vector = self.state.vector / np.linalg.norm(self.state.vector)
-            return self.state
+            return measurement, self.state
         elif isinstance(qubit, int):
             num_bits = int(np.log2(1))
             if text:
@@ -1095,7 +1100,7 @@ class Measure(Density):
             print_array(B_rho)
             print_array(measure_rho)
             post_measurement_den = Density(rho=A_rho) @ Density(rho=measure_rho) @ Density(rho=B_rho)
-            return Qubit(vector=diagonal(post_measurement_den.rho))
+            return measurement, Qubit(vector=diagonal(post_measurement_den.rho))
         else:
             MeasurementError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
 
@@ -1113,7 +1118,7 @@ def format_ket_notation(list_probs: np.ndarray, **kwargs) -> str:
         ket_mat = range(len(list_probs))
         print_out = f""
         for ket_val, prob_val in zip(ket_mat,list_probs):
-            print_out += (f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val:.{prec}f}%\n")
+            print_out += (f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val * 100:.{prec}f}%\n")
         return print_out
 
 
@@ -1239,11 +1244,13 @@ class Circuit:
     
     def measure_state(self, qubit: int=None, povm: np.ndarray=None, text: bool=True) -> Measure:
         """Measures the state from the list of probabilities"""
-        self.measure_state = Measure(state=self.state).measure_state(qubit, povm)
+        measurement, self.state = Measure(state=self.state).measure_state(qubit, povm)
         if text:
-            print_array(f"The measured state is:")
-            print_array(self.measure_state)
-        return self.measure_state
+            if qubit:
+                print_array(f"Measured qubit {qubit} as |{measurement}> and the post measurement state is:\n {self.state}")
+            else:
+                print_array(f"Measured state as:\n {self.state}")
+        return self.state
 
     def run(self):
         """Can be used to run the whole program on an inital state and set of gates, can be used without this function also"""
@@ -1471,7 +1478,7 @@ class Grover:                                               #this is the Grover 
         print_array(f"Computing Probability Distribution of States")
         final_state = Measure(state=final_state, fast=True)
         print_array(f"Finding the probabilities for the top n Probabilities (n is the number of oracle values)")
-        sorted_arr = top_probs(final_state.list_probs(), len(self.oracle_values))         #finds the n top probabilities
+        sorted_arr = top_probs(final_state.list_probs(), n=len(self.oracle_values))         #finds the n top probabilities
         print_array(f"Outputing:")
         output = Grover(final_state.name, n=self.n, results=sorted_arr)         #creates a Grover instance
         if self.rand_ov:
@@ -1547,12 +1554,14 @@ large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,
 def main():
     """Where you can run commands without it affecting programs that import this program"""
     
-    example_circuit = Circuit(n=4)
-    example_circuit.add_single_gate(gate=Hadamard, gate_location=0)
-    example_circuit.add_gate(Z_Gate @ Hadamard @ Identity @ X_Gate)
-    example_circuit.add_gate(S_Gate @ S_Gate @ Hadamard @ Hadamard)
-    example_circuit.add_gate(Hadamard @ Hadamard @ Hadamard @ Hadamard)
-    example_circuit.add_single_gate(CNot, gate_location=0)
-    example_circuit.apply_final_gate()
-    example_circuit.list_probs()
-    example_circuit.run()
+    single_qubit_measurement_test = Circuit(n=1)
+    single_qubit_measurement_test.add_gate(Hadamard)
+   
+    single_qubit_measurement_test.add_gate(Hadamard)
+    single_qubit_measurement_test.apply_final_gate()
+    single_qubit_measurement_test.list_probs()
+    single_qubit_measurement_test.measure_state()
+
+
+
+
