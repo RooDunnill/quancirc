@@ -1180,10 +1180,11 @@ class Circuit:
         if self.n:
             if isinstance(gate_location, int):
                 upper_id = Gate.Identity(n=gate_location - 1)
-                lower_id = Gate.Identity(n=self.n - gate_location)
+                lower_id = Gate.Identity(n=self.n - gate_location * gate.n)
             else:
                 raise QuantumCircuitError(f"The gate location connot be of {type(gate_location)}, expect type int")
             ndim_gate = upper_id @ gate @ lower_id
+            ndim_gate.name = f"{gate.name} on Qubit {gate_location}"
             self.gates.append(ndim_gate)
             if text:
                 if gate.dim < 9:
@@ -1564,9 +1565,9 @@ def main():
     example_circuit.list_probs()
     print_array(X_Gate @ Identity)
 
-    Bell = Circuit(n=3)
+    Bell = Circuit(n=2)
     Bell.add_single_gate(gate=Hadamard, gate_location=1)
-    Bell.add_gate(gate=Hadamard @ Identity @ Identity)
+    Bell.add_single_gate(gate=CNot, gate_location=1)
     Bell.apply_final_gate()
     Bell.list_probs()
     Bell.print_gates()
