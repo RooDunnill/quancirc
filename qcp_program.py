@@ -439,10 +439,11 @@ class Gate:            #creates a gate class to enable unique properties
         return cls(name="Hadamard", matrix=H_matrix)
 
     @classmethod                                        #allows for the making of any phase gate of 2 dimensions
-    def P_Gate(cls, theta):
+    def P_Gate(cls, theta, **kwargs):
         """The phase Gate used to add a local phase to a Qubit"""
+        name = kwargs.get("name", f"Phase Gate with a phase {theta:.3f}")
         P_matrix = [1,0,0,np.exp(1j*theta)]
-        return cls(name=f"Phase Gate with a phase {theta:.3f}", matrix=P_matrix)
+        return cls(name=name, matrix=P_matrix)
 
     @classmethod                                #allows for any unitary gates with three given variables
     def U_Gate(cls, a, b, c):
@@ -1121,8 +1122,8 @@ Hadamard = Gate.Hadamard()
 CNot_flip = Gate.C_Gate(type="inverted", name="CNot_flip")
 CNot = Gate.C_Gate(type="standard", name="CNot")
 Swap = Gate.Swap()
-S_Gate = Gate.P_Gate(theta=np.pi/2)
-T_Gate = Gate.P_Gate(theta=np.pi/4)
+S_Gate = Gate.P_Gate(theta=np.pi/2, name="S Gate")
+T_Gate = Gate.P_Gate(theta=np.pi/4, name="T Gate")
 F = FWHT()
 Q = QFT()
 
@@ -1225,8 +1226,10 @@ class Circuit:
     
     def topn_probabilities(self, qubit: int=None, povm: np.ndarray=None, text:bool=True, **kwargs) -> Measure:
         """Only prints or returns a set number of states, mostly useful for large qubit sizes"""
-        topn = kwargs.get("n", 8)
-        self.top_prob_dist = top_probs(self.list_probs(qubit, povm, text=False), topn)
+        prob_list = self.list_probs(qubit, povm, text=False)
+        non_zero_prob_count = np.count_nonzero(prob_list)
+        topn = kwargs.get("n", min(non_zero_prob_count, 8))
+        self.top_prob_dist = top_probs(prob_list, topn)
         if text:
             print_array(f"The top {topn} probabilities are:")
             print_array(format_ket_notation(self.top_prob_dist, type="topn", num_bits=int(np.ceil(np.log2(self.state.dim)))))
@@ -1550,3 +1553,4 @@ def main():
     example_circuit.add_single_gate(CNot, gate_location=0)
     example_circuit.apply_final_gate()
     example_circuit.list_probs()
+    example_circuit.run()
