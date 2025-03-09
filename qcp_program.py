@@ -142,8 +142,11 @@ def time_test(n, fast=True, iterations=None, **kwargs):
     print_array(f"Qubits, time")
     print(times_array)
 
-def top_probs(prob_list: np.ndarray, n: int) -> np.ndarray:             #sorts through the probability distribution and finds the top n probabilities corresponding to the length n or the oracle values
+def top_probs(prob_list: np.ndarray, **kwargs) -> np.ndarray:             #sorts through the probability distribution and finds the top n probabilities corresponding to the length n or the oracle values
         """Computes the top n probabilities of a list of probabilities"""
+        n = kwargs.get("n", 8)
+        non_zero_count = np.count_nonzero(prob_list)
+        n = non_zero_count if non_zero_count <= n else n
         top_n = np.array([], dtype=prob_list.dtype)
         temp_lst = prob_list.copy()  
         for _ in range(n):
@@ -1227,9 +1230,8 @@ class Circuit:
     def topn_probabilities(self, qubit: int=None, povm: np.ndarray=None, text:bool=True, **kwargs) -> Measure:
         """Only prints or returns a set number of states, mostly useful for large qubit sizes"""
         prob_list = self.list_probs(qubit, povm, text=False)
-        non_zero_prob_count = np.count_nonzero(prob_list)
-        topn = kwargs.get("n", min(non_zero_prob_count, 8))
-        self.top_prob_dist = top_probs(prob_list, topn)
+        topn = kwargs.get("n", 8)
+        self.top_prob_dist = top_probs(prob_list, n=topn)
         if text:
             print_array(f"The top {topn} probabilities are:")
             print_array(format_ket_notation(self.top_prob_dist, type="topn", num_bits=int(np.ceil(np.log2(self.state.dim)))))
