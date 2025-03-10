@@ -335,6 +335,15 @@ class Qubit:                                           #creates the qubit class
             return self
         else:
             raise QubitError(f"Error from inputs type {type(self)} and {type(other)}, expected two Qubit class inputs")
+        
+    def __iadd__(self, other):
+        if isinstance(self, Qubit) and isinstance(other, Qubit):  
+            if self.dim != other.dim:
+                raise QC_error(f"Cannot add qubits with different dimensions: {self.dim} and {other.dim}")
+            self.vector += other.vector
+            return self
+        else:
+            raise QC_error(f"Unsupported operand type(s) for +=: 'Qubit' and '{type(other)}'")
 
     def norm(self):                 #dunno why this is here ngl, just one of the first functions i tried
         """Normalises a Qubit so that the probabilities sum to 1"""
@@ -634,10 +643,20 @@ class Gate:
             else:
                 raise TypeError(f"The second matrix is of type {type(other)} and isn't compatible")
         elif isinstance(self, np.ndarray):
-            if isinstance(other, np.ndarray):
+            if isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
+                new_mat = np.zeros(self.dim,dtype=np.complex128)
+                mat_len = len(self)
+                mat_dim = int(np.sqrt(mat_len))
+                for i in range(mat_dim):
+                    row = self[i * mat_dim:(i + 1) * mat_dim]
+                    new_mat[i] = np.sum(row[:] * other.vector[:])
+                other.vector = new_mat
+                other.name = self.name + other.name
+                return other
+            elif isinstance(other, np.ndarray):
                 new_mat = Gate.mul_flat(self, other)
                 return new_mat
-            if isinstance(other, Gate):
+            elif isinstance(other, Gate):
                 new_mat = Gate.mul_flat(self, other.matrix)
                 other.matrix = new_mat
                 return other
@@ -1163,25 +1182,55 @@ class Circuit:
         self.measurement = None
         self.final_gate = None
         
-        
-
     def __str__(self):
         return self.__rich__()
     
     def __rich__(self):
         console.rule(f"Running Quantum Circuit with {self.n} Qubits:", style="circuit_header", characters="/")
         print_array(self.final_gate)
-        print_array(self.state)
         print_array(f"Final Probability Distribution:")
         print_out = format_ket_notation(self.top_prob_dist, type="topn", num_bits=int(np.ceil(np.log2(self.state.dim))))
         print_array(print_out)
-        print_array(f"{self.measure_state}")
+        print_array(f"{self.state}")
         console.rule(f"", style="circuit_header")
 
     def print_gates(self):
         """Just used to print specific gates, mostly for debugging purposes"""
         for gate in reversed(self.gates):
             print_array(gate)
+
+    def apply_quantum_channel(self, Q_channel: str, prob: float):
+        if self.collapsed == True:
+            raise MeasurementError(f"Noise cannot be applied to a collapsed state")
+        K0 = Gate.Identity(n=self.n)
+        
+        if Q_channel == "P flip":
+            K1 = Gate.Z_Gate()
+            Z_Gate = K1
+            for i in range(self.n - 1):
+                K1 = K1 @ Z_Gate
+        elif Q_channel == "B flip":
+            K1 = Gate.X_Gate()
+            X_Gate = K1
+            for i in range(self.n - 1):
+                K1 = K1 @ X_Gate
+        elif Q_channel == "B P flip":
+            K1 = Gate.Y_Gate()
+            Y_Gate = K1
+            for i in range(self.n - 1):
+                K1 = K1 @ Y_Gate
+        else:
+            raise QuantumCircuitError(f"{Q_channel} is not a valid Quantum channel")
+        K0.matrix = K0.matrix * np.sqrt(1 - prob)
+        K1.matrix = K1.matrix * np.sqrt(prob) 
+        kraus_operators = [K0,K1]
+        self.channel_state = self.state
+        self.channel_state.vector = np.zeros(self.state.dim, dtype=np.complex128)
+        for k in kraus_operators:
+            self.channel_state += k * self.state
+            print_array(self.channel_state)
+        return self.state
+ 
 
     def add_gate(self, gate: Gate, text: bool=True):
         """Used to add a combined n x n gates to the gate array to then combine into one unitary gate"""
@@ -1573,11 +1622,9 @@ large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,
 def main():
     """Where you can run commands without it affecting programs that import this program"""
     
-    single_qubit_measurement_test = Circuit(n=3)
-    single_qubit_measurement_test.add_single_gate(Hadamard, gate_location=1)
-    single_qubit_measurement_test.add_single_gate(Hadamard, gate_location=2)
-    single_qubit_measurement_test.apply_final_gate()
-    single_qubit_measurement_test.measure_state(qubit = 3)
+    Q_channel_circuit = Circuit(n = 4)
+    Q_channel_circuit.add_gate(Hadamard @ Hadamard @ Hadamard @ Hadamard)
+    print_array(Q_channel_circuit.apply_quantum_channel(Q_channel="P flip", prob=0.1))
 
 
 
