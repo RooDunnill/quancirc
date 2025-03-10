@@ -1054,7 +1054,7 @@ class Measure(Density):
                 B_rho = trace_density.partial_trace(trace_out="A", state_size = qubit)
             elif qubit == self.n:
                 A_rho = trace_density.partial_trace(trace_out="B", state_size = self.n - qubit + 1)
-                B_rho == np.array([1+1j])
+                B_rho = np.array([1+1j])
             elif qubit == 0:
                 raise MeasurementError(f"Use general function without specifying qubits if your circuit is 1 qubit")
             elif isinstance(qubit, int):
@@ -1138,6 +1138,8 @@ Q = QFT()
 class Circuit:
     """The compiler to run an actual circuit with"""
     def __init__(self, **kwargs):
+        self.collapsed = False
+        self.measured_states = []
         self.gates = []
         self.state = kwargs.get("state", None)
         if isinstance(self.state, Qubit):
@@ -1155,6 +1157,8 @@ class Circuit:
         console.rule("", style="circuit_header")
         self.measurement = None
         self.final_gate = None
+        
+        
 
     def __str__(self):
         return self.__rich__()
@@ -1176,6 +1180,8 @@ class Circuit:
 
     def add_gate(self, gate: Gate, text: bool=True):
         """Used to add a combined n x n gates to the gate array to then combine into one unitary gate"""
+        if self.collapsed == True:
+            raise MeasurementError(f"The state is now fully collapsed and no more gates can be applied to it")
         self.gates.append(gate)
         if text:
             if gate.dim < 9:
@@ -1186,21 +1192,25 @@ class Circuit:
 
     def add_single_gate(self, gate: Gate, gate_location: int, text: bool=True):
         """Adds a gate to a single qubit rather than inputting the entire combined gate"""
-        if self.n:
-            if isinstance(gate_location, int):
-                upper_id = Gate.Identity(n=gate_location)   #Gate location starts from Qubit 0
-                lower_id = Gate.Identity(n=self.n - gate_location * gate.n - gate.n)        #gate_location * gate.n accounts for the size of the gate applied
+        if self.collapsed == True:
+            raise MeasurementError(f"The state is now fully collapsed and no more gates can be applied to it")
+        elif self.measured_states is not None:
+            if gate_location in self.measured_states:
+                raise MeasurementError(f"This qubit has been collapsed into a classical state via a previous mesaurement")
+        if isinstance(gate_location, int):
+            upper_id = Gate.Identity(n=gate_location)   #Gate location starts from Qubit 0
+            lower_id = Gate.Identity(n=self.n - gate_location * gate.n - gate.n)        #gate_location * gate.n accounts for the size of the gate applied
+        else:
+            raise QuantumCircuitError(f"The gate location connot be of {type(gate_location)}, expect type int")
+        ndim_gate = upper_id @ gate @ lower_id
+        ndim_gate.name = f"{gate.name} on Qubit {gate_location}"
+        self.gates.append(ndim_gate)
+        if text:
+            if gate.dim < 9:
+                print_array(f"Adding this gate to the circuit:")
+                print_array(ndim_gate)
             else:
-                raise QuantumCircuitError(f"The gate location connot be of {type(gate_location)}, expect type int")
-            ndim_gate = upper_id @ gate @ lower_id
-            ndim_gate.name = f"{gate.name} on Qubit {gate_location}"
-            self.gates.append(ndim_gate)
-            if text:
-                if gate.dim < 9:
-                    print_array(f"Adding this gate to the circuit:")
-                    print_array(ndim_gate)
-                else:
-                    print_array(f"Adding the {self.n} x {self.n} gate: {gate.name} to the circuit")
+                print_array(f"Adding the {self.n} x {self.n} gate: {gate.name} to the circuit")
 
     def compute_final_gate(self, text=True) -> Gate:
         """Combines all gates in the gate list together to produce one unitary final gate"""
@@ -1245,11 +1255,16 @@ class Circuit:
     def measure_state(self, qubit: int=None, povm: np.ndarray=None, text: bool=True) -> Measure:
         """Measures the state from the list of probabilities"""
         measurement, self.state = Measure(state=self.state).measure_state(qubit, povm)
+        if qubit:
+            self.measured_states.append(qubit)
+        elif qubit is None:
+            self.measured_state = True
         if text:
             if qubit:
                 print_array(f"Measured qubit {qubit} as |{measurement}> and the post measurement state is:\n {self.state}")
             else:
                 print_array(f"Measured state as:\n {self.state}")
+        self.gates = []
         return self.state
 
     def run(self):
@@ -1257,9 +1272,7 @@ class Circuit:
         if self.gates == []:
             raise QuantumCircuitError(f"Needs to have gates to be able to apply gates")
         else:
-            self.compute_final_gate(text=False)
             self.apply_final_gate(text=False)
-            self.list_probs(text=False)
             self.topn_probabilities(text=False)
             self.measure_state(text=False)
         return self.__rich__()
@@ -1554,13 +1567,11 @@ large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,
 def main():
     """Where you can run commands without it affecting programs that import this program"""
     
-    single_qubit_measurement_test = Circuit(n=1)
-    single_qubit_measurement_test.add_gate(Hadamard)
-   
-    single_qubit_measurement_test.add_gate(Hadamard)
+    single_qubit_measurement_test = Circuit(n=3)
+    single_qubit_measurement_test.add_single_gate(Hadamard, gate_location=1)
+    single_qubit_measurement_test.add_single_gate(Hadamard, gate_location=2)
     single_qubit_measurement_test.apply_final_gate()
-    single_qubit_measurement_test.list_probs()
-    single_qubit_measurement_test.measure_state()
+    single_qubit_measurement_test.measure_state(qubit = 3)
 
 
 
