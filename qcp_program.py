@@ -172,7 +172,7 @@ def binary_entropy(prob: float) -> float:
         raise QC_error(f"Binary value must be a float")
     
 def diagonal(matrix):                 
-    """Creates a matrix of diagonal elements from a 1D array"""
+    """Creates a vector based on the idagonal elements of a 1D matrix"""
     dim = int(np.sqrt(len(matrix)))
     new_mat = np.zeros(dim, dtype=np.complex128)
     for i in range(dim):
@@ -1048,6 +1048,8 @@ class Measure(Density):
             else:
                 raise MeasurementError(f"Must either be running in fast, or self.density is of the wrong type {type(self.density)}, expected Density class")
         if qubit is not None:
+            if qubit > self.n:
+                raise QC_error(f"The chosen qubit {qubit}, must be no more than the number of qubits in the circuit {self.n}")
             trace_density = self.density
             if qubit == 1:
                 A_rho = np.array([1+1j])
@@ -1082,7 +1084,9 @@ class Measure(Density):
             probs = self.list_probs(qubit, povm)
         measurement = choices(range(len(probs)), weights=probs)[0]
         if povm is not None:
-            return f"Measured POVM outcome: {povm[measurement]}"
+            if text:
+                print_array(f"Measured POVM outcome: {povm[measurement]}")
+            return measurement
         
         if qubit is None:
             num_bits = int(np.log2(self.state.dim))
@@ -1093,12 +1097,13 @@ class Measure(Density):
             self.state.vector = self.state.vector / np.linalg.norm(self.state.vector)
             return measurement, self.state
         elif isinstance(qubit, int):
+            if measurement == 0:
+                measure_rho = np.array([1,0,0,0])
+            elif measurement == 1:
+                measure_rho = np.array([0,0,0,1])
             num_bits = int(np.log2(1))
             if text:
                 print_array(f"Measured the {qubit} qubit in state |{bin(measurement)[2:].zfill(num_bits)}>")
-            print_array(A_rho)
-            print_array(B_rho)
-            print_array(measure_rho)
             post_measurement_den = Density(rho=A_rho) @ Density(rho=measure_rho) @ Density(rho=B_rho)
             return measurement, Qubit(vector=diagonal(post_measurement_den.rho))
         else:
@@ -1241,6 +1246,7 @@ class Circuit:
             print_array(f"The projective probability distribution is:") 
             print_array(format_ket_notation(self.prob_distribution))
         return self.prob_distribution
+
     
     def topn_probabilities(self, qubit: int=None, povm: np.ndarray=None, text:bool=True, **kwargs) -> Measure:
         """Only prints or returns a set number of states, mostly useful for large qubit sizes"""
@@ -1258,7 +1264,7 @@ class Circuit:
         if qubit:
             self.measured_states.append(qubit)
         elif qubit is None:
-            self.measured_state = True
+            self.collapsed = True
         if text:
             if qubit:
                 print_array(f"Measured qubit {qubit} as |{measurement}> and the post measurement state is:\n {self.state}")
