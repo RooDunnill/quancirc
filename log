@@ -13,3 +13,5 @@ Week 6:
 Roo: Refactored Grovers and added Quantum information measurements and also partial trace
 Week 7:
 Roo: Again refactored Grovers implementing FWHT and sped up most operations by implementing np.sum. Also added single gate addition to circuit
+Week 8:
+added many doc strings, have fixed a number of errors and also have added a noisy option to the quantum circuit, also made single qubit measurement and state collapse
