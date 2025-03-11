@@ -1238,6 +1238,7 @@ class Circuit:
             print_array(gate)
 
     def add_quantum_channel(self, Q_channel: str, prob: float, text: bool=True):
+        """Allows for the addition of Quantum channeld, mainly used to simulat noise and errors"""
         new_name = f"noisy {self.state.name}"
         if self.collapsed == True:
             raise MeasurementError(f"Noise cannot be applied to a collapsed state")
@@ -1267,10 +1268,7 @@ class Circuit:
         for k in kraus_operators:
             k_conj = k
             k_conj.maxtrix = np.conj(k.matrix)
-            print_array(k_conj)
             epsilon += k_conj * self.state
-            print_array(f"state test{self.state}")
-            print_array(epsilon)
         self.state.vector = epsilon.vector
         self.state.norm()
         self.state.name = new_name
@@ -1408,7 +1406,7 @@ class Grover:                                               #this is the Grover 
         self.balanced_param = kwargs.get("balanced_param", 100)
         for arg in args:
             if isinstance(arg, list): 
-                self.oracle_values.extend(arg)  
+                self.oracle_values.extend(arg)    #chooses between using the given oracle values or finding random ones
             elif isinstance(arg, int):
                 self.rand_ov = arg
         
@@ -1423,29 +1421,29 @@ class Grover:                                               #this is the Grover 
 
     def phase_oracle(self, qub: Qubit, oracle_values: list) -> Qubit:          #the Grover phase oracle
         """Computes the phase flip produced from the oracle values"""
-        qub.vector[oracle_values] *= -1 
+        qub.vector[oracle_values] *= -1                     #flips the values in the index of the oracle values
         return qub
     
     def optimal_iterations(self, n: int) -> tuple[float, int]:
         """Calculates the best number of iterations for a given number of qubits"""
         search_space: int = 2**n
-        op_iter: float = (np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5
+        op_iter: float = (np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5        #the standard equation to find the optimal iterations
         return op_iter, search_space
     
     def init_states(self) -> tuple[Qubit, Gate]:
         """Creates the Quantum state and the Hadamard gates needed for the algorithm"""
         timer = Timer()
-        qub = Qubit.q0(n=self.n)
+        qub = Qubit.q0(n=self.n) #initialises the Qubit state |0*n>
         print_array(f"Initialising state {qub.name}")
-        if self.fast:
+        if self.fast:               #this is the faster variant of Grovers utilising the FWHT
             print_array(f"Using FWHT to compute {self.n} x {self.n} Hadamard gate application")
-            had = FWHT()
+            had = FWHT()                #"creates the had for the FWHT, even thought the FWHT isnt a physical gate"
             return qub, had
         else:
             n_had = Hadamard                   
             print_array(f"Initialising {self.n} x {self.n} Hadamard")
             for i in range(self.n-1):    #creates the qubit and also the tensored hadamard for the given qubit size
-                n_had **= Hadamard
+                n_had **= Hadamard              #if not fast then tensors up a hadamard to the correct size
                 print(f"\r{i+2} x {i+2} Hadamard created", end="")    #allows to clear line without writing a custom print function in print_array
             print(f"\r",end="")
             print_array(f"\rHadamard and Quantum State created, time to create was: {timer.elapsed()[0]:.4f}")
@@ -1456,7 +1454,7 @@ class Grover:                                               #this is the Grover 
         it = 0
         timer = Timer()
         print_array(f"Running FWHT algorithm:") if self.fast else print_array(f"Running algorithm:")
-        qub, had = self.init_states()
+        qub, had = self.init_states()   #this is where the prveious function is called and the states and hadamard are produced
         while it < int(self.it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
             print(f"\rIteration {it + 1}:                                                                  ", end="")
             if it != 0:
@@ -1480,18 +1478,18 @@ class Grover:                                               #this is the Grover 
 
     def compute_n(self) -> int:
         """Computes the optimal number of qubits and thus search space by finding a good iteration value based on the specific algorithm ran within"""
-        if isinstance(self.n_cap, int):
+        if isinstance(self.n_cap, int):                #check on the input type of self.ncap
             print_array(f"Using up to {self.n_cap} Qubits to run the search")
-            max_oracle = max(self.oracle_values)
+            max_oracle = max(self.oracle_values)             #finds the largest one to find the min qubits
             n_qubit_min = 1
             while max_oracle > 2**n_qubit_min:             #when picking the qubits, we need enough to allow the search space to be bigger than all the oracle values
                 n_qubit_min += 1
             if n_qubit_min > self.n_cap:
                 raise QC_error(f"The search space needed for this search is larger than the qubit limit {self.n_cap}.")
-            if self.it == None:
+            if self.it == None:          #if no given iteration then will find it
                 print_array(f"No iteration value given, so will now calculate the optimal iterations")
                 n_qubit_range = np.arange(n_qubit_min, self.n_cap + 1, dtype=int)
-                if self.iter_calc == None or self.iter_calc == "round":
+                if self.iter_calc == None or self.iter_calc == "round":          #this is the default type
                     int_val = 0
                     print_array(f"Now computing n for the optimal iteration closest to a whole number")
                     for i in n_qubit_range:   #goes through the range of possible qubit values from the smallest possible for the given oracle values up to the cap
@@ -1502,13 +1500,13 @@ class Grover:                                               #this is the Grover 
                             print_array(f"Optimal iterations for {i} Qubits is: {op_iter:.3f}")
                             if int_dist > int_val:            #iterates through to find the smallest distance from an integer
                                 self.n: int = i
-                                int_val: float = int_dist
+                                int_val: float = int_dist   #is the standard protocol of rounding to the nearest whole number
                     return self.n
-                elif self.iter_calc == "floor":
+                elif self.iter_calc == "floor":              #is the next protocol that floors every value to the nearest whole number and runs with that
                     int_val = 1
                     print_array(f"Now computing n for the optimal iteration closest to the number below it")
                     for i in n_qubit_range:   #goes through the range of possible qubit values from the smallest possible for the given oracle values up to the cap
-                        op_iter = self.optimal_iterations(i)[0]
+                        op_iter = self.optimal_iterations(i)[0]                 #computes the optimal amount
                         if op_iter >= 1:
                             int_dist: float = op_iter - np.floor(op_iter)  #finds the float value
                             print_array(f"Optimal iterations for {i} Qubits is: {op_iter:.3f}")
@@ -1516,8 +1514,8 @@ class Grover:                                               #this is the Grover 
                                 self.n: int = i
                                 int_val: float = int_dist
                     return self.n
-                elif self.iter_calc == "balanced":
-                    if isinstance(self.balanced_param, int):
+                elif self.iter_calc == "balanced":        #allows for a balanced approach, this is where if the gap "up" to the next iteration is small enough
+                    if isinstance(self.balanced_param, int):            #then is will take that value over going down
                         int_val_floor = 1
                         int_val_round = 0
                         print_array(f"Now computing n for the optimal iteration using a balanced algorithm")
@@ -1533,7 +1531,7 @@ class Grover:                                               #this is the Grover 
                                 if int_dist_round > int_val_round:            #iterates through to find the smallest distance from an integer
                                     n_round: int = i
                                     int_val_round: float = int_dist_round
-                        if (1-int_val_round) < int_val_floor / self.balanced_param:
+                        if (1-int_val_round) < int_val_floor / self.balanced_param:      #this is where it calcs which one to use
                             self.n = n_round
                             self.iter_calc = "round"
                             print_array(f"The optimal iteration is computed through rounding")
@@ -1558,7 +1556,7 @@ class Grover:                                               #this is the Grover 
         Grover_timer = Timer()
         if self.rand_ov:
             console.rule(f"Grovers search with random oracle values", style="grover_header")
-            self.oracle_values = np.zeros(self.rand_ov)
+            self.oracle_values = np.zeros(self.rand_ov)    #basically if oraclae values are not given, it will find n random values and use those instead
         else:
             console.rule(f"Grovers search with oracle values: {self.oracle_values}", style="grover_header")
         if self.n == None:               #if the number of qubits required is not given then run:
@@ -1575,13 +1573,13 @@ class Grover:                                               #this is the Grover 
             self.oracle_values = []
             for i in range(self.rand_ov):
                 self.oracle_values.append(randint(0, 2**self.n - 1))
-            self.rand_ov = self.oracle_values
+            self.rand_ov = self.oracle_values   #computes the random oracle values and replaces oracle values with them
         op_iter = self.optimal_iterations(self.n)[0]
         if self.it == None:     #now picks an iteration value
             if self.iter_calc == "round" or self.iter_calc == None:
                 self.it = round(op_iter)
             elif self.iter_calc == "floor":
-                self.it = int(np.floor(op_iter))
+                self.it = int(np.floor(op_iter))      #picks which algorithm to apply
             elif self.iter_calc == "balanced":
                 self.it = int(np.floor(op_iter))
             else:
@@ -1630,7 +1628,7 @@ class print_array:    #made to try to make matrices look prettier
                 num_bits = int(np.ceil(np.log2(array.dim)))
                 np.set_printoptions(linewidth=(10))
                 console.print(f"{array.name}",markup=True, style="measure")
-                for ket_val, prob_val in zip(ket_mat,array.list_probs()):
+                for ket_val, prob_val in zip(ket_mat,array.list_probs()):       #creates a bra ket notation of the given values
                     console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {100*prob_val:.{self.prec}f}%",markup=True, style="measure")
             else:
                 console.print(array,markup=True,style="measure")
@@ -1678,9 +1676,10 @@ def main():
     """Where you can run commands without it affecting programs that import this program"""
     
     noisy_circuit = Circuit(n=2, noisy=True, Q_channel="P flip", prob=0.3)
-
-    noisy_circuit.print_gates()
+    noisy_circuit.add_single_gate(Hadamard, gate_location=1)
+    noisy_circuit.add_quantum_channel(Q_channel="B flip", prob=0.4)
     noisy_circuit.apply_final_gate()
+    noisy_circuit.add_quantum_channel(Q_channel="B P flip", prob=0.8)
     noisy_circuit.list_probs()
     
     
