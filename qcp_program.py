@@ -1160,14 +1160,14 @@ class Measure(Density):
 def format_ket_notation(list_probs: np.ndarray, **kwargs) -> str:
     """Used for printing out as it gives each state and the ket associated with it"""
     list_type = kwargs.get("type", "all")
-    num_bits = kwargs.get("num_bits", int(np.ceil(np.log2(len(list_probs)))))
+    num_bits = kwargs.get("num_bits", int(np.ceil(np.log2(len(list_probs)))))    #this is to flush out the ket notation to give the correct number of bits back
     prec = kwargs.get("precision", 3)
     if list_type == "topn":
         print_out = f""
-        for ket_val, prob_val in zip(list_probs[:,0],list_probs[:,1]):
+        for ket_val, prob_val in zip(list_probs[:,0],list_probs[:,1]):       #iterates through every prob value
             print_out += (f"State |{bin(ket_val)[2:].zfill(num_bits)}> ({ket_val}) with a prob val of: {prob_val * 100:.{prec}f}%\n")
         return print_out
-    elif list_type == "all":
+    elif list_type == "all":         #this just does it for every single ket value
         ket_mat = range(len(list_probs))
         print_out = f""
         for ket_val, prob_val in zip(ket_mat,list_probs):
@@ -1191,7 +1191,7 @@ Q = QFT()
 class Circuit:
     """The compiler to run an actual circuit with"""
     def __init__(self, **kwargs):
-        self.collapsed = False
+        self.collapsed = False        #prevents additional gates after collapsing the entire state
         self.measured_states = []
         self.gates = []
         self.state = kwargs.get("state", None)
@@ -1211,7 +1211,7 @@ class Circuit:
         self.measurement = None
         self.final_gate = None
         self.noisy = kwargs.get("noisy", False)
-        if self.noisy:
+        if self.noisy:     #checks that it has all of the required key word arguments if put in noisy mode
             self.Q_channel = kwargs.get("Q_channel", None)
             self.noise_prob = kwargs.get("prob", None)
             if self.Q_channel == None:
@@ -1243,24 +1243,24 @@ class Circuit:
         if self.collapsed == True:
             raise MeasurementError(f"Noise cannot be applied to a collapsed state")
         K0 = Gate.Identity(n=self.n)
-        if Q_channel == "P flip":
+        if Q_channel == "P flip":                  #creates the Kraus operators for the phase flip
             K1 = Gate.Z_Gate()
             Z_Gate = K1
             for i in range(self.n - 1):
                 K1 = K1 @ Z_Gate
-        elif Q_channel == "B flip":
+        elif Q_channel == "B flip":                #creates the Kraus opertors for the bit flip
             K1 = Gate.X_Gate()
             X_Gate = K1
             for i in range(self.n - 1):
                 K1 = K1 @ X_Gate
-        elif Q_channel == "B P flip":
+        elif Q_channel == "B P flip":              #creates the Kraus opertors for the Y flip or phase and bit flip
             K1 = Gate.Y_Gate()
             Y_Gate = K1
             for i in range(self.n - 1):
                 K1 = K1 @ Y_Gate
         else:
             raise QuantumCircuitError(f"{Q_channel} is not a valid Quantum channel")
-        K0.matrix = K0.matrix * np.sqrt(1 - prob)**self.n
+        K0.matrix = K0.matrix * np.sqrt(1 - prob)**self.n         #normalisation
         K1.matrix = K1.matrix * np.sqrt(prob)**self.n
         kraus_operators = [K0,K1]
         epsilon_vector = np.zeros(self.state.dim, dtype=np.complex128)
@@ -1268,9 +1268,9 @@ class Circuit:
         for k in kraus_operators:
             k_conj = k
             k_conj.maxtrix = np.conj(k.matrix)
-            epsilon += k_conj * self.state
+            epsilon += k_conj * self.state           #applies them all to the state
         self.state.vector = epsilon.vector
-        self.state.norm()
+        self.state.norm()                  #not the most elegent way to do it but only way ive found that works
         self.state.name = new_name
         if not isinstance(self.state.vector, np.ndarray):
             raise QC_error(f"self.state.vector cannot be of type {type(self.state.vector)}, expected numpy array")
@@ -1280,8 +1280,7 @@ class Circuit:
         """Used to add a combined n x n gates to the gate array to then combine into one unitary gate"""
         if self.collapsed == True:
             raise MeasurementError(f"The state is now fully collapsed and no more gates can be applied to it")
-        
-        self.gates.append(gate)
+        self.gates.append(gate)         #adds the given gate to the array
         if text:
             if gate.dim < 9:
                 print_array(f"Adding this gate to the circuit:")
@@ -1301,7 +1300,7 @@ class Circuit:
             lower_id = Gate.Identity(n=self.n - gate_location * gate.n - gate.n)        #gate_location * gate.n accounts for the size of the gate applied
         else:
             raise QuantumCircuitError(f"The gate location connot be of {type(gate_location)}, expect type int")
-        ndim_gate = upper_id @ gate @ lower_id
+        ndim_gate = upper_id @ gate @ lower_id           #creastes the gate the size of the circuit
         ndim_gate.name = f"{gate.name} on Qubit {gate_location}"
         self.gates.append(ndim_gate)
         if text:
@@ -1314,7 +1313,7 @@ class Circuit:
     def compute_final_gate(self, text=True) -> Gate:
         """Combines all gates in the gate list together to produce one unitary final gate"""
         self.final_gate = self.start_gate
-        for gate in reversed(self.gates):
+        for gate in reversed(self.gates):         #goes backwards through the list and applies them
             self.final_gate = self.final_gate * gate
         self.final_gate.name = f"Final Gate"
         if text:
@@ -1325,13 +1324,13 @@ class Circuit:
     def apply_final_gate(self, text=True) -> Qubit:
         """Applies the final gate to the Quantum state"""
         if self.final_gate is None:
-            self.final_gate = self.compute_final_gate()
+            self.final_gate = self.compute_final_gate()           #applies the function to multiply them all together
         self.state = self.final_gate * self.state
         self.final_gate = None
         if self.noisy:
-            self.state = self.add_quantum_channel(self.Q_channel, self.noise_prob)
-            if text:
-                print_array(f"The final state is:")
+            self.state = self.add_quantum_channel(self.Q_channel, self.noise_prob)      #creates the noisy state after the gate is applied
+            if text:                                                                    #this is a rather crude way to simulate the gate being the thing that
+                print_array(f"The final state is:")                                     #introduces errors
                 print_array(self.state)
             return self.state
         else:
@@ -1343,7 +1342,7 @@ class Circuit:
     
     def list_probs(self, qubit: int=None, povm: np.ndarray=None, text: bool=True) -> Measure:
         """Produces a list of probabilities of measurement outcomes of the state at any point"""
-        self.prob_distribution = Measure(state=self.state).list_probs(qubit, povm)
+        self.prob_distribution = Measure(state=self.state).list_probs(qubit, povm)            #just lists all of the probabilities of that computed state
         if text:
             print_array(f"The projective probability distribution is:") 
             print_array(format_ket_notation(self.prob_distribution))
@@ -1354,7 +1353,7 @@ class Circuit:
         """Only prints or returns a set number of states, mostly useful for large qubit sizes"""
         prob_list = self.list_probs(qubit, povm, text=False)
         topn = kwargs.get("n", 8)
-        self.top_prob_dist = top_probs(prob_list, n=topn)
+        self.top_prob_dist = top_probs(prob_list, n=topn)                 #purely finds the top probabilities
         if text:
             print_array(f"The top {topn} probabilities are:")
             print_array(format_ket_notation(self.top_prob_dist, type="topn", num_bits=int(np.ceil(np.log2(self.state.dim)))))
@@ -1364,15 +1363,15 @@ class Circuit:
         """Measures the state from the list of probabilities"""
         measurement, self.state = Measure(state=self.state).measure_state(qubit, povm)
         if qubit:
-            self.measured_states.append(qubit)
+            self.measured_states.append(qubit)         #this is to make a list of measured states so that they cant have gates applied
         elif qubit is None:
-            self.collapsed = True
+            self.collapsed = True          #collapses the state if all qubits are measured
         if text:
             if qubit:
                 print_array(f"Measured qubit {qubit} as |{measurement}> and the post measurement state is:\n {self.state}")
             else:
                 print_array(f"Measured state as:\n {self.state}")
-        self.gates = []
+        self.gates = []               #wipes the gates to allow for new applications
         return self.state
 
     def run(self):
