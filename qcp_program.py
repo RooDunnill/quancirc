@@ -1414,11 +1414,13 @@ class Circuit:
             self.measure_state(text=False)
         return self.__rich__()
 
-    def return_info(self, attr):
+    def return_info(self, attribute, text=True):
         """Mostly used for debugging but can return a specific attribute of the class"""
-        if not hasattr(self, attr): 
-            raise QuantumCircuitError(f"This parameter {attr} of type {type(attr)} does not exist")
-        return getattr(self, attr)  
+        if not hasattr(self, attribute): 
+            raise QuantumCircuitError(f"This parameter {attribute} of type {type(attribute)} does not exist")
+        if text:
+            print_array(f"Retrieving the attribute {attribute}:\n {getattr(self, attribute)}")
+        return getattr(self, attribute)  
         
 
 class Grover:                                               #this is the Grover algorithms own class
@@ -1704,12 +1706,12 @@ large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,
 def main():
     """Where you can run commands without it affecting programs that import this program"""
     
-    demo_circuit = Circuit(n=4)
-    demo_circuit.add_gate(Hadamard @ Identity @ Hadamard @ Identity)
-    demo_circuit.add_gate(Identity @ X_Gate @ Identity @ X_Gate)
-    demo_circuit.add_single_gate(gate=Hadamard, gate_location=0)
-    demo_circuit.apply_final_gate()
-    demo_circuit.list_probs()
-    demo_circuit.measure_state()
-    q0.bloch_plot()
-    
+    qcs = Circuit(n=1, noisy=True, Q_channel = "B flip", prob=1)
+    qcs.add_gate(Hadamard)
+    qcs.add_gate(S_Gate)
+    qcs.apply_final_gate()
+    qcs.add_quantum_channel(Q_channel="B P flip", prob=1)
+    qcs.return_info("state")
+    qcs.list_probs()
+
+  
