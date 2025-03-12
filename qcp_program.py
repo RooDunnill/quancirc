@@ -621,13 +621,12 @@ class Gate:
     def __mul__(self, other):       #matrix multiplication
         """The matrix multiplier, allowing multiple types of Gates and also applying Gates to Qubits"""
         
-        if isinstance(self, FWHT):
+        if isinstance(self, FWHT) and isinstance(other, Qubit):
             return self.FWHT(other)
-        elif isinstance(self, QFT):
+        elif isinstance(self, QFT) and isinstance(other, Qubit):
             return self.QFT(other)
         elif isinstance(self, Gate):
             if isinstance(other, np.ndarray):
-                other_dim = int(np.sqrt(len(other)))
                 if isinstance(self, Density):
                     new_rho = Gate.mul_flat(self.rho, other)
                     return Density(rho=new_rho, name=self.name)
@@ -660,10 +659,13 @@ class Gate:
                 new_mat = np.zeros(self.dim,dtype=np.complex128)
                 mat_len = len(self)
                 mat_dim = int(np.sqrt(mat_len))
-                for i in range(mat_dim):
-                    row = self[i * mat_dim:(i + 1) * mat_dim]
-                    new_mat[i] = np.sum(row[:] * other.vector[:])
-                return Qubit(vector=new_mat, name=self.name)
+                if mat_dim == other.dim:
+                    for i in range(mat_dim):
+                        row = self[i * mat_dim:(i + 1) * mat_dim]
+                        new_mat[i] = np.sum(row[:] * other.vector[:])
+                    return Qubit(vector=new_mat, name=self.name)
+                else:
+                    raise GateError(f"Both the gates must be of the same dimension to perform matrix multiplication. The gates have dim {mat_dim} and {other.dim}")
             elif isinstance(other, np.ndarray):
                 new_mat = Gate.mul_flat(self, other)
                 return new_mat
@@ -707,7 +709,7 @@ class Gate:
             raise GateError(f"Direct sum cannot occur with types {type(self)} and {type(other)}, expected two Gate classes")
     
     def __iand__(self, other: "Gate") -> "Gate":                                  #used almost exclusively for the CNot gate creator
-        """The iterative direct sum, to be able to loop direct sums, mostly used for COntrol Gate construction"""
+        """The iterative direct sum, to be able to loop direct sums, mostly used for Control Gate construction"""
         if isinstance(other, Gate):
             self = self & other
             return self
@@ -1219,12 +1221,12 @@ class Circuit:
         self.noisy = kwargs.get("noisy", False)
         if self.noisy:     #checks that it has all of the required key word arguments if put in noisy mode
             self.Q_channel = kwargs.get("Q_channel", None)
-            self.noise_prob = kwargs.get("prob", None)
+            self.prob = kwargs.get("prob", None)
             if self.Q_channel == None:
                 raise QuantumCircuitError(f"If the Quantum circuit is noisy, a Quantum channel must be given")
-            if self.noise_prob == None:
+            if self.prob == None:
                 raise QuantumCircuitError(f"If the Quantum circuit is noisy, an error probability must be given")
-            print_array(f"Simulating {self.Q_channel} noise on all gates with an error probability of {self.noise_prob}")
+            print_array(f"Simulating {self.Q_channel} noise on all gates with an error probability of {self.prob}")
         
     def __str__(self):
         return self.__rich__()
@@ -1358,7 +1360,7 @@ class Circuit:
         self.state = self.final_gate * self.state
         self.final_gate = None
         if self.noisy:
-            self.state = self.add_quantum_channel(self.Q_channel, self.noise_prob)      #creates the noisy state after the gate is applied
+            self.state = self.add_quantum_channel(self.Q_channel, self.prob)      #creates the noisy state after the gate is applied
             if text:                                                                    #this is a rather crude way to simulate the gate being the thing that
                 print_array(f"The final noisy state is:")                                     #introduces errors
                 print_array(self.state)
@@ -1414,7 +1416,7 @@ class Circuit:
             self.measure_state(text=False)
         return self.__rich__()
 
-    def return_info(self, attribute, text=True):
+    def get_info(self, attribute, text=True):
         """Mostly used for debugging but can return a specific attribute of the class"""
         if not hasattr(self, attribute): 
             raise QuantumCircuitError(f"This parameter {attribute} of type {type(attribute)} does not exist")
@@ -1705,13 +1707,13 @@ large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,
 
 def main():
     """Where you can run commands without it affecting programs that import this program"""
-    
-    qcs = Circuit(n=1, noisy=True, Q_channel = "B flip", prob=1)
+    p = np.sqrt(2)
+    qcs = Circuit(n=1, noisy=True, Q_channel = "B P flip", prob=0.707)
     qcs.add_gate(Hadamard)
-    qcs.add_gate(S_Gate)
     qcs.apply_final_gate()
-    qcs.add_quantum_channel(Q_channel="B P flip", prob=1)
-    qcs.return_info("state")
+    qcs.add_quantum_channel(Q_channel="P flip", prob=0.707)
+    qcs.add_quantum_channel(Q_channel="B flip", prob=0.707)
+    qcs.get_info("state")
     qcs.list_probs()
 
   
