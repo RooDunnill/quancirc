@@ -620,7 +620,6 @@ class Gate:
 
     def __mul__(self, other):       #matrix multiplication
         """The matrix multiplier, allowing multiple types of Gates and also applying Gates to Qubits"""
-        
         if isinstance(self, FWHT) and isinstance(other, Qubit):
             return self.FWHT(other)
         elif isinstance(self, QFT) and isinstance(other, Qubit):
@@ -1336,7 +1335,7 @@ class Circuit:
         ndim_gate.name = f"{gate.name} on Qubit {gate_location}"
         self.gates.append(ndim_gate)
         if text:
-            if gate.dim < 9:
+            if ndim_gate.dim < 9:
                 print_array(f"Adding this gate to the circuit:")
                 print_array(ndim_gate)
             else:
@@ -1381,7 +1380,7 @@ class Circuit:
         return self.prob_distribution
 
     
-    def topn_probabilities(self, qubit: int=None, povm: np.ndarray=None, text:bool=True, **kwargs) -> Measure:
+    def topn_probabilities(self, qubit: int=None, povm: np.ndarray=None, text: bool=True, **kwargs) -> Measure:
         """Only prints or returns a set number of states, mostly useful for large qubit sizes"""
         prob_list = self.list_probs(qubit, povm, text=False)
         topn = kwargs.get("n", 8)
@@ -1402,7 +1401,7 @@ class Circuit:
             if qubit:
                 print_array(f"Measured qubit {qubit} as |{measurement}> and the post measurement state is:\n {self.state}")
             else:
-                print_array(f"Measured state as:\n {self.state}")
+                print_array(f"Measured state as |{measurement}> and the psot measurement state is:\n {self.state}")
         self.gates = []               #wipes the gates to allow for new applications
         return self.state
 
@@ -1707,13 +1706,24 @@ large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,
 
 def main():
     """Where you can run commands without it affecting programs that import this program"""
-    p = np.sqrt(2)
-    qcs = Circuit(n=1, noisy=True, Q_channel = "B P flip", prob=0.707)
-    qcs.add_gate(Hadamard)
-    qcs.apply_final_gate()
-    qcs.add_quantum_channel(Q_channel="P flip", prob=0.707)
-    qcs.add_quantum_channel(Q_channel="B flip", prob=0.707)
-    qcs.get_info("state")
-    qcs.list_probs()
 
+    demo1 = Circuit(n=4)
+    demo1.add_gate(Hadamard @ Hadamard @ Hadamard @ Hadamard)
+    demo1.add_gate(Identity @ Z_Gate @ Z_Gate @ S_Gate)
+    demo1.add_gate(CNot @ CNot)
+    demo1.add_single_gate(gate=Hadamard, gate_location=3)
+    demo1.apply_final_gate()
+    demo1.list_probs()
+    demo1.measure_state()
   
+
+    demo2 = Circuit(n=2, noisy=True, Q_channel="B flip", prob=0.3)
+    demo2.add_single_gate(gate=Hadamard, gate_location=0)
+    demo2.apply_final_gate()
+    demo2.add_quantum_channel(Q_channel="P flip", prob=0.2)
+    demo2.add_gate(Hadamard @ X_Gate)
+    demo2.add_gate(S_Gate @ Hadamard)
+    demo2.add_gate(CNot)
+    demo2.apply_final_gate()
+    demo2.list_probs()
+    demo2.measure_state()
