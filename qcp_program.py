@@ -1704,4 +1704,12 @@ large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,
 def main():
     """Where you can run commands without it affecting programs that import this program"""
     
+    demo_circuit = Circuit(n=4)
+    demo_circuit.add_gate(Hadamard @ Identity @ Hadamard @ Identity)
+    demo_circuit.add_gate(Identity @ X_Gate @ Identity @ X_Gate)
+    demo_circuit.add_single_gate(gate=Hadamard, gate_location=0)
+    demo_circuit.apply_final_gate()
+    demo_circuit.list_probs()
+    demo_circuit.measure_state()
+    q0.bloch_plot()
     

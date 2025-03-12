@@ -56,10 +56,6 @@ test_circuit.add_single_gate(gate=X_Gate, gate_location=1)
 print_array(Identity @ X_Gate @ Identity)
 test_circuit.run()
 print_array(test_circuit.return_info("final_gate"))
-Grover(oracle_values).run()
-Grover(oracle_values2).run()
-Grover(oracle_values3).run()
-Grover(oracle_values4).run()
 print_array(q0 @ q0 @ q0 @ q0)
 print_array(Hadamard * q0)
 print_array(type(Hadamard * q0))
@@ -70,21 +66,8 @@ print_array((Hadamard @ Hadamard) * Qubit(type="seperable", vectors=[q0,q0]))
 had_mult_test = Qubit(type="seperable", vectors=[q0,q0])
 print_array(had_mult_test)
 print_array((Hadamard @ Hadamard) * had_mult_test)
-oracle_values = [9,4,3,2,5,6,12,15,16]
-oracle_values2 = [1,2,3,4,664,77,5,10,12,14,16,333,334,335,400,401,41,42,1000]
-oracle_values3 = [4,5,30,41]
-oracle_values4 = [500,5,4,7,8,9,99]
-oracle_value_test = [1,2,3]
 large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,12090,13074]
-Grover(16, fast=True, iter_calc="round").run()
-Grover(16, fast=True, iter_calc="floor").run()
-Grover(16, fast=True, iter_calc="balanced").run()
-Grover(oracle_values2, fast=True, iter_calc="round").run()
-Grover(oracle_values2, fast=True, iter_calc="floor").run()
-Grover(oracle_values2, fast=True, iter_calc="balanced").run()
-Grover(large_oracle_values, fast=True, iter_calc="round").run()
-Grover(large_oracle_values, fast=True, iter_calc="floor").run()
-Grover(large_oracle_values, fast=True, iter_calc="balanced").run()
+
 povm1 = np.array([1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
 povm2 = np.array([0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0])
 povm3 = np.array([0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0])
@@ -184,3 +167,25 @@ Q_channel_circuit.add_gate(Hadamard @ Hadamard @ Hadamard @ Hadamard)
 Q_channel_circuit.apply_final_gate()
 Q_channel_circuit.add_quantum_channel(Q_channel="P flip", prob=0.8)
 Q_channel_circuit.list_probs()
+oracle_values = [9,4,3,2,5,6,12,15,16]
+oracle_values2 = [1,2,3,4,664,77,5,10,12,14,16,333,334,335,400,401,41,42,1000]
+oracle_values3 = [4,5,30,41]
+oracle_values4 = [500,5,4,7,8,9,99]
+oracle_value_test = [1,2,3]
+Grover(oracle_values).run()
+Grover(oracle_values2).run()
+Grover(oracle_values3).run()
+Grover(oracle_values4).run()
+Grover(16, fast=True, iter_calc="round").run()
+Grover(16, fast=True, iter_calc="floor").run()
+Grover(16, fast=True, iter_calc="balanced").run()
+Grover(oracle_values2, fast=True, iter_calc="round").run()
+Grover(oracle_values2, fast=True, iter_calc="floor").run()
+Grover(oracle_values2, fast=True, iter_calc="balanced").run()
+Grover(large_oracle_values, fast=True, iter_calc="round").run()
+Grover(large_oracle_values, fast=True, iter_calc="floor").run()
+Grover(large_oracle_values, fast=True, iter_calc="balanced").run()
+Grover(oracle_values, n=10, iterations=10).run()
+Grover(oracle_values, n=10).run()
+time_test(16)
+comp_Grover_test(12)
