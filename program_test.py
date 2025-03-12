@@ -171,8 +171,16 @@ single_qubit_measurement_test.add_single_gate(Hadamard, gate_location=1)
 single_qubit_measurement_test.add_single_gate(Hadamard, gate_location=2)
 single_qubit_measurement_test.apply_final_gate()
 single_qubit_measurement_test.measure_state(qubit = 3)
+
+noisy_circuit = Circuit(n=2, noisy=True, Q_channel="P flip", prob=0.3)
+noisy_circuit.apply_final_gate()
+noisy_circuit.add_quantum_channel(Q_channel="B flip", prob=0.4)
+noisy_circuit.list_probs()
+
+
 Q_channel_circuit = Circuit(n = 4)
-Q_channel_circuit.add_gate(Hadamard @ Hadamard @ Hadamard @ Identity)
-Q_channel_circuit.add_quantum_channel(Q_channel="P flip", prob=0.5)
+Q_channel_circuit.add_gate(Hadamard @ Hadamard @ Hadamard @ Hadamard)
+
 Q_channel_circuit.apply_final_gate()
+Q_channel_circuit.add_quantum_channel(Q_channel="P flip", prob=0.8)
 Q_channel_circuit.list_probs()

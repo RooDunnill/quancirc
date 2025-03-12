@@ -526,7 +526,7 @@ class Gate:
             for m in range(self.dim):
                 for i in range(self.dim):
                     for j in range(other.dim):             #4 is 100 2 is 10
-                        for k in range(other.dim):   #honestly, this works but is trash and looks like shit
+                        for k in range(other.dim):   #honestly, this works but is trash and looks bad
                             index = k+j*new_dim+other.dim*i+other.dim*new_dim*m
                             new_mat[index] += self.rho[i+self.dim*m]*other.rho[k+other.dim*j]
             return Density(name=new_name, info=new_info, rho=new_mat)
@@ -626,40 +626,35 @@ class Gate:
         elif isinstance(self, QFT):
             return self.QFT(other)
         elif isinstance(self, Gate):
-            if isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
-                if self.dim == other.dim:
-                    new_mat = np.zeros(self.dim,dtype=np.complex128)
-                    for i in range(self.dim):
-                        row = self.matrix[i * self.dim:(i + 1) * self.dim]
-                        new_mat[i] = np.sum(row[:] * other.vector[:])
-                    new_name = self.name + other.name
-                    return Qubit(vector=new_mat, name=new_name)
-                else:
-                    raise QubitError(f"Both the gate and the Qubit must be of the same dimension to perform matrix multiplication. Gate has dim {self.dim}, Qubit {other.dim}")
-            elif isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
-                if self.dim == other.dim:
-                    new_mat = Gate.mul_flat(self.matrix, other.matrix)
-                    if isinstance(other, Density):
-                        new_info = "This is the density matrix of: "f"{self.name}"" and "f"{other.name}"
-                        new_name: str = f"{self.name} * {other.name}"
-                        return Density(name=new_name, info=new_info, matrix=np.array(new_mat, dtype=np.complex128))
-                    else:
-                        self.info: str = "This is a matrix multiplication of gates: "f"{self.name}"" and "f"{other.name}"
-                        self.name: str = f"{self.name} * {other.name}"
-                        self.matrix = np.array(new_mat, dtype=np.complex128)
-                        return self
-                else:
-                    raise GateError(f"Both the gates must be of the same dimension to perform matrix multiplication. The gates have dim {self.dim} and {other.dim}")
-            elif isinstance(other, np.ndarray):
+            if isinstance(other, np.ndarray):
                 other_dim = int(np.sqrt(len(other)))
-                if self.dim == other_dim:
-                    new_mat = Gate.mul_flat(self.rho, other) if isinstance(self, Density) else Gate.mul_flat(self.matrix, other)
-                    self.matrix = np.array(new_mat, dtype=np.complex128)
-                    return self
+                if isinstance(self, Density):
+                    new_rho = Gate.mul_flat(self.rho, other)
+                    return Density(rho=new_rho, name=self.name)
                 else:
-                    raise GateError(f"Both the arrays must be of the same dimension to perform matrix multiplication. The gates have dim {self.dim} and {other.dim}")
+                    new_mat = Gate.mul_flat(self.matrix, other)
+                    return Gate(matrix=new_mat, name=self.name)
+            if self.dim == other.dim:
+                new_name = f"{self.name} * {other.name}"
+                if isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
+                        new_mat = np.zeros(self.dim,dtype=np.complex128)
+                        for i in range(self.dim):
+                            row = self.matrix[i * self.dim:(i + 1) * self.dim]
+                            new_mat[i] = np.sum(row[:] * other.vector[:])
+                        return Qubit(vector=new_mat, name=new_name)
+                elif isinstance(other, Gate):    #however probs completely better way to do this so might scrap at some point
+                        if isinstance(other, Density):
+                            new_rho = Gate.mul_flat(self.matrix, other.rho)
+                            new_info = "This is the density matrix of: "f"{self.name}"" and "f"{other.name}"
+                            return Density(name=new_name, info=new_info, rho=new_rho)
+                        else:
+                            new_mat = Gate.mul_flat(self.matrix, other.matrix)
+                            new_info: str = "This is a matrix multiplication of gates: "f"{self.name}"" and "f"{other.name}"
+                            return Gate(name=new_name, info=new_info, matrix=new_mat)
+                else:
+                    raise TypeError(f"The second matrix is of type {type(other)} and isn't compatible")
             else:
-                raise TypeError(f"The second matrix is of type {type(other)} and isn't compatible")
+                raise GateError(f"Both the gates must be of the same dimension to perform matrix multiplication. The gates have dim {self.dim} and {other.dim}")
         elif isinstance(self, np.ndarray):
             if isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
                 new_mat = np.zeros(self.dim,dtype=np.complex128)
@@ -668,16 +663,13 @@ class Gate:
                 for i in range(mat_dim):
                     row = self[i * mat_dim:(i + 1) * mat_dim]
                     new_mat[i] = np.sum(row[:] * other.vector[:])
-                other.vector = new_mat
-                other.name = self.name + other.name
-                return other
+                return Qubit(vector=new_mat, name=self.name)
             elif isinstance(other, np.ndarray):
                 new_mat = Gate.mul_flat(self, other)
                 return new_mat
             elif isinstance(other, Gate):
                 new_mat = Gate.mul_flat(self, other.matrix)
-                other.matrix = new_mat
-                return other
+                return Gate(matrix=new_mat)
         else:
             raise GateError(f"Matrix multiplication cannot occur with classes {type(self)} and {type(other)}")
 
@@ -1295,6 +1287,10 @@ class Circuit:
         self.state.name = new_name
         if not isinstance(self.state.vector, np.ndarray):
             raise QC_error(f"self.state.vector cannot be of type {type(self.state.vector)}, expected numpy array")
+        if text:
+            print_array(f"Applying the noisy Quantum channel with these Kraus operators:\n")
+            print_array(K0)
+            print_array(K1)
         return self.state
   
     def add_gate(self, gate: Gate, text: bool=True) -> None:
@@ -1707,11 +1703,5 @@ large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,
 
 def main():
     """Where you can run commands without it affecting programs that import this program"""
-    
-    noisy_circuit = Circuit(n=2, noisy=True, Q_channel="P flip", prob=0.3)
-    noisy_circuit.add_quantum_channel(Q_channel="B flip", prob=0.4)
-    noisy_circuit.apply_final_gate()
-
-    noisy_circuit.list_probs()
     
     
