@@ -1103,25 +1103,25 @@ class Measure(Density):
             else:
                 raise MeasurementError(f"Must either be running in fast, or self.density is of the wrong type {type(self.density)}, expected Density class")
         if qubit is not None:
-            if qubit > self.n:
+            if qubit > self.n - 1:
                 raise QC_error(f"The chosen qubit {qubit}, must be no more than the number of qubits in the circuit {self.n}")
             trace_density = self.density
-            if qubit == 1:
+            if qubit == 0:
                 A_rho = np.array([1+1j])
-                B_rho = trace_density.partial_trace(trace_out="A", state_size = qubit)
-            elif qubit == self.n:
-                A_rho = trace_density.partial_trace(trace_out="B", state_size = self.n - qubit + 1)
+                B_rho = trace_density.partial_trace(trace_out="A", state_size = 1)
+                measure_rho = trace_density.partial_trace(trace_out="B", state_size = self.n - 1)
+            elif qubit == self.n - 1:
+                A_rho = trace_density.partial_trace(trace_out="B", state_size = 1)
                 B_rho = np.array([1+1j])
-            elif qubit == 0:
-                raise MeasurementError(f"Use general function without specifying qubits if your circuit is 1 qubit")
+                measure_rho = trace_density.partial_trace(trace_out="A", state_size = self.n - 1)
             elif isinstance(qubit, int):
-                A_rho = trace_density.partial_trace(trace_out="B", state_size = self.n - qubit + 1)
-                B_rho = trace_density.partial_trace(trace_out="A", state_size = qubit)
+                A_rho = trace_density.partial_trace(trace_out="B", state_size = self.n - qubit)
+                B_rho = trace_density.partial_trace(trace_out="A", state_size = qubit + 1)
+                measure_den = Density(rho=A_rho)
+                measure_rho = measure_den.partial_trace(trace_out="A", state_size = measure_den.n - 1)
             else:
                 raise MeasurementError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
-            trace_density.partial_trace(trace_out="A", state_size = qubit - 1)
-            trace_density.rho = trace_density.rho_b
-            measure_rho = trace_density.partial_trace(trace_out="B", state_size = self.n - qubit)
+            
             measure_den = Density(rho=measure_rho)
             if povm is not None:
                 probs = np.array([np.real(trace(P * measure_den.rho)) for P in povm], dtype=np.float64)
@@ -1160,7 +1160,9 @@ class Measure(Density):
             if text:
                 print_array(f"Measured the {qubit} qubit in state |{bin(measurement)[2:].zfill(num_bits)}>")
             post_measurement_den = Density(rho=A_rho) @ Density(rho=measure_rho) @ Density(rho=B_rho)
-            return measurement, Qubit(vector=diagonal(post_measurement_den.rho))
+            pm_state = Qubit(vector=diagonal(post_measurement_den.rho))
+            pm_state.norm()
+            return measurement, pm_state
         else:
             MeasurementError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
 
@@ -1401,9 +1403,11 @@ class Circuit:
             if qubit:
                 print_array(f"Measured qubit {qubit} as |{measurement}> and the post measurement state is:\n {self.state}")
             else:
-                print_array(f"Measured state as |{measurement}> and the psot measurement state is:\n {self.state}")
+                num_bits = int(np.log2(self.state.dim))
+                print_array(f"Measured state as |{bin(measurement)[2:].zfill(num_bits)}> and the post measurement state is:\n {self.state}")
         self.gates = []               #wipes the gates to allow for new applications
         return self.state
+
 
     def run(self):
         """Can be used to run the whole program on an inital state and set of gates, can be used without this function also"""
@@ -1414,6 +1418,26 @@ class Circuit:
             self.topn_probabilities(text=False)
             self.measure_state(text=False)
         return self.__rich__()
+
+    def get_von_neumann(self, qubit=None, text=True,):
+        if qubit is None:
+            vn_den = Density(state=self.state)
+            vne = vn_den.vn_entropy()
+            if text:
+                print_array(f"Von Neumann entropy of the whole quantum state is {vne}")
+            return vne
+        elif isinstance(qubit, int):
+            if qubit <= self.n and qubit >= 0:
+                measure_rho = Measure(state=self.state).list_probs(qubit)[1]
+                vn_den = Density(rho=measure_rho)
+                vne = vn_den.vn_entropy()
+                if text:
+                    print_array(f"Von Neumann entropy of qubit {qubit} is {vne}")
+                return vne
+            else:
+                raise QuantumCircuitError(f"qubit value must be in the range 0 to {self.n}, not of value {qubit}")
+        else:
+            raise QuantumCircuitError(f"qubit cannot be of type {type(qubit)}, expected int value")
 
     def get_info(self, attribute, text=True):
         """Mostly used for debugging but can return a specific attribute of the class"""
@@ -1714,8 +1738,12 @@ def main():
     demo1.add_single_gate(gate=Hadamard, gate_location=3)
     demo1.apply_final_gate()
     demo1.list_probs()
-    demo1.measure_state()
-  
+    demo1.measure_state(qubit=2)
+    demo1.get_von_neumann()
+    demo1.get_von_neumann(qubit=0)
+    demo1.get_von_neumann(qubit=1)
+    demo1.get_von_neumann(qubit=2)
+    demo1.get_von_neumann(qubit=3)
 
     demo2 = Circuit(n=2, noisy=True, Q_channel="B flip", prob=0.3)
     demo2.add_single_gate(gate=Hadamard, gate_location=0)
@@ -1727,3 +1755,4 @@ def main():
     demo2.apply_final_gate()
     demo2.list_probs()
     demo2.measure_state()
+    
