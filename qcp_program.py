@@ -1133,9 +1133,9 @@ class Measure(Density):
         
     def measure_state(self, qubit: int = None, povm: np.ndarray = None, text: bool = False) -> str:
         """Measures the state and also computes the collapsed state. Can measure non projectively for all Qubits and projectively for single Qubits"""
-        if qubit:
+        if qubit is not None:
             probs, measure_rho, A_rho, B_rho = self.list_probs(qubit, povm)
-        else:
+        elif qubit is None:
             probs = self.list_probs(qubit, povm)
         measurement = choices(range(len(probs)), weights=probs)[0]
         if povm is not None:
@@ -1395,12 +1395,12 @@ class Circuit:
     def measure_state(self, qubit: int=None, povm: np.ndarray=None, text: bool=True) -> Measure:
         """Measures the state from the list of probabilities"""
         measurement, self.state = Measure(state=self.state).measure_state(qubit, povm)
-        if qubit:
+        if qubit is not None:
             self.measured_states.append(qubit)         #this is to make a list of measured states so that they cant have gates applied
         elif qubit is None:
             self.collapsed = True          #collapses the state if all qubits are measured
         if text:
-            if qubit:
+            if qubit is not None:
                 print_array(f"Measured qubit {qubit} as |{measurement}> and the post measurement state is:\n {self.state}")
             else:
                 num_bits = int(np.log2(self.state.dim))
@@ -1756,3 +1756,10 @@ def main():
     demo2.list_probs()
     demo2.measure_state()
     
+    Bell = Circuit(n=2)
+    Bell.add_single_gate(gate=Hadamard, gate_location=0)
+    Bell.add_single_gate(gate=CNot, gate_location=0)
+    Bell.apply_final_gate()
+    Bell.list_probs()
+    Bell.measure_state(qubit=0)
+    Bell.get_von_neumann(qubit=0)

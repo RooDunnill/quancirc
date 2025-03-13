@@ -153,7 +153,7 @@ single_qubit_measurement_test = Circuit(n=3)
 single_qubit_measurement_test.add_single_gate(Hadamard, gate_location=1)
 single_qubit_measurement_test.add_single_gate(Hadamard, gate_location=2)
 single_qubit_measurement_test.apply_final_gate()
-single_qubit_measurement_test.measure_state(qubit = 3)
+single_qubit_measurement_test.measure_state(qubit = 2)
 
 noisy_circuit = Circuit(n=2, noisy=True, Q_channel="P flip", prob=0.3)
 noisy_circuit.apply_final_gate()
