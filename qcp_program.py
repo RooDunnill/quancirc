@@ -9,6 +9,7 @@ from rich.theme import Theme
 from scipy.linalg import sqrtm, logm
 import cProfile
 from qc_errors import *
+from mixins import *
 
 
 custom_theme = Theme({"qubit":"#587C53",                 #Fern Green
@@ -180,8 +181,9 @@ def diagonal(matrix):
     return new_mat
 
 
-class Qubit:                                           #creates the qubit class
+class Qubit(LinearMixin):                                           #creates the qubit class
     """The class to define and initialise Qubits and Quantum States"""
+    array_name = "vector"
     def __init__(self, **kwargs) -> None:
         self.detailed = kwargs.get("detailed", None)
         self.state_type: str = kwargs.get("type", "pure")                   #the default qubit is a single pure qubit |0>
@@ -337,21 +339,6 @@ class Qubit:                                           #creates the qubit class
             return self
         else:
             raise QubitError(f"Error from inputs type {type(self)} and {type(other)}, expected two Qubit class inputs")
-        
-    def __add__(self: "Qubit", other: "Qubit") -> "Qubit":
-        """Allows for addition of qubits, used in creating Quantum channels"""
-        if isinstance(self, Qubit) and isinstance(other, Qubit):
-            new_vector = self.vector + other.vector
-            new_name: str = f"{self.name} + {other.name}"
-            return Qubit(vector=new_vector, name=new_name)
-        else:
-            raise QubitError(f"Matrix addition cannot be of type {type(self)} and type {type(other)}, expected two Qubit classes")
-    
-
-    def __iadd__(self: "Qubit", other: "Qubit") -> "Qubit":
-        if isinstance(self, Qubit) and isinstance(other, Qubit):
-            self = self + other
-            return self
 
     def norm(self: "Qubit") -> None:                 #dunno why this is here ngl, just one of the first functions i tried
         """Normalises a Qubit so that the probabilities sum to 1"""
@@ -400,7 +387,7 @@ qm = Qubit.qm()
 qpi = Qubit.qpi()
 qmi = Qubit.qmi()
 
-class Gate:    
+class Gate(LinearMixin):    
     """The class that makes up the unitary matrices that implement the gate functions
         List of functions:
             __matmul__: tensor product
@@ -412,6 +399,7 @@ class Gate:
             __iadd__: iterative addition of gates
             __and__: used as a placeholder for direct sum
             __iand__: iterative direct sum"""
+    array_name = "matrix"
     def __init__(self, **kwargs):
         self.name = kwargs.get("name", None)
         self.info = kwargs.get("info", None)
@@ -674,20 +662,7 @@ class Gate:
         else:
             raise GateError(f"Matrix multiplication cannot occur with classes {type(self)} and {type(other)}")
 
-    def __add__(self: "Gate", other: "Gate") -> "Gate":
-        """Allows for addition of gates, used in creating Quantum channels"""
-        if isinstance(self, Gate) and isinstance(other, Gate):
-            new_name: str = f"{self.name} + {other.name}"
-            new_mat: np.ndarray = self.matrix + other.matrix
-            return Gate(matrix=new_mat, name=new_name)
-        else:
-            raise GateError(f"Matrix addition cannot be of type {type(self)} and type {type(other)}, expected two Gate classes")
     
-
-    def __iadd__(self, other):
-        if isinstance(self, Gate) and isinstance(other, Gate):
-            self = self + other
-            return self
         
     def __and__(self, other: "Gate") -> "Gate":         #direct sum  denoted &  
         """The direct sum function, mostly used to create Control Gates"""             
@@ -749,6 +724,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         quantum mutual information: finds the qmi between two states
         quantum relaitve entropy: finds the qre between two states
         partial trace: can trace out a subsystem from a wider system"""
+    array_name = "rho"
     def __init__(self, **kwargs):
         self.state = kwargs.get("state", None)
         if self.state is None:
@@ -1030,24 +1006,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         else:
             DensityError(f"self.rho cannot be of type {type(self.rho)}, expected numpy array")
 
-    def __sub__(self, other: "Density") -> "Density":
-        """Allows for subtraction of two rho matrices, used in trace distance"""
-        new_name: str = f"{self.name} - {other.name}"
-        new_mat = np.zeros(self.length,dtype=np.complex128)
-        if isinstance(self, Density) and isinstance(other, Density):
-            new_mat = self.rho - other.rho
-            return Density(name=new_name, rho=np.array(new_mat))
-        else:
-            raise DensityError(f"Matrix subtraction cannot be of type {type(self)} and type {type(other)}, expected two Density classes")
-        
-    def __add__(self, other: "Density") -> "Density":
-        """Allows for addition of rho matrices, used in creating a density matrix of a mixed state"""
-        if isinstance(self, Density) and isinstance(other, Density):
-            new_rho = self.rho + other.rho
-            new_name: str = f"{self.name} + {other.name}"
-            return Density(name=new_name, rho=new_rho)
-        else:
-            raise DensityError(f"Matrix addition cannot be of type {type(self)} and type {type(other)}, expected two Density classes")
+
 
 
 class Measure(Density):
@@ -1771,7 +1730,13 @@ def main():
     print_array(Density(state=qpi))
     print_array(Density(state=qmi))
 
-    qcs = Circuit(n=1, state=qp, noisy=True, Q_channel = "P flip", prob=1.0)
+    qcs = Circuit(n=1, state=qp, noisy=True, Q_channel = "P flip", prob=0.9)
     qcs.get_info("state")
     qcs.apply_final_gate()
     qcs.list_probs()
+    print_array(Hadamard + Hadamard)
+    print_array(Hadamard - Hadamard)
+    testp = Density(state=qp)
+    testm = Density(state = qm)
+    print_array(testp + testm)
+    print_array(testp - testm)
