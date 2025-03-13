@@ -1009,7 +1009,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
 
 
 
-class Measure(Density):
+class Measure:
     """The class in which all measurements and probabilities are computed"""
     def __init__(self, **kwargs):
         self.measurement_qubit = kwargs.get("m_qubit", "all")
@@ -1691,52 +1691,4 @@ large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,
 def main():
     """Where you can run commands without it affecting programs that import this program"""
 
-    demo1 = Circuit(n=4)
-    demo1.add_gate(Hadamard @ Hadamard @ Hadamard @ Hadamard)
-    demo1.add_gate(Identity @ Z_Gate @ Z_Gate @ S_Gate)
-    demo1.add_gate(CNot @ CNot)
-    demo1.add_single_gate(gate=Hadamard, gate_location=3)
-    demo1.apply_final_gate()
-    demo1.list_probs()
-    demo1.measure_state(qubit=2)
-    demo1.get_von_neumann()
-    demo1.get_von_neumann(qubit=0)
-    demo1.get_von_neumann(qubit=1)
-    demo1.get_von_neumann(qubit=2)
-    demo1.get_von_neumann(qubit=3)
-
-    demo2 = Circuit(n=2, noisy=True, Q_channel="B flip", prob=0.3)
-    demo2.add_single_gate(gate=Hadamard, gate_location=0)
-    demo2.apply_final_gate()
-    demo2.add_quantum_channel(Q_channel="P flip", prob=0.2)
-    demo2.add_gate(Hadamard @ X_Gate)
-    demo2.add_gate(S_Gate @ Hadamard)
-    demo2.add_gate(CNot)
-    demo2.apply_final_gate()
-    demo2.list_probs()
-    demo2.measure_state()
     
-    Bell = Circuit(n=2)
-    Bell.add_single_gate(gate=Hadamard, gate_location=0)
-    Bell.add_single_gate(gate=CNot, gate_location=0)
-    Bell.add_gate(Hadamard @ X_Gate)
-    Bell.apply_final_gate()
-    Bell.add_quantum_channel(Q_channel="B P flip", prob = 0.4)
-    Bell.add_quantum_channel(Q_channel="B flip", prob = 0.5)
-    Bell.list_probs()
-    Bell.measure_state(qubit=0)
-    Bell.get_von_neumann(qubit=0)
-    Grover(1, fast=True, n=14).run()
-    print_array(Density(state=qpi))
-    print_array(Density(state=qmi))
-
-    qcs = Circuit(n=1, state=qp, noisy=True, Q_channel = "P flip", prob=0.9)
-    qcs.get_info("state")
-    qcs.apply_final_gate()
-    qcs.list_probs()
-    print_array(Hadamard + Hadamard)
-    print_array(Hadamard - Hadamard)
-    testp = Density(state=qp)
-    testm = Density(state = qm)
-    print_array(testp + testm)
-    print_array(testp - testm)
