@@ -955,7 +955,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         else:
             return cond_ent
             
-    def quantum_mutual_info(self) -> float:
+    def quantum_mutual_info(self) -> float:                   #S(A:B)
         """Computes the quantum mutual information of a system
         Args:
             self: The density instance
@@ -969,7 +969,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         else:
             raise DensityError(f"You need to provide rho a, rho b and rho for this computation to work")
     
-    def quantum_relative_entropy(self, rho_a:np.ndarray=None, rho_b:np.ndarray=None) -> float:   #rho is again the first value in S(A||B)  pretty sure this is wrong
+    def quantum_relative_entropy(self, rho_a:np.ndarray=None, rho_b:np.ndarray=None) -> float:   #rho is again the first value in S(A||B)
         """Computes the quantum relative entropy of two Quantum states
         Args:
             self: The density instance
@@ -1420,6 +1420,7 @@ class Circuit:
         return self.__rich__()
 
     def get_von_neumann(self, qubit=None, text=True,):
+        """Can compute the Von Neumann entropy for either a single qubit or a whole state"""
         if qubit is None:
             vn_den = Density(state=self.state)
             vne = vn_den.vn_entropy()
@@ -1612,7 +1613,7 @@ class Grover:                                               #this is the Grover 
         Grover_timer = Timer()
         if self.rand_ov:
             console.rule(f"Grovers search with random oracle values", style="grover_header")
-            self.oracle_values = np.zeros(self.rand_ov)    #basically if oraclae values are not given, it will find n random values and use those instead
+            self.oracle_values = np.ones(self.rand_ov)    #basically if oraclae values are not given, it will find n random values and use those instead
         else:
             console.rule(f"Grovers search with oracle values: {self.oracle_values}", style="grover_header")
         if self.n == None:               #if the number of qubits required is not given then run:
@@ -1759,7 +1760,18 @@ def main():
     Bell = Circuit(n=2)
     Bell.add_single_gate(gate=Hadamard, gate_location=0)
     Bell.add_single_gate(gate=CNot, gate_location=0)
+    Bell.add_gate(Hadamard @ X_Gate)
     Bell.apply_final_gate()
+    Bell.add_quantum_channel(Q_channel="B P flip", prob = 0.4)
+    Bell.add_quantum_channel(Q_channel="B flip", prob = 0.5)
     Bell.list_probs()
     Bell.measure_state(qubit=0)
     Bell.get_von_neumann(qubit=0)
+    Grover(1, fast=True, n=14).run()
+    print_array(Density(state=qpi))
+    print_array(Density(state=qmi))
+
+    qcs = Circuit(n=1, state=qp, noisy=True, Q_channel = "P flip", prob=1.0)
+    qcs.get_info("state")
+    qcs.apply_final_gate()
+    qcs.list_probs()
