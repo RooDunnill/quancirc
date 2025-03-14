@@ -904,7 +904,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
 
 
 
-class Measure(BaseMixin):
+class Measure(LinearMixin):
     """The class in which all measurements and probabilities are computed"""
     array_name = "probs"
     def __init__(self, **kwargs):
