@@ -904,9 +904,9 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
 
 
 
-class Measure:
+class Measure(BaseMixin):
     """The class in which all measurements and probabilities are computed"""
-    
+    array_name = "probs"
     def __init__(self, **kwargs):
         self.measurement_qubit = kwargs.get("m_qubit", "all")
         self.measure_type: str = kwargs.get("type", "projective")
@@ -928,7 +928,9 @@ class Measure:
                     self.length = len(self.rho)
                     self.dim = int(np.sqrt(self.length))
                     self.n = int(np.log2(self.dim))
+        self.probs = self.list_probs()
         self.pm_state = None
+        self.measurement = None
 
     def __str__(self):
         return self.__rich__()
@@ -944,8 +946,8 @@ class Measure:
     def list_probs(self, qubit: int=None, povm: np.ndarray=None) -> np.ndarray:
         """Gives the prob lists of a Quantum state, can measure non projectively for the whole state and projectively for single Qubits"""
         if povm is not None:
-            probs = np.array([np.real(trace(P * self.density.rho)) for P in povm], dtype=np.float64)
-            return probs
+            self.probs = np.array([np.real(trace(P * self.density.rho)) for P in povm], dtype=np.float64)
+            return self.probs
         if qubit is None:
             if self.fast:
                 vector = self.state.vector
@@ -953,8 +955,8 @@ class Measure:
             elif isinstance(self.density, Density):
                 if self.rho is None:
                     self.rho = self.density.rho
-                probs = np.array([self.rho[i + i * self.density.dim].real for i in range(self.density.dim)], dtype=np.float64)
-                return probs
+                self.probs = np.array([self.rho[i + i * self.density.dim].real for i in range(self.density.dim)], dtype=np.float64)
+                return self.probs
             raise MeasurementError(f"Must either be running in fast, or self.density is of the wrong type {type(self.density)}, expected Density class")
         if qubit is not None:
             if qubit > self.n - 1:
@@ -978,11 +980,11 @@ class Measure:
             
             measure_den = Density(rho=measure_rho)
             if povm is not None:
-                probs = np.array([np.real(trace(P * measure_den.rho)) for P in povm], dtype=np.float64)
-                return probs, measure_rho, A_rho, B_rho
+                self.probs = np.array([np.real(trace(P * measure_den.rho)) for P in povm], dtype=np.float64)
+                return self.probs, measure_rho, A_rho, B_rho
             if povm is None:
-                probs = np.array([measure_den.rho[i + i * measure_den.dim].real for i in range(measure_den.dim)], dtype=np.float64)
-                return probs, measure_rho, A_rho, B_rho
+                self.probs = np.array([measure_den.rho[i + i * measure_den.dim].real for i in range(measure_den.dim)], dtype=np.float64)
+                return self.probs, measure_rho, A_rho, B_rho
             
         
     def measure_state(self, qubit: int = None, povm: np.ndarray = None, text: bool = False) -> str:
@@ -991,32 +993,32 @@ class Measure:
             probs, measure_rho, A_rho, B_rho = self.list_probs(qubit, povm)
         elif qubit is None:
             probs = self.list_probs(qubit, povm)
-        measurement = choices(range(len(probs)), weights=probs)[0]
+        self.measurement = choices(range(len(probs)), weights=probs)[0]
         if povm is not None:
             if text:
-                print_array(f"Measured POVM outcome: {povm[measurement]}")
-            return measurement
+                print_array(f"Measured POVM outcome: {povm[self.measurement]}")
+            return self.measurement
         
         if qubit is None:
             num_bits = int(np.log2(self.state.dim))
             if text:
-                print_array(f"Measured the state: |{bin(measurement)[2:].zfill(num_bits)}>")
+                print_array(f"Measured the state: |{bin(self.measurement)[2:].zfill(num_bits)}>")
             self.state.vector[:] = 0
-            self.state.vector[measurement] = 1
+            self.state.vector[self.measurement] = 1
             self.state.vector = self.state.vector / np.linalg.norm(self.state.vector)
-            return measurement, self.state
+            return self.measurement, self.state
         elif isinstance(qubit, int):
-            if measurement == 0:
+            if self.measurement == 0:
                 measure_rho = np.array([1,0,0,0])
-            elif measurement == 1:
+            elif self.measurement == 1:
                 measure_rho = np.array([0,0,0,1])
             num_bits = int(np.log2(1))
             if text:
-                print_array(f"Measured the {qubit} qubit in state |{bin(measurement)[2:].zfill(num_bits)}>")
+                print_array(f"Measured the {qubit} qubit in state |{bin(self.measurement)[2:].zfill(num_bits)}>")
             post_measurement_den = Density(rho=A_rho) @ Density(rho=measure_rho) @ Density(rho=B_rho)
             pm_state = Qubit(vector=diagonal(post_measurement_den.rho))
             pm_state.norm()
-            return measurement, pm_state
+            return self.measurement, pm_state
         else:
             MeasurementError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
 
@@ -1589,3 +1591,7 @@ def main():
     Grover(oracle_values4).run()
     print_array(trace(CNot))
     print_array(testp == testp2)
+    M_test1 = Measure(state=qm @ qp)
+    M_test2 = Measure(state=qm @ qp)
+    print_array(M_test1 == M_test2)
+    print_array(M_test1.probs)
