@@ -1057,6 +1057,7 @@ class Circuit(BaseMixin):
         self.start_gate: Gate = Gate.Identity(n=self.n)
         console.rule(f"Initialising a Quantum Circuit with {self.n} Qubits", style="circuit_header")
         console.rule("", style="circuit_header")
+        self.density = Density(state=self.state)
         self.measurement = None
         self.final_gate = None
         self.noisy = kwargs.get("noisy", False)
@@ -1128,6 +1129,8 @@ class Circuit(BaseMixin):
             k_conj.matrix = flatten_matrix(k_conj.matrix)
             k_applied = k_conj * self.state           #applies them all to the state
             epsilon += k_applied
+            if np.all(epsilon.vector == 0):
+                epsilon.vector += 1e-5
         self.state.vector: np.ndarray = epsilon.vector
         self.state.norm()                  #not the most elegent way to do it but only way ive found that works
         self.state.name = new_name
@@ -1589,12 +1592,8 @@ def main():
     print_array(M_test1 == M_test2)
     print_array(M_test1.probs)
     print_array(Density(state_a = q1, state_b = qpi).fidelity())
-    test = Circuit(n=1, noisy=True, Q_channel="B flip", prob=0.5)
+    test = Circuit(n=1, state=qm, noisy=True, Q_channel="P flip", prob=0.5)
     test.get_info("state")
-    test.add_gate(Z_Gate)
+
     test.apply_final_gate()
-    test.add_quantum_channel(Q_channel="P flip", prob=0.5)
-    test.get_info("state")
-    test.add_quantum_channel(Q_channel="B P flip", prob=0.5)
-    test.get_info("state")
     test.list_probs()

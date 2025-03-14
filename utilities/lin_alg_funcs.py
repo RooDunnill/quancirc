@@ -44,3 +44,13 @@ def diagonal(matrix: np.ndarray) -> np.ndarray:
     for i in range(dim):
         new_mat[i] = matrix[i+i*dim]
     return new_mat
+
+def transpose(matrix: np.ndarray) -> np.ndarray: 
+    if isinstance(matrix, np.ndarray):
+        return flatten_matrix(reshape_matrix(matrix).T)
+    raise QC_error(f"This cannot be of type {type(matrix)}, expected numpy array")
+
+def adjoint(matrix: np.ndarray) -> np.ndarray:
+    if isinstance(matrix, np.ndarray):
+        return flatten_matrix(reshape_matrix(matrix).conj().T)
+    raise QC_error(f"This cannot be of type {type(matrix)}, expected numpy array")
