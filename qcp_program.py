@@ -906,6 +906,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
 
 class Measure:
     """The class in which all measurements and probabilities are computed"""
+    
     def __init__(self, **kwargs):
         self.measurement_qubit = kwargs.get("m_qubit", "all")
         self.measure_type: str = kwargs.get("type", "projective")
@@ -1035,8 +1036,9 @@ T_Gate = Gate.P_Gate(theta=np.pi/4, name="T Gate")
 F = FWHT()
 Q = QFT()
 
-class Circuit:
+class Circuit(BaseMixin):
     """The compiler to run an actual circuit with"""
+    array_name = "state"
     def __init__(self, **kwargs):
         self.collapsed = False        #prevents additional gates after collapsing the entire state
         self.measured_states = []
@@ -1569,6 +1571,7 @@ def main():
     print_array(Hadamard - Hadamard)
     testp = Density(state=qp)
     testm = Density(state = qm)
+    testp2 = Density(state=qp)
     print_array(testp + testm)
     print_array(testp - testm)
     print_array(Hadamard & Hadamard)
@@ -1585,3 +1588,4 @@ def main():
     Grover(oracle_values3).run()
     Grover(oracle_values4).run()
     print_array(trace(CNot))
+    print_array(testp == testp2)

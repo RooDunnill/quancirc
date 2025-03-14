@@ -3,7 +3,7 @@ import numpy as np
 
 array_name = None
 
-__all__ = ["DirectSumMixin", "LinearMixin"]
+__all__ = ["DirectSumMixin", "LinearMixin", "BaseMixin"]
 
 def combine_attributes(self, other, op = "+"):
         """Allows the returned objects to still return name and info too"""
@@ -16,7 +16,19 @@ def combine_attributes(self, other, op = "+"):
         return kwargs
 
 
-class DirectSumMixin:
+
+class BaseMixin:
+    def __eq__(self, other):
+        if isinstance(other, self.__class__) and self.array_name:
+            return self.array_name == other.array_name
+        raise MixinError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+    
+    def __ne__(self, other):
+        if isinstance(other, self.__class__) and self.array_name:
+            return self.array_name != other.array_name
+        raise MixinError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+
+class DirectSumMixin(BaseMixin):
     """Allows for the & dunder method to be updated for the direct sum, currently only allowed for the gate class"""
     def direct_sum(self, other):
         if isinstance(other, self.__class__) and self.array_name:
@@ -51,7 +63,7 @@ class DirectSumMixin:
 
 
 
-class LinearMixin:
+class LinearMixin(BaseMixin):
     """Used to store some dunder methods that are used a lot in mostly 
         class Gate, Density and Qubit to allow for easy reading and for
         the main file not to get too large.
