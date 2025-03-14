@@ -8,8 +8,9 @@ from rich.console import Console
 from rich.theme import Theme
 from scipy.linalg import sqrtm, logm
 import cProfile
-from qc_errors import *
-from mixins import *
+from utilities import *
+
+
 
 
 custom_theme = Theme({"qubit":"#587C53",                 #Fern Green
@@ -60,43 +61,6 @@ gate to be multiplied is at the bottom in a Quantum Circuit.
 Now printing the values of the computation:""",style="info")
 print("\n \n")
 
-def trace(matrix) -> float:                 #used an np.trace doesnt calculate 1D matrices
-    """Computes the trace of a 1D matrix, mostly used as a checker"""
-    tr = 0
-    if isinstance(matrix, Density):
-        matrix = matrix.rho
-    elif isinstance(matrix, Gate):
-        matrix = matrix.matrix
-    elif isinstance(matrix, np.ndarray):
-        pass
-    else:
-        raise TypeError(f"Given value can't be of type {type(matrix)}, must be a numpy array, Gate or Density class")
-    dim = int(np.sqrt(len(matrix)))
-    for i in range(dim):
-        tr += matrix[i + i * dim]
-    return tr
-    
-def reshape_matrix(matrix: np.ndarray) -> np.ndarray: 
-    """Can reshape a 1D matrix into a square 2D matrix"""
-    length = len(matrix)
-    dim = int(np.sqrt(length))
-    if dim**2 != length:
-        raise QC_error(f"The matrix cannot be reshaped into a perfect square")
-    reshaped_matrix = []
-    for i in range(dim):
-        row = matrix[i * dim : (i + 1) * dim]
-        reshaped_matrix.append(row)
-    return np.array(reshaped_matrix)
-
-def flatten_matrix(matrix: np.ndarray) -> np.ndarray:
-    """Can flatten a square 2D matrix into a 1D matrix"""
-    dim = len(matrix)
-    length = dim**2
-    flattened_matrix = np.zeros(length, dtype=np.complex128)
-    for j in range(dim):
-        for i in range(dim):
-            flattened_matrix[j * dim + i] += matrix[j][i]
-    return flattened_matrix
 
 def comp_Grover_test(n, **kwargs):
         """Compares the fast Grover and the normal Grover"""
@@ -143,24 +107,7 @@ def time_test(n, fast=True, iterations=None, **kwargs):                 #times a
     print_array(f"Qubits, time")
     print_array(times_array)
 
-def top_probs(prob_list: np.ndarray, **kwargs) -> np.ndarray:             #sorts through the probability distribution and finds the top n probabilities corresponding to the length n or the oracle values
-        """Computes the top n probabilities of a list of probabilities"""
-        n = kwargs.get("n", 8)
-        non_zero_count = np.count_nonzero(prob_list)
-        n = non_zero_count if non_zero_count <= n else n              #uses less than the given input if there are only a few non zero values
-        top_n = np.array([], dtype=prob_list.dtype)
-        temp_lst = prob_list.copy()  
-        for _ in range(n):
-            max_value = np.max(temp_lst)
-            top_n = np.append(top_n, max_value)
-            temp_lst = np.delete(temp_lst, np.argmax(temp_lst))
-        result = []
-        used_count = {} 
-        for i, num in enumerate(prob_list):
-            if num in top_n and used_count.get(num, 0) < np.count_nonzero(top_n == num):        #this accounts for if you have two numbers with the same value
-                result.append((i, num))
-                used_count[num] = used_count.get(num, 0) + 1
-        return np.array(result, dtype=object)
+
 
 def binary_entropy(prob: float) -> float:
     """Used to calculate the binary entropy of two probabilities"""
@@ -169,16 +116,9 @@ def binary_entropy(prob: float) -> float:
             return 0.0
         else:
             return -prob*np.log2(prob) - (1 - prob)*np.log2(1 - prob)
-    else:
-        raise QC_error(f"Binary value must be a float")
+    raise QC_error(f"Binary value must be a float")
     
-def diagonal(matrix):                 
-    """Creates a vector based on the idagonal elements of a 1D matrix"""
-    dim = int(np.sqrt(len(matrix)))
-    new_mat = np.zeros(dim, dtype=np.complex128)
-    for i in range(dim):
-        new_mat[i] = matrix[i+i*dim]
-    return new_mat
+
 
 
 class Qubit(LinearMixin):                                           #creates the qubit class
@@ -330,15 +270,13 @@ class Qubit(LinearMixin):                                           #creates the
             self.dim = new_length
             self.vector = new_vector
             return self.vector    #returns a new Object with a new name too
-        else:
-            raise QubitError(f"The tensor product operation cannot be applied to type {type(other)}, expected Qubit or numpy array")
+        raise QubitError(f"The tensor product operation cannot be applied to type {type(other)}, expected Qubit or numpy array")
 
     def __ipow__(self: "Qubit", other: "Qubit") -> "Qubit":                 #denoted **=
         if isinstance(self, Qubit) and isinstance(other, Qubit):  
             self = self @ other
             return self
-        else:
-            raise QubitError(f"Error from inputs type {type(self)} and {type(other)}, expected two Qubit class inputs")
+        raise QubitError(f"Error from inputs type {type(self)} and {type(other)}, expected two Qubit class inputs")
 
     def norm(self: "Qubit") -> None:                 #dunno why this is here ngl, just one of the first functions i tried
         """Normalises a Qubit so that the probabilities sum to 1"""
@@ -531,15 +469,13 @@ class Gate(LinearMixin, DirectSumMixin):
                             index = k+j*new_dim+other.dim*i+other.dim*new_dim*m
                             new_mat[index] += self.matrix[i+self.dim*m]*other.matrix[k+other.dim*j]
             return Gate(name=new_name, info=new_info, matrix=new_mat)
-        else:
-            raise GateError(f"The tensor product cannot occure with type {type(self)} and type {type(other)}, expected two Gate class types")
+        raise GateError(f"The tensor product cannot occure with type {type(self)} and type {type(other)}, expected two Gate class types")
 
     def __ipow__(self, other: "Gate") -> "Gate":    #denoted **=
         if isinstance(self, Gate):  
             self = self @ other
             return self
-        else:
-            raise GateError(f"Error from inputs type {type(self)} and {type(other)}, expected two Gate class inputs")
+        raise GateError(f"Error from inputs type {type(self)} and {type(other)}, expected two Gate class inputs")
         
     def FWHT(self, other: Qubit) -> Qubit:
         """The Fast Walsh Hadamard Transform, used heavily in Grover's to apply the tensored Hadamard"""
@@ -556,8 +492,7 @@ class Gate(LinearMixin, DirectSumMixin):
                 vec[indices] = (a + b) * sqrt2_inv
                 vec[indices + half_step] = (a - b) * sqrt2_inv                        #normalisation has been taken out giving a slight speed up in performance
             return other
-        else:
-            raise TypeError(f"This can't act on this type, only on Qubits")
+        raise TypeError(f"This can't act on this type, only on Qubits")
 
     @staticmethod
     def fractional_binary(qub: Qubit,m: int) -> float:             #for shors
@@ -572,8 +507,7 @@ class Gate(LinearMixin, DirectSumMixin):
                 for i in range(m):
                     val += float(frac_bin[i+2])*2**-(i+1)
                 return val
-        else:
-            raise QC_error(f"The fractional binary reads the binary values in the name of the Qubit, the name of this Qubit is not made of binary values, Qubit name is {qub.name}")
+        raise QC_error(f"The fractional binary reads the binary values in the name of the Qubit, the name of this Qubit is not made of binary values, Qubit name is {qub.name}")
 
 
     def QFT(self, other: Qubit) -> Qubit:          #also for shors although used in other algorithms
@@ -603,8 +537,7 @@ class Gate(LinearMixin, DirectSumMixin):
                 for k in range(dim):
                     new_mat[k+(i * dim)] = np.sum(first[dim_range+(i * dim)]*second[k+(dim_range* dim)])
             return new_mat
-        else:
-            raise GateError(f"The inputted parameters have the wrong type of type {type(first)} and {type(second)}, expected two numpy arrays")
+        raise GateError(f"The inputted parameters have the wrong type of type {type(first)} and {type(second)}, expected two numpy arrays")
 
     def __mul__(self, other):       #matrix multiplication
         """The matrix multiplier, allowing multiple types of Gates and also applying Gates to Qubits"""
@@ -637,10 +570,8 @@ class Gate(LinearMixin, DirectSumMixin):
                             new_mat = Gate.mul_flat(self.matrix, other.matrix)
                             new_info: str = "This is a matrix multiplication of gates: "f"{self.name}"" and "f"{other.name}"
                             return Gate(name=new_name, info=new_info, matrix=new_mat)
-                else:
-                    raise TypeError(f"The second matrix is of type {type(other)} and isn't compatible")
-            else:
-                raise GateError(f"Both the gates must be of the same dimension to perform matrix multiplication. The gates have dim {self.dim} and {other.dim}")
+                raise TypeError(f"The second matrix is of type {type(other)} and isn't compatible")
+            raise GateError(f"Both the gates must be of the same dimension to perform matrix multiplication. The gates have dim {self.dim} and {other.dim}")
         elif isinstance(self, np.ndarray):
             if isinstance(other, Qubit):  #splits up based on type as this isnt two n x n but rather n x n and n matrix
                 new_mat = np.zeros(self.dim,dtype=np.complex128)
@@ -651,16 +582,14 @@ class Gate(LinearMixin, DirectSumMixin):
                         row = self[i * mat_dim:(i + 1) * mat_dim]
                         new_mat[i] = np.sum(row[:] * other.vector[:])
                     return Qubit(vector=new_mat, name=self.name)
-                else:
-                    raise GateError(f"Both the gates must be of the same dimension to perform matrix multiplication. The gates have dim {mat_dim} and {other.dim}")
+                raise GateError(f"Both the gates must be of the same dimension to perform matrix multiplication. The gates have dim {mat_dim} and {other.dim}")
             elif isinstance(other, np.ndarray):
                 new_mat = Gate.mul_flat(self, other)
                 return new_mat
             elif isinstance(other, Gate):
                 new_mat = Gate.mul_flat(self, other.matrix)
                 return Gate(matrix=new_mat)
-        else:
-            raise GateError(f"Matrix multiplication cannot occur with classes {type(self)} and {type(other)}")
+        raise GateError(f"Matrix multiplication cannot occur with classes {type(self)} and {type(other)}")
 
 class FWHT(Gate):
     def __init__(self):
@@ -750,8 +679,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 rho[j+(i * calc_state_dim)] += qubit_conj[i]*state_vector[j]
         if abs(1 -trace(rho)) < 1e-5:
             return rho
-        else:
-            raise QC_error(f"The trace of a density matrix must be 1, calculated trace is {trace(rho)}")
+        raise QC_error(f"The trace of a density matrix must be 1, calculated trace is {trace(rho)}")
             
     def mixed_density(self, calc_state: Qubit, **kwargs) -> np.ndarray:
         """Computes the density matrix for a mixed Qubit state"""
@@ -776,8 +704,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         rho_trace: float = trace(rho)
         if abs(1 - rho_trace) < 1e-5:     #checks its computed properly
             return rho
-        else:
-            raise QC_error(f"The trace of a density matrix must be 1, calculated trace is {trace(rho)}")
+        raise QC_error(f"The trace of a density matrix must be 1, calculated trace is {trace(rho)}")
 
 
     def fidelity(self, rho_1: np.ndarray=None, rho_2: np.ndarray=None) -> float:
@@ -853,8 +780,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             if entropy < 1e-10:         #rounds the value if very very small
                 entropy = 0.0
             return entropy
-        else:
-            raise DensityError(f"No rho matrix provided")
+        raise DensityError(f"No rho matrix provided")
         
     def shannon_entropy(self, state: Qubit=None) -> float:
         """computes the shannon entropy of a mixed state
@@ -877,8 +803,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             if entropy < 1e-10:
                 entropy = 0.0
             return entropy
-        else:
-            raise DensityError(f"No mixed Quantum state of type Qubit provided")
+        raise DensityError(f"No mixed Quantum state of type Qubit provided")
         
     def quantum_conditional_entropy(self, rho_a: np.ndarray=None, rho_b: np.ndarray=None) -> float:    #rho is the one that goes first in S(A|B)
         """Computes the quantum conditional entropy of two states
@@ -914,8 +839,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         if all(isinstance(i, np.ndarray) for i in (self.rho, self.rho_a, self.rho_b)):   #compact way to check all three variables
             mut_info = self.vn_entropy(self.rho_a) + self.vn_entropy(self.rho_b) - self.vn_entropy(self.rho)
             return mut_info
-        else:
-            raise DensityError(f"You need to provide rho a, rho b and rho for this computation to work")
+        raise DensityError(f"You need to provide rho a, rho b and rho for this computation to work")
     
     def quantum_relative_entropy(self, rho_a:np.ndarray=None, rho_b:np.ndarray=None) -> float:   #rho is again the first value in S(A||B)
         """Computes the quantum relative entropy of two Quantum states
@@ -941,8 +865,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 rho_2[i] += 1e-10 if val == 0 else 0
             quant_rel_ent = trace(rho_1*(flatten_matrix(logm(reshape_matrix(rho_1)) - logm(reshape_matrix(rho_2)))))
             return quant_rel_ent
-        else:
-            raise DensityError(f"Incorrect type {type(self.rho_a)} and type {type(self.rho_b)}, expected both numpy arrays")
+        raise DensityError(f"Incorrect type {type(self.rho_a)} and type {type(self.rho_b)}, expected both numpy arrays")
 
     def partial_trace(self, **kwargs) -> np.ndarray:
         """Computes the partial trace of a state, can apply a trace from either 'side' and can trace out an arbitrary amount of qubits
@@ -1031,8 +954,7 @@ class Measure:
                     self.rho = self.density.rho
                 probs = np.array([self.rho[i + i * self.density.dim].real for i in range(self.density.dim)], dtype=np.float64)
                 return probs
-            else:
-                raise MeasurementError(f"Must either be running in fast, or self.density is of the wrong type {type(self.density)}, expected Density class")
+            raise MeasurementError(f"Must either be running in fast, or self.density is of the wrong type {type(self.density)}, expected Density class")
         if qubit is not None:
             if qubit > self.n - 1:
                 raise QC_error(f"The chosen qubit {qubit}, must be no more than the number of qubits in the circuit {self.n}")
@@ -1097,22 +1019,7 @@ class Measure:
         else:
             MeasurementError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
 
-def format_ket_notation(list_probs: np.ndarray, **kwargs) -> str:
-    """Used for printing out as it gives each state and the ket associated with it"""
-    list_type = kwargs.get("type", "all")
-    num_bits = kwargs.get("num_bits", int(np.ceil(np.log2(len(list_probs)))))    #this is to flush out the ket notation to give the correct number of bits back
-    prec = kwargs.get("precision", 3)
-    if list_type == "topn":
-        print_out = f""
-        for ket_val, prob_val in zip(list_probs[:,0],list_probs[:,1]):       #iterates through every prob value
-            print_out += (f"State |{bin(ket_val)[2:].zfill(num_bits)}> ({ket_val}) with a prob val of: {prob_val * 100:.{prec}f}%\n")
-        return print_out
-    elif list_type == "all":         #this just does it for every single ket value
-        ket_mat = range(len(list_probs))
-        print_out = f""
-        for ket_val, prob_val in zip(ket_mat,list_probs):
-            print_out += (f"|{bin(ket_val)[2:].zfill(num_bits)}>  {prob_val * 100:.{prec}f}%\n")
-        return print_out
+
 
 
 X_Gate = Gate.X_Gate()             #initialises the default gates
@@ -1366,10 +1273,8 @@ class Circuit:
                 if text:
                     print_array(f"Von Neumann entropy of qubit {qubit} is {vne}")
                 return vne
-            else:
-                raise QuantumCircuitError(f"qubit value must be in the range 0 to {self.n}, not of value {qubit}")
-        else:
-            raise QuantumCircuitError(f"qubit cannot be of type {type(qubit)}, expected int value")
+            raise QuantumCircuitError(f"qubit value must be in the range 0 to {self.n}, not of value {qubit}")
+        raise QuantumCircuitError(f"qubit cannot be of type {type(qubit)}, expected int value")
 
     def get_info(self, attribute, text=True):
         """Mostly used for debugging but can return a specific attribute of the class"""
@@ -1415,7 +1320,7 @@ class Grover:                                               #this is the Grover 
     def optimal_iterations(self, n: int) -> tuple[float, int]:
         """Calculates the best number of iterations for a given number of qubits"""
         search_space: int = 2**n
-        op_iter: float = (np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) - 0.5        #the standard equation to find the optimal iterations
+        op_iter: float = (np.pi/4)*np.sqrt((search_space)/len(self.oracle_values)) -1/2        #the standard equation to find the optimal iterations
         return op_iter, search_space
     
     def init_states(self) -> tuple[Qubit, Gate]:
@@ -1528,16 +1433,13 @@ class Grover:                                               #this is the Grover 
                             self.iter_calc = "floor"
                             print_array(f"The optimal iteration is computed by flooring")
                         return self.n
-                    else:
-                        return TypeError(f"balanced_param cannot be of type {type(self.balanced_param)}, expected str")
-                else:
-                    raise TypeError(f"iter_calc cannot be of type {type(self.iter_calc)}, expected str")
+                    return TypeError(f"balanced_param cannot be of type {type(self.balanced_param)}, expected str")
+                raise TypeError(f"iter_calc cannot be of type {type(self.iter_calc)}, expected str")
             else:
                 self.n = n_qubit_min
                 print_array(f"Running the given {self.it} iterations with the minimum number of qubits {self.n}")
                 return self.n
-        else:
-            raise QC_error(f"The qubit limit cannot be of {type(self.n_cap)}, expected type int")
+        raise QC_error(f"The qubit limit cannot be of {type(self.n_cap)}, expected type int")
     
     def run(self) -> "Grover":     #Grovers algorithm, can input the number of qubits and also a custom amount of iterations
         """This is the function to initiate the search and compiles the other functions together and prints the values out"""
@@ -1673,4 +1575,13 @@ def main():
     test = Hadamard
     test &= Hadamard
     print_array(test)
-    
+    oracle_values = [9,4,3,2,5,6,12,15,16]
+    oracle_values2 = [1,2,3,4,664,77,5,10,12,14,16,333,334,335,400,401,41,42,1000]
+    oracle_values3 = [4,5,30,41]
+    oracle_values4 = [500,5,4,7,8,9,99]
+    oracle_value_test = [1,2,3]
+    Grover(oracle_values).run()
+    Grover(oracle_values2).run()
+    Grover(oracle_values3).run()
+    Grover(oracle_values4).run()
+    print_array(trace(CNot))

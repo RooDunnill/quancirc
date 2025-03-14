@@ -1,4 +1,4 @@
-from qc_errors import MixinError
+from .qc_errors import MixinError
 import numpy as np
 
 array_name = None
