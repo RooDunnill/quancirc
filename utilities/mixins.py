@@ -1,5 +1,27 @@
 from .qc_errors import MixinError
 import numpy as np
+from rich.console import Console
+from rich.theme import Theme
+from typing import TYPE_CHECKING, Union
+from .layout_funcs import format_ket_notation
+
+if TYPE_CHECKING:
+    from qcp_program import Gate, Qubit, Density, Measure, Circuit, Grover
+
+
+
+custom_theme = Theme({"qubit":"#587C53",                 #Fern Green
+                      "prob_dist":"#3C4E35",             #Dark Forest Green
+                      "gate":"#3E5C41",                  #Forest Green
+                      "density":"#4D5B44",               #Olive Green
+                      "info":"#7E5A3C",                  #Earthy Brown
+                      "error":"dark_orange",
+                      "measure":"#3B4C3A",               #Deep Moss Green
+                      "grover_header":"#7D9A69",         #Sage Green
+                      "circuit_header":"#465C48",        #Muted Green
+                      "main_header":"#4B7A4D"})          #Vibrant moss Green
+console = Console(style="none",theme=custom_theme, highlight=False)
+
 
 array_name = None
 
@@ -107,3 +129,83 @@ class LinearMixin(BaseMixin):
     
 class StrMixin(BaseMixin):
     
+    
+    prec: int = 3
+
+    def __str__(self) -> str:
+        return "\n".join(self.format_str())
+
+    def __repr__(self) -> str:
+        return self.__str__()
+    
+    def __rich__(self) -> str:
+        return self.__str__()
+    
+    def format_str(self) -> list[str]:
+        np.set_printoptions(precision=self.prec, suppress=True, floatmode="fixed")
+        if isinstance(self, Measure):
+            return self.format_measure()
+        elif isinstance(self, Gate):
+            return self.format_gate()
+        elif isinstance(self, Density):
+            return self.format_density()
+        elif isinstance(self, Grover):
+            return self.format_grover()
+        elif isinstance(self, Qubit):
+            return self.format_qubit()
+        elif isinstance(self, np.ndarray):
+            return self.format_ndarray()
+        return self.format_default()
+    
+    def format_measure(self):
+        if self.measure_type == "projective":
+            ket_mat = range(self.dim)
+            num_bits = int(np.ceil(np.log2(self.dim)))
+            np.set_printoptions(linewidth=(10))
+            output = [f"[measure]{self.name}[/measure]"]
+            for ket_val, prob_val in zip(ket_mat, self.list_probs()):
+                output.append(f"[measure]|{bin(ket_val)[2:].zfill(num_bits)}>  {100*prob_val:.{self.prec}f}%[/measure]")
+            return output
+        return [f"[measure]{self.name}[/measure]"]
+    
+    def format_gate(self) -> list[str]:
+        if self.dim < 5:
+            np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * self.dim)
+        elif self.dim < 9:
+            np.set_printoptions(linewidth=3 + (8 + 2 * (self.prec - 1)) * self.dim, precision=self.prec - 1)
+        else:
+            np.set_printoptions(linewidth=3 + (8 + 2 * (self.prec - 2)) * self.dim, precision=self.prec - 2)
+        return [f"[gate]{self.name}\n{self.matrix}[/gate]"]
+    
+    def format_density(self) -> list[str]:
+        if self.dim < 5:
+            np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * self.dim)
+        elif self.dim < 9:
+            np.set_printoptions(linewidth=3 + (8 + 2 * (self.prec - 1)) * self.dim, precision=self.prec - 1)
+        else:
+            np.set_printoptions(linewidth=3 + (8 + 2 * (self.prec - 2)) * self.dim, precision=self.prec - 2)
+        return [f"[density]{self.name}\n{self.rho}[/density]"]
+    
+    def format_qubit(self) -> list[str]:
+        np.set_printoptions(linewidth=(10))
+        return [f"[qubit]{self.name}\n{self.vector}[/qubit]"]
+
+    def format_np_array(self):
+        length = len(self)
+        if length < 17:
+            np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * np.sqrt(length))
+        elif length < 65:
+            self.prec = self.prec - 1
+            np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * np.sqrt(length), precision=self.prec)
+        else:
+            self.prec = self.prec - 2
+            np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * np.sqrt(length), precision=self.prec)
+        return [f"[gate]{self}\n[\gate]"]
+    
+    def format_grover(self) -> list[str]:
+        print_out = [f"[prob_dist]{self.name}[/prob_dist]\n"]
+        print_out_kets = format_ket_notation(self.results, type="topn", num_bits=int(np.ceil(self.n)), precision = (3 if self.n < 20 else 6))
+        print_out = print_out + print_out_kets
+        return print_out
+
+
