@@ -115,7 +115,7 @@ def comp_Grover_test(n, **kwargs):
             time_fast = test_timer.elapsed()[0]
             times_array[i-2] = np.array([n, time_slow/g_loops, time_fast/g_loops])
         print_array(f"Qubits, s time, f time")
-        print(times_array)
+        print_array(times_array)
 
 def time_test(n, fast=True, iterations=None, **kwargs):                 #times a Grovers run over variable n qubits
     """Tests the Grover function and its speed with a number of parameters"""
@@ -141,7 +141,7 @@ def time_test(n, fast=True, iterations=None, **kwargs):                 #times a
         time = test_timer.elapsed()[0]
         times_array[i-2] = np.array([n, time/g_loops])
     print_array(f"Qubits, time")
-    print(times_array)
+    print_array(times_array)
 
 def top_probs(prob_list: np.ndarray, **kwargs) -> np.ndarray:             #sorts through the probability distribution and finds the top n probabilities corresponding to the length n or the oracle values
         """Computes the top n probabilities of a list of probabilities"""
@@ -387,7 +387,7 @@ qm = Qubit.qm()
 qpi = Qubit.qpi()
 qmi = Qubit.qmi()
 
-class Gate(LinearMixin):    
+class Gate(LinearMixin, DirectSumMixin):    
     """The class that makes up the unitary matrices that implement the gate functions
         List of functions:
             __matmul__: tensor product
@@ -661,34 +661,6 @@ class Gate(LinearMixin):
                 return Gate(matrix=new_mat)
         else:
             raise GateError(f"Matrix multiplication cannot occur with classes {type(self)} and {type(other)}")
-
-    
-        
-    def __and__(self, other: "Gate") -> "Gate":         #direct sum  denoted &  
-        """The direct sum function, mostly used to create Control Gates"""             
-        if isinstance(self, Gate) and isinstance(other, Gate):                   #DONT TOUCH WITH THE BINARY SHIFTS AS THIS ISNT IN POWERS OF 2
-            new_info = "This is a direct sum of gates: "f"{self.name}"" and "f"{other.name}"
-            new_name = f"{self.name} + {other.name}"
-            new_dim: int = self.dim + other.dim
-            new_length: int = new_dim**2
-            new_mat = np.zeros(new_length,dtype=np.complex128)
-            for i in range(self.dim):
-                for j in range(self.dim):                   #a lot more elegant
-                    new_mat[j+new_dim*i] += self.matrix[j+self.dim*i]
-            for i in range(other.dim):     #although would be faster if i made a function to apply straight
-                for j in range(other.dim):    #to individual qubits instead
-                    new_mat[self.dim+j+self.dim*new_dim+new_dim*i] += other.matrix[j+other.dim*i]
-            return Gate(name=new_name, matrix=np.array(new_mat), info=new_info)
-        else:
-            raise GateError(f"Direct sum cannot occur with types {type(self)} and {type(other)}, expected two Gate classes")
-    
-    def __iand__(self, other: "Gate") -> "Gate":                                  #used almost exclusively for the CNot gate creator
-        """The iterative direct sum, to be able to loop direct sums, mostly used for Control Gate construction"""
-        if isinstance(other, Gate):
-            self = self & other
-            return self
-        else:
-            raise GateError(f"Gate addition cannot occur with types {type(self)} and {type(other)}, expected two Gate classes")
 
 class FWHT(Gate):
     def __init__(self):
@@ -1691,4 +1663,13 @@ large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,
 def main():
     """Where you can run commands without it affecting programs that import this program"""
 
-    
+    print_array(Hadamard + Hadamard)
+    print_array(Hadamard - Hadamard)
+    testp = Density(state=qp)
+    testm = Density(state = qm)
+    print_array(testp + testm)
+    print_array(testp - testm)
+    print_array(Hadamard & Hadamard)
+    test = Hadamard
+    test &= Hadamard
+    print_array(test)
