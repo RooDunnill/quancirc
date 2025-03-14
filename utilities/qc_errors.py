@@ -47,3 +47,8 @@ class MixinError(QC_error):
     def __init__(self, message="Mixin Error from the dunder methods"):
         self.message = message
         super().__init__(self.message)
+
+class PrintError(QC_error):
+    def __init__(self, message="print array error"):
+        self.message = message
+        super().__init__(self.message)

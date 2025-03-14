@@ -104,3 +104,6 @@ class LinearMixin(BaseMixin):
             setattr(self, self.array_name, getattr(self, self.array_name) - getattr(other, self.array_name))
             return self
         raise MixinError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+    
+class StrMixin(BaseMixin):
+    

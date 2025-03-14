@@ -625,7 +625,9 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         quantum mutual information: finds the qmi between two states
         quantum relaitve entropy: finds the qre between two states
         partial trace: can trace out a subsystem from a wider system"""
+    
     array_name = "rho"
+
     def __init__(self, **kwargs):
         self.state = kwargs.get("state", None)
         if self.state is None:
@@ -1021,8 +1023,6 @@ class Measure(LinearMixin):
             MeasurementError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
 
 
-
-
 X_Gate = Gate.X_Gate()             #initialises the default gates
 Y_Gate = Gate.Y_Gate()
 Z_Gate = Gate.Z_Gate()
@@ -1035,6 +1035,7 @@ S_Gate = Gate.P_Gate(theta=np.pi/2, name="S Gate")
 T_Gate = Gate.P_Gate(theta=np.pi/4, name="T Gate")
 F = FWHT()
 Q = QFT()
+
 
 class Circuit(BaseMixin):
     """The compiler to run an actual circuit with"""
@@ -1592,8 +1593,7 @@ def main():
     print_array(M_test1 == M_test2)
     print_array(M_test1.probs)
     print_array(Density(state_a = q1, state_b = qpi).fidelity())
-    test = Circuit(n=1, state=qm, noisy=True, Q_channel="P flip", prob=0.5)
+    test = Circuit(n=1, state=qp, noisy=True, Q_channel="P flip", prob=0.5)
     test.get_info("state")
-
     test.apply_final_gate()
     test.list_probs()
