@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def top_probs(prob_list: np.ndarray, **kwargs) -> np.ndarray:             #sorts through the probability distribution and finds the top n probabilities corresponding to the length n or the oracle values
         """Computes the top n probabilities of a list of probabilities"""
         n = kwargs.get("n", 8)

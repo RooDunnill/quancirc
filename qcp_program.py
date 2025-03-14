@@ -902,8 +902,6 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             DensityError(f"self.rho cannot be of type {type(self.rho)}, expected numpy array")
 
 
-
-
 class Measure(LinearMixin):
     """The class in which all measurements and probabilities are computed"""
     array_name = "probs"
@@ -1125,8 +1123,11 @@ class Circuit(BaseMixin):
         epsilon = Qubit(vector=epsilon_vector)
         for k in kraus_operators:
             k_conj = k
-            k_conj.maxtrix = np.conj(k.matrix)
-            epsilon += k_conj * self.state           #applies them all to the state
+            k_conj.matrix = reshape_matrix(k_conj.matrix)
+            k_conj.matrix = np.conj(k_conj.matrix.T)
+            k_conj.matrix = flatten_matrix(k_conj.matrix)
+            k_applied = k_conj * self.state           #applies them all to the state
+            epsilon += k_applied
         self.state.vector: np.ndarray = epsilon.vector
         self.state.norm()                  #not the most elegent way to do it but only way ive found that works
         self.state.name = new_name
@@ -1580,18 +1581,20 @@ def main():
     test = Hadamard
     test &= Hadamard
     print_array(test)
-    oracle_values = [9,4,3,2,5,6,12,15,16]
-    oracle_values2 = [1,2,3,4,664,77,5,10,12,14,16,333,334,335,400,401,41,42,1000]
-    oracle_values3 = [4,5,30,41]
-    oracle_values4 = [500,5,4,7,8,9,99]
-    oracle_value_test = [1,2,3]
-    Grover(oracle_values).run()
-    Grover(oracle_values2).run()
-    Grover(oracle_values3).run()
-    Grover(oracle_values4).run()
+
     print_array(trace(CNot))
     print_array(testp == testp2)
     M_test1 = Measure(state=qm @ qp)
     M_test2 = Measure(state=qm @ qp)
     print_array(M_test1 == M_test2)
     print_array(M_test1.probs)
+    print_array(Density(state_a = q1, state_b = qpi).fidelity())
+    test = Circuit(n=1, noisy=True, Q_channel="B flip", prob=0.5)
+    test.get_info("state")
+    test.add_gate(Z_Gate)
+    test.apply_final_gate()
+    test.add_quantum_channel(Q_channel="P flip", prob=0.5)
+    test.get_info("state")
+    test.add_quantum_channel(Q_channel="B P flip", prob=0.5)
+    test.get_info("state")
+    test.list_probs()
