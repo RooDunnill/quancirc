@@ -1,6 +1,10 @@
 from qc_errors import MixinError
 import numpy as np
 
+array_name = None
+
+__all__ = ["DirectSumMixin", "LinearMixin"]
+
 def combine_attributes(self, other, op = "+"):
         """Allows the returned objects to still return name and info too"""
         kwargs = {}
@@ -10,29 +14,41 @@ def combine_attributes(self, other, op = "+"):
         if hasattr(self, "info") and hasattr(other, "info"):   #takes the info of the two objects and combines them
             kwargs["info"] = f"Combined gate of {self.info} and {other.info}"
         return kwargs
-array_name = None
+
+
 class DirectSumMixin:
-    def __and__(self, other):
+    """Allows for the & dunder method to be updated for the direct sum, currently only allowed for the gate class"""
+    def direct_sum(self, other):
         if isinstance(other, self.__class__) and self.array_name:
             new_dim: int = self.dim + other.dim
             new_length: int = new_dim**2
             new_mat = np.zeros(new_length,dtype=np.complex128)
-            kwargs = {self.array_name: new_mat}
-            kwargs.update(combine_attributes(self, other, op = "&"))
+            
             for i in range(self.dim):
                 for j in range(self.dim):                   #a lot more elegant
                     new_mat[j+new_dim*i] += self.matrix[j+self.dim*i]
             for i in range(other.dim):     #although would be faster if i made a function to apply straight
                 for j in range(other.dim):    #to individual qubits instead
                     new_mat[self.dim+j+self.dim*new_dim+new_dim*i] += other.matrix[j+other.dim*i]
-            return self.__class__(**kwargs)
+            return new_mat 
         raise MixinError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
-    
-    def __iadd__(self, other):
+        
+    def __and__(self, other):    #this is the direct sum, mostly used for creating CNOT gates
         if isinstance(other, self.__class__) and self.array_name:
-            setattr(self, self.array_name, getattr(self, self.array_name) & getattr(other, self.array_name))   #adds to that attribute, ie self.matrix for gate
+            new_mat = self.direct_sum(other)
+            kwargs = {self.array_name: new_mat}
+            kwargs.update(combine_attributes(self, other, op = "&"))
+            return self.__class__(**kwargs)
+        
+    
+    def __iand__(self, other):
+            new_mat = self.direct_sum(other)
+            setattr(self, self.array_name, new_mat)
+            kwargs = {}
+            kwargs.update(combine_attributes(self, other, op="&"))
+            vars(self).update(kwargs)
             return self
-        raise MixinError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+
 
 
 class LinearMixin:

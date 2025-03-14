@@ -1673,3 +1673,4 @@ def main():
     test = Hadamard
     test &= Hadamard
     print_array(test)
+    
