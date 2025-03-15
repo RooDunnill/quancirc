@@ -1,12 +1,9 @@
 import time
-start = time.time()
-import numpy as np                                              #mostly used to make 1D arrays
+start = time.time()                                      
 from random import choices, randint                                            #used for measuring
 import atexit
 import matplotlib.pyplot as plt
-
 from scipy.linalg import sqrtm, logm
-import cProfile
 from utilities import *
 
 
@@ -92,7 +89,6 @@ def time_test(n, fast=True, iterations=None, **kwargs):                 #times a
     print_array(times_array)
 
 
-
 def binary_entropy(prob: float) -> float:
     """Used to calculate the binary entropy of two probabilities"""
     if isinstance(prob, (float, int)):
@@ -102,8 +98,6 @@ def binary_entropy(prob: float) -> float:
             return -prob*np.log2(prob) - (1 - prob)*np.log2(1 - prob)
     raise QC_error(f"Binary value must be a float")
     
-
-
 
 class Qubit(StrMixin, LinearMixin):                                           #creates the qubit class
     """The class to define and initialise Qubits and Quantum States"""
@@ -218,8 +212,6 @@ class Qubit(StrMixin, LinearMixin):                                           #c
         qmi_vector = np.array([n+0j,0-n*1j],dtype=np.complex128)
         return cls(name="|-i>", vector=qmi_vector)
 
-
-    
     def __matmul__(self: "Qubit", other):               #this is an n x n tensor product function
         """The tensor product function for Qubits"""
         if isinstance(other, Qubit):           #although this tensors are all 1D  
@@ -297,7 +289,7 @@ qm = Qubit.qm()
 qpi = Qubit.qpi()
 qmi = Qubit.qmi()
 
-class Gate(StrMixin, LinearMixin, DirectSumMixin):    
+class Gate(StrMixin, LinAlgMixin, DirectSumMixin):    
     """The class that makes up the unitary matrices that implement the gate functions
         List of functions:
             __matmul__: tensor product
@@ -407,7 +399,6 @@ class Gate(StrMixin, LinearMixin, DirectSumMixin):
         if n == 2:
             return cls(name=f"2 Qubit Swap gate", matrix=n_is_2)
 
-    
     def __matmul__(self, other: "Gate") -> "Gate":      #adopts the matmul notation to make an easy tensor product of two square matrices
         """The tensor product for the two Qubit inputs"""
         if isinstance(self, Density) and isinstance(other, Density):
@@ -577,8 +568,6 @@ class QFT(Gate):
         self.n: int =  0 if self.dim == 0 else int(np.log2(self.dim))
 
 
-
-
 class Density(Gate):       #makes a matrix of the probabilities, useful for entangled states
     """The class that computes density matrices of Quantum states and can provide probability information for the state
         List of functions:
@@ -594,7 +583,6 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         partial trace: can trace out a subsystem from a wider system"""
     
     array_name = "rho"
-
     def __init__(self, **kwargs):
         self.state = kwargs.get("state", None)
         if self.state is None:
@@ -621,9 +609,6 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             self.dim = int(np.sqrt(self.length))
             self.n = int(np.log2(self.dim))
         
-        
-
-    
     def construct_density_matrix(self, calc_state=None) -> np.ndarray:
         """Assigns which density constructor to use for the given Qubit type"""
         if isinstance(calc_state, Qubit):
@@ -670,7 +655,6 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             return rho
         raise QC_error(f"The trace of a density matrix must be 1, calculated trace is {trace(rho)}")
 
-
     def fidelity(self, rho_1: np.ndarray=None, rho_2: np.ndarray=None) -> float:
         """Computes the fidelity between two states
         Args:
@@ -697,8 +681,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                 if rho_1 is None and rho_2 is None:
                     self.fidelity_ab = fidelity
                     return self.fidelity_ab
-                else:
-                    return fidelity
+                return fidelity
 
     def trace_distance(self, rho_1: np.ndarray=None, rho_2: np.ndarray=None) -> float:
         """Computes the trace distance of two states
@@ -720,8 +703,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         if rho_1 is None and rho_2 is None:
             self.trace_dist = trace_dist
             return self.trace_dist
-        else:
-            return trace_dist
+        return trace_dist
         
     def vn_entropy(self, rho: np.ndarray=None) -> float:
         """Computes the Von Neumann entropy of a state
@@ -789,8 +771,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         if rho_a is None and rho_b is None:
             self.cond_ent = cond_ent
             return self.cond_ent
-        else:
-            return cond_ent
+        return cond_ent
             
     def quantum_mutual_info(self) -> float:                   #S(A:B)
         """Computes the quantum mutual information of a system
@@ -862,8 +843,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                             new_mat[i+k*reduced_dim] = np.sum(self.rho[reduced_dim*(traced_out_dim_range+traced_out_dim_range*rho_dim)+i+k*rho_dim])
                     self.rho_b = new_mat
                     return self.rho_b
-        else:
-            DensityError(f"self.rho cannot be of type {type(self.rho)}, expected numpy array")
+        DensityError(f"self.rho cannot be of type {type(self.rho)}, expected numpy array")
 
 
 class Measure(StrMixin, LinearMixin):
@@ -894,8 +874,6 @@ class Measure(StrMixin, LinearMixin):
         self.pm_state = None
         self.measurement = None
 
-
-        
     def topn_measure_probs(self, qubit: int=None, povm: np.ndarray=None, **kwargs) -> np.ndarray:
         """Gives the top n probabilities"""
         topn = kwargs.get("n", 8)
@@ -944,7 +922,6 @@ class Measure(StrMixin, LinearMixin):
                 self.probs = np.array([measure_den.rho[i + i * measure_den.dim].real for i in range(measure_den.dim)], dtype=np.float64)
                 return self.probs, measure_rho, A_rho, B_rho
             
-        
     def measure_state(self, qubit: int = None, povm: np.ndarray = None, text: bool = False) -> str:
         """Measures the state and also computes the collapsed state. Can measure non projectively for all Qubits and projectively for single Qubits"""
         if qubit is not None:
@@ -1213,7 +1190,6 @@ class Circuit(BaseMixin):
         self.gates = []               #wipes the gates to allow for new applications
         return self.state
 
-
     def run(self):
         """Can be used to run the whole program on an inital state and set of gates, can be used without this function also"""
         if self.gates == []:
@@ -1392,7 +1368,7 @@ class Grover(StrMixin):                                               #this is t
                             self.iter_calc = "floor"
                             print_array(f"The optimal iteration is computed by flooring")
                         return self.n
-                    return TypeError(f"balanced_param cannot be of type {type(self.balanced_param)}, expected str")
+                    raise TypeError(f"balanced_param cannot be of type {type(self.balanced_param)}, expected str")
                 raise TypeError(f"iter_calc cannot be of type {type(self.iter_calc)}, expected str")
             else:
                 self.n = n_qubit_min

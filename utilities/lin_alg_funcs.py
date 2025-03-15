@@ -1,56 +1,29 @@
 import numpy as np
-from .qc_errors import QC_error
+from .mixins import LinearMixin, combine_attributes
+from .qc_errors import TensorError, MatMulError
 
-def trace(matrix) -> float:                 #used an np.trace doesnt calculate 1D matrices
-    """Computes the trace of a 1D matrix, mostly used as a checker"""
-    tr = 0
-    if isinstance(matrix, np.ndarray):
-        array = matrix
-    elif hasattr(matrix, matrix.array_name):
-        array = getattr(matrix, matrix.array_name)
-    else:
-        QC_error(f"The object {matrix} does not have an array assigned to it to be able to trace")
-    dim = int(np.sqrt(len(array)))
-    for i in range(dim):
-        tr += array[i + i * dim]
-    return tr
-    
-def reshape_matrix(matrix: np.ndarray) -> np.ndarray: 
-    """Can reshape a 1D matrix into a square 2D matrix"""
-    length = len(matrix)
-    dim = int(np.sqrt(length))
-    if dim**2 != length:
-        raise QC_error(f"The matrix cannot be reshaped into a perfect square")
-    reshaped_matrix = []
-    for i in range(dim):
-        row = matrix[i * dim : (i + 1) * dim]
-        reshaped_matrix.append(row)
-    return np.array(reshaped_matrix)
+array_name = None
 
-def flatten_matrix(matrix: np.ndarray) -> np.ndarray:
-    """Can flatten a square 2D matrix into a 1D matrix"""
-    dim = len(matrix)
-    length = dim**2
-    flattened_matrix = np.zeros(length, dtype=np.complex128)
-    for j in range(dim):
-        for i in range(dim):
-            flattened_matrix[j * dim + i] += matrix[j][i]
-    return flattened_matrix
+class LinAlgMixin(LinearMixin):
 
-def diagonal(matrix: np.ndarray) -> np.ndarray:                 
-    """Creates a vector based on the idagonal elements of a 1D matrix"""
-    dim = int(np.sqrt(len(matrix)))
-    new_mat = np.zeros(dim, dtype=np.complex128)
-    for i in range(dim):
-        new_mat[i] = matrix[i+i*dim]
-    return new_mat
+    def tensor_product(self, other):
+        new_info: str = "This is a tensor product of density mats: "f"{self.name}"" and "f"{other.name}"
+        new_name: str = f"{self.name} @ {other.name}"
+        new_length: int = self.length*other.length
+        new_array = np.zeros(new_length,dtype=np.complex128)
+        new_dim: int = self.dim * other.dim
+        for m in range(self.dim):
+            for i in range(self.dim):
+                for j in range(other.dim):             #4 is 100 2 is 10
+                    for k in range(other.dim):   #honestly, this works but is trash and looks bad
+                        index = k+j*new_dim+other.dim*i+other.dim*new_dim*m
+                        new_array[index] += self.rho[i+self.dim*m]*other.rho[k+other.dim*j]
+        return new_array
 
-def transpose(matrix: np.ndarray) -> np.ndarray: 
-    if isinstance(matrix, np.ndarray):
-        return flatten_matrix(reshape_matrix(matrix).T)
-    raise QC_error(f"This cannot be of type {type(matrix)}, expected numpy array")
-
-def adjoint(matrix: np.ndarray) -> np.ndarray:
-    if isinstance(matrix, np.ndarray):
-        return flatten_matrix(reshape_matrix(matrix).conj().T)
-    raise QC_error(f"This cannot be of type {type(matrix)}, expected numpy array")
+    def __matmul__(self, other):
+        if isinstance(other, self.__class__) and self.array_name:
+            new_array = self.tensor_product(self, other)
+            kwargs = {self.array_name: new_array}
+            kwargs.update(combine_attributes(self, other, op = "&"))
+            return self.__class__(**kwargs)
+      

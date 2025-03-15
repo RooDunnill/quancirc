@@ -52,3 +52,13 @@ class PrintError(QC_error):
     def __init__(self, message="print array error"):
         self.message = message
         super().__init__(self.message)
+
+class TensorError(QC_error):
+    def __init__(self, message="Tensor Error has oocured"):
+        self.message = message
+        super().__init__(self.message)
+
+class MatMulError(QC_error):
+    def __init__(self, message="Matrix Multiplication Error has oocured"):
+        self.message = message
+        super().__init__(self.message)
