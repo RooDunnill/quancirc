@@ -4,26 +4,10 @@ import numpy as np                                              #mostly used to 
 from random import choices, randint                                            #used for measuring
 import atexit
 import matplotlib.pyplot as plt
-from rich.console import Console
-from rich.theme import Theme
+
 from scipy.linalg import sqrtm, logm
 import cProfile
 from utilities import *
-
-
-
-
-custom_theme = Theme({"qubit":"#587C53",                 #Fern Green
-                      "prob_dist":"#3C4E35",             #Dark Forest Green
-                      "gate":"#3E5C41",                  #Forest Green
-                      "density":"#4D5B44",               #Olive Green
-                      "info":"#7E5A3C",                  #Earthy Brown
-                      "error":"dark_orange",
-                      "measure":"#3B4C3A",               #Deep Moss Green
-                      "grover_header":"#7D9A69",         #Sage Green
-                      "circuit_header":"#465C48",        #Muted Green
-                      "main_header":"#4B7A4D"})          #Vibrant moss Green
-console = Console(style="none",theme=custom_theme, highlight=False)
 
 
 class Timer:
@@ -121,7 +105,7 @@ def binary_entropy(prob: float) -> float:
 
 
 
-class Qubit(LinearMixin):                                           #creates the qubit class
+class Qubit(StrMixin, LinearMixin):                                           #creates the qubit class
     """The class to define and initialise Qubits and Quantum States"""
     array_name = "vector"
     def __init__(self, **kwargs) -> None:
@@ -234,19 +218,7 @@ class Qubit(LinearMixin):                                           #creates the
         qmi_vector = np.array([n+0j,0-n*1j],dtype=np.complex128)
         return cls(name="|-i>", vector=qmi_vector)
 
-    def __str__(self):
-        return self.__rich__()
-    
-    def __rich__(self):
-            if self.state_type == "mixed":
-                if isinstance(self.vector[0], np.ndarray):
-                    return f"[bold]{self.name}[/bold]\n[not bold]Vectors:\n {self.vector}[/not bold]\n and Weights:\n {self.weights}"
-                else:
-                    print_out = f"{self.name}\nWeights: {self.weights}\n"
-                    for i in self.vector:
-                        print_out += f"State: {i}\n"
-                    return print_out
-            return f"[bold]{self.name}[/bold]\n[not bold]{self.vector}[/not bold]"
+
     
     def __matmul__(self: "Qubit", other):               #this is an n x n tensor product function
         """The tensor product function for Qubits"""
@@ -325,7 +297,7 @@ qm = Qubit.qm()
 qpi = Qubit.qpi()
 qmi = Qubit.qmi()
 
-class Gate(LinearMixin, DirectSumMixin):    
+class Gate(StrMixin, LinearMixin, DirectSumMixin):    
     """The class that makes up the unitary matrices that implement the gate functions
         List of functions:
             __matmul__: tensor product
@@ -435,11 +407,6 @@ class Gate(LinearMixin, DirectSumMixin):
         if n == 2:
             return cls(name=f"2 Qubit Swap gate", matrix=n_is_2)
 
-    def __str__(self):
-        return self.__rich__()
-
-    def __rich__(self):
-        return f"[bold]{self.name}[/bold]\n[not bold]{self.matrix}[/not bold]"
     
     def __matmul__(self, other: "Gate") -> "Gate":      #adopts the matmul notation to make an easy tensor product of two square matrices
         """The tensor product for the two Qubit inputs"""
@@ -656,11 +623,6 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
         
         
 
-    def __str__(self):
-        return self.__rich__()
-    
-    def __rich__(self):
-        return f"[bold]{self.name}[/bold]\n[not bold]{self.rho}[/not bold]"
     
     def construct_density_matrix(self, calc_state=None) -> np.ndarray:
         """Assigns which density constructor to use for the given Qubit type"""
@@ -904,7 +866,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
             DensityError(f"self.rho cannot be of type {type(self.rho)}, expected numpy array")
 
 
-class Measure(LinearMixin):
+class Measure(StrMixin, LinearMixin):
     """The class in which all measurements and probabilities are computed"""
     array_name = "probs"
     def __init__(self, **kwargs):
@@ -932,11 +894,7 @@ class Measure(LinearMixin):
         self.pm_state = None
         self.measurement = None
 
-    def __str__(self):
-        return self.__rich__()
-    
-    def __rich__(self):
-        return f"[bold]{self.name}[/bold]\n[not bold]{self.list_probs()}[/not bold]"
+
         
     def topn_measure_probs(self, qubit: int=None, povm: np.ndarray=None, **kwargs) -> np.ndarray:
         """Gives the top n probabilities"""
@@ -1294,8 +1252,9 @@ class Circuit(BaseMixin):
         return getattr(self, attribute)  
         
 
-class Grover:                                               #this is the Grover algorithms own class
+class Grover(StrMixin):                                               #this is the Grover algorithms own class
     """The class to run and analyse Grovers algorithm"""
+    array_name = "kets"
     def __init__(self, *args, **kwargs):
         self.fast = kwargs.get("fast", True)
         self.n_cap: int = int(kwargs.get("n_cap",16 if self.fast else 12))         
@@ -1312,15 +1271,6 @@ class Grover:                                               #this is the Grover 
             elif isinstance(arg, int):
                 self.rand_ov = arg
         
-    def __str__(self):
-        return f"{self.name}\n{self.results}"
-    
-    def __rich__(self) -> str:           #creates the correct printout so it shows the prob next to the ket written in ket notation
-        print_out = f"[bold]{self.name}[/bold]\n"
-        print_out_kets = format_ket_notation(self.results, type="topn", num_bits=int(np.ceil(self.n)), precision = (3 if self.n < 20 else 6))
-        print_out = print_out + print_out_kets
-        return print_out
-
     def phase_oracle(self, qub: Qubit, oracle_values: list) -> Qubit:          #the Grover phase oracle
         """Computes the phase flip produced from the oracle values"""
         qub.vector[oracle_values] *= -1                     #flips the values in the index of the oracle values
@@ -1514,7 +1464,6 @@ class Grover:                                               #this is the Grover 
 class print_array:    #made to try to make matrices look prettier
     """Custom print function to neatly arrange matrices and also print with a nice font"""
     def __init__(self, array):
-        self.console = Console()  # Use Rich's Console for rich printing
         self.array = array
         self.prec = 3  # Default precision for numpy formatting
         np.set_printoptions(
@@ -1522,46 +1471,20 @@ class print_array:    #made to try to make matrices look prettier
             suppress=True,
             floatmode="fixed")
         if isinstance(array, Measure):
-            if array.measure_type == "projective":
-                ket_mat = range(array.dim)
-                num_bits = int(np.ceil(np.log2(array.dim)))
-                np.set_printoptions(linewidth=(10))
-                console.print(f"{array.name}",markup=True, style="measure")
-                for ket_val, prob_val in zip(ket_mat,array.list_probs()):       #creates a bra ket notation of the given values
-                    console.print(f"|{bin(ket_val)[2:].zfill(num_bits)}>  {100*prob_val:.{self.prec}f}%",markup=True, style="measure")
-            else:
-                console.print(array,markup=True,style="measure")
+            console.print(array,markup=True, style="measure")
+        elif isinstance(array, Density):
+            console.print(array,markup=True,style="density")
         elif isinstance(array, Gate):
-            if array.dim < 5:
-                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * array.dim, precision=self.prec)
-            elif array.dim < 9:
-                self.prec = self.prec - 1
-                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * array.dim, precision=self.prec)
-            else:
-                self.prec = self.prec - 2
-                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * array.dim, precision=self.prec)
-            if isinstance(array, Density):
-                console.print(array,markup=True,style="density")
-            else:
-                console.print(array,markup=True,style="gate")
+            console.print(array,markup=True,style="gate")
         elif isinstance(array, Grover):
             console.print(array,markup=True, style="prob_dist")
         elif isinstance(array, Qubit):
-            np.set_printoptions(linewidth=(10))
             console.print(array,markup=True,style="qubit")
         elif isinstance(array, np.ndarray):
-            length = len(array)
-            if length < 17:
-                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * np.sqrt(length))
-            elif length < 65:
-                self.prec = self.prec - 1
-                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * np.sqrt(length), precision=self.prec)
-            else:
-                self.prec = self.prec - 2
-                np.set_printoptions(linewidth=3 + (8 + 2 * self.prec) * np.sqrt(length), precision=self.prec)
             console.print(array, markup=True, style="gate")
         else:
             console.print(array,markup=True,style="info")
+        
 
 
 oracle_values = [9,4,3,2,5,6,12,15,16]
@@ -1597,3 +1520,4 @@ def main():
     test.get_info("state")
     test.apply_final_gate()
     test.list_probs()
+    Grover(8).run()

@@ -2,11 +2,7 @@ from .qc_errors import MixinError
 import numpy as np
 from rich.console import Console
 from rich.theme import Theme
-from typing import TYPE_CHECKING, Union
 from .layout_funcs import format_ket_notation
-
-if TYPE_CHECKING:
-    from qcp_program import Gate, Qubit, Density, Measure, Circuit, Grover
 
 
 
@@ -20,12 +16,13 @@ custom_theme = Theme({"qubit":"#587C53",                 #Fern Green
                       "grover_header":"#7D9A69",         #Sage Green
                       "circuit_header":"#465C48",        #Muted Green
                       "main_header":"#4B7A4D"})          #Vibrant moss Green
+
 console = Console(style="none",theme=custom_theme, highlight=False)
 
 
 array_name = None
 
-__all__ = ["DirectSumMixin", "LinearMixin", "BaseMixin"]
+__all__ = ["DirectSumMixin", "LinearMixin", "BaseMixin", "StrMixin", "custom_theme", "console"]
 
 def combine_attributes(self, other, op = "+"):
         """Allows the returned objects to still return name and info too"""
@@ -128,8 +125,6 @@ class LinearMixin(BaseMixin):
         raise MixinError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
     
 class StrMixin(BaseMixin):
-    
-    
     prec: int = 3
 
     def __str__(self) -> str:
@@ -143,15 +138,16 @@ class StrMixin(BaseMixin):
     
     def format_str(self) -> list[str]:
         np.set_printoptions(precision=self.prec, suppress=True, floatmode="fixed")
-        if isinstance(self, Measure):
+      
+        if self.array_name == "probs":
             return self.format_measure()
-        elif isinstance(self, Gate):
+        elif self.array_name == "matrix":
             return self.format_gate()
-        elif isinstance(self, Density):
+        elif self.array_name == "rho":
             return self.format_density()
-        elif isinstance(self, Grover):
+        elif self.array_name == "kets":
             return self.format_grover()
-        elif isinstance(self, Qubit):
+        elif self.array_name == "vector":
             return self.format_qubit()
         elif isinstance(self, np.ndarray):
             return self.format_ndarray()
@@ -187,8 +183,17 @@ class StrMixin(BaseMixin):
         return [f"[density]{self.name}\n{self.rho}[/density]"]
     
     def format_qubit(self) -> list[str]:
-        np.set_printoptions(linewidth=(10))
+        np.set_printoptions(linewidth=10)
+        if self.state_type == "mixed":
+            if isinstance(self.vector[0], np.ndarray):
+                return f"[qubit]{self.name}[/qubit]\n[qubit]Vectors:\n {self.vector}[/qubit]\n and Weights:\n {self.weights}"
+            else:
+                print_out = f"{self.name}\nWeights: {self.weights}\n"
+                for i in self.vector:
+                    print_out += f"State: {i}\n"
+                return print_out
         return [f"[qubit]{self.name}\n{self.vector}[/qubit]"]
+
 
     def format_np_array(self):
         length = len(self)
@@ -203,9 +208,9 @@ class StrMixin(BaseMixin):
         return [f"[gate]{self}\n[\gate]"]
     
     def format_grover(self) -> list[str]:
-        print_out = [f"[prob_dist]{self.name}[/prob_dist]\n"]
         print_out_kets = format_ket_notation(self.results, type="topn", num_bits=int(np.ceil(self.n)), precision = (3 if self.n < 20 else 6))
-        print_out = print_out + print_out_kets
-        return print_out
+        return [f"[prob_dist]{self.name}\n{print_out_kets}[/prob_dist]"]
 
+    def format_default(self):
+        return [f"test"]
 
