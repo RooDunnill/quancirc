@@ -399,35 +399,6 @@ class Gate(StrMixin, LinAlgMixin, DirectSumMixin):
         if n == 2:
             return cls(name=f"2 Qubit Swap gate", matrix=n_is_2)
 
-    def __matmul__(self, other: "Gate") -> "Gate":      #adopts the matmul notation to make an easy tensor product of two square matrices
-        """The tensor product for the two Qubit inputs"""
-        if isinstance(self, Density) and isinstance(other, Density):
-            new_info: str = "This is a tensor product of density mats: "f"{self.name}"" and "f"{other.name}"
-            new_name: str = f"{self.name} @ {other.name}"
-            new_length: int = self.length*other.length
-            new_mat = np.zeros(new_length,dtype=np.complex128)
-            new_dim: int = self.dim * other.dim
-            for m in range(self.dim):
-                for i in range(self.dim):
-                    for j in range(other.dim):             #4 is 100 2 is 10
-                        for k in range(other.dim):   #honestly, this works but is trash and looks bad
-                            index = k+j*new_dim+other.dim*i+other.dim*new_dim*m
-                            new_mat[index] += self.rho[i+self.dim*m]*other.rho[k+other.dim*j]
-            return Density(name=new_name, info=new_info, rho=new_mat)
-        if isinstance(self, Gate) and isinstance(other, Gate):
-            new_info: str = "This is a tensor product of gates: "f"{self.name}"" and "f"{other.name}"
-            new_name: str = f"{self.name} @ {other.name}"
-            new_length: int = self.length*other.length
-            new_mat = np.zeros(new_length,dtype=np.complex128)
-            new_dim: int = self.dim * other.dim
-            for m in range(self.dim):
-                for i in range(self.dim):
-                    for j in range(other.dim):             #4 is 100 2 is 10
-                        for k in range(other.dim):   #honestly, this works but is trash and looks like shit
-                            index = k+j*new_dim+other.dim*i+other.dim*new_dim*m
-                            new_mat[index] += self.matrix[i+self.dim*m]*other.matrix[k+other.dim*j]
-            return Gate(name=new_name, info=new_info, matrix=new_mat)
-        raise GateError(f"The tensor product cannot occure with type {type(self)} and type {type(other)}, expected two Gate class types")
 
     def __ipow__(self, other: "Gate") -> "Gate":    #denoted **=
         if isinstance(self, Gate):  
@@ -1480,10 +1451,6 @@ def main():
     testp2 = Density(state=qp)
     print_array(testp + testm)
     print_array(testp - testm)
-    print_array(Hadamard & Hadamard)
-    test = Hadamard
-    test &= Hadamard
-    print_array(test)
 
     print_array(trace(CNot))
     print_array(testp == testp2)
@@ -1497,3 +1464,6 @@ def main():
     test.apply_final_gate()
     test.list_probs()
     Grover(8).run()
+    print_array(Hadamard)
+    print_array(Hadamard @ Hadamard)
+    print_array(Density(state=qpi) @ Density(state=qmi))
