@@ -5,14 +5,35 @@ import random as rm
 import qcp_program
 import tkinter as tk
 
-# CHECK IF KEY_LENGTH IS FULLY CONSISTENT
-# CHECK TO ENSURE FDECODE IS WORKING (SHOULD ALWAYS BE CORRECT)
-# could also factor fraction into key_length decision
-
 ############################### BACKGROUND INFO ###############################
 # HOW OUR GAME WORKS:
 #
-# will write later
+# A user gets to simulate communicating through a quantum-secure portal.
+# A player gets to choose whether to communicate virtually with a bot, or to
+# communicate with a second player. If they choose to communicate with a bot,
+# they choose whether they would like to be Alice (the first communicator) or
+# Bob (the second communicator, the responder). Then, the user gets to choose
+# whether a virtual eavesdropper (EVE) will attempt to interfere and compromise
+# the communication. Next, the user gets to select which communication protocol
+# they will use between the options of BB84, Six-State (SS) BB84, B92, and
+# BBM92. Then, the user gets to select a fraction of key bits to be shared
+# publicly for error checking, and a maximum percentage of errors to be
+# tolerated in the shared bits. Next, if there is an Alice player, they will
+# input their message for Bob. If there isn't an Alice character, a
+# random question is pulled from a question bank to be sent to Bob. This is then
+# encoded and sent to Bob where Bob gets to respond. Again, if there is no Bob
+# player, a random answer is pulled from a bank. Alice then sees this message
+# (after decoding) and gets to choose to respond and continue the game. Further,
+# during the key distribution phase Eve (if present) is measuring the key
+# and sending a false key out to the intended recipient and then falsifying
+# the measurement basis index checking to ensure its keys match that of Alice
+# and Bob so it can steal their messages. Alice and Bob are checking for errors
+# with a fraction of their key bits and if they detect errors above the error
+# tolerance threshold, the communication is aborted. If Eve is able to eavesdrop
+# undetected, the user is notified for informational purposes that their
+# communication was corrupted. I chose to make this game as an informational
+# simulation of QKD and quantum cryptography that displays its ability to
+# create remote eavesdropping-resistant key distribution protocols.
 #
 # How B92 Works:
 # Alice sends qubits from the set {|0>,|->} and creates a list a^i
@@ -28,7 +49,7 @@ import tkinter as tk
 
 # How BBM92 Works (enganglement based BB84)
 # Any trusted or untrusted 3rd party (even Eve) distributes n copies of the
-#   state |\Phi> = \sqrt(1/2) (|00> + |11>) = \sqrt(1/2)(|++> + |-->)
+#   state |\Psi> = \sqrt(1/2) (|00> + |11>) = \sqrt(1/2)(|++> + |-->)
 # Alice and Bob each randomly select a basis and measure the result
 # They then publicly share which bases they are using and only keep the results
 #   from when the basis are the same. The resulting a^i 's and b^i 's should
@@ -55,17 +76,15 @@ def bits_to_m(bit_m):
 # this class creates objects of type Alice (first communicator)
 # self.a is the classical key we create
 class ALICE:
-    def __init__(self, message, fraction, error_tolerance):
+    def __init__(self, message):
         self.message = message # message to share with Bob
-        self.fraction = fraction # fraction of bits to use to check for errors
-        self.error_tolerance = error_tolerance # maximum error % we tolerate
         self.quantum_key = [] # the quantum key that Alice generates
         self.x = [] # the list of bases used in creating quantum_key
         self.a = [] # list of choice of qubit within given basis
                     #   for example: |0>,|+> are 0, while |1>,|-> are 1
     
     # method to generate the quantum key
-    def generate_big_key(self, protocol, key_length):
+    def generate_qk(self, protocol, key_length):
         if protocol == 0: # BB84
             for i in range(key_length):
                 r_num = rm.randint(0,3)
@@ -186,8 +205,6 @@ class BOB:
     # creates self.b list by measure key with self.y basis list
     def measure_key(self, key):
         if len(self.y) != len(key): # error checking
-            print("y length: "+ str(len(self.y)))
-            print("key length: " + str(len(key)))
             raise ValueError("Key and measurement device length mismatch.")
         for i in range(len(self.y)):
             qbit = key[i]
@@ -234,7 +251,7 @@ class BOB:
         answer_key = [self.b.pop(0) for _ in range(len(bits))]
         final_key = ''.join(map(str, answer_key)) # converts back to string
         if len(bits) != len(final_key):
-            print('Length Issue!')
+            raise ValueError('Bobs key and message lengths mismatch')
         # cypher XOR's the message and key
         # bin(x)[2:] returns the binary version of x and [2:] removes the first
         #   two character "0b" which we don't want
@@ -259,10 +276,10 @@ class EVE:
     # creates quantum_key for BBm92 protocol
     def generate_key(self, size):
         self.qk = []
-        phi = qcp_program.Qubit.q0().__matmul__(qcp_program.Qubit.q0()) + qcp_program.Qubit.q1().__matmul__(qcp_program.Qubit.q1())
-        # phi is a bell state (normalized |00> + |11>)
-        for i in range(size):
-            self.qk.append(phi) # list of just bell states
+        psi = qcp_program.Qubit.q0().__matmul__(qcp_program.Qubit.q0()) + qcp_program.Qubit.q1().__matmul__(qcp_program.Qubit.q1())
+        # psi is a bell state (normalized |00> + |11>)
+        for i in range(round(size)):
+            self.qk.append(psi) # list of just bell states
     
     # creates the basis for measuring an intercepted quantum key
     def create_z(self, l, protocol):
@@ -279,9 +296,8 @@ class EVE:
 
     # measures an intercepted quantum key and adds results to self.c
     def measure_key(self, key):
+        self.c = []
         if len(self.z) != len(key):
-            print("z length "+ str(len(self.z)))
-            print("key length " + str(len(key)))
             raise ValueError("Key and measurement device length mismatch.")
         for i in range(len(self.z)):
             qbit = key[i]
@@ -307,7 +323,7 @@ class EVE:
             self.c.append(measurement)
     
     # this method allows Alice and Bob to measure the Eve's bell states
-    def others_measure(self, x, y):
+    def joint_measure(self, x, y):
         if len(x) != len(y): raise ValueError('measurement lengths mismatch')
         a_l = [] # list of measurement results for Alice
         b_l = [] # list of measurement results for Bob
@@ -347,6 +363,8 @@ class EVE:
     # this allows Eve to create a fake quantum key based on the protocol
     def generate_fake_key(self, protocol, key_length):
         self.fqk = []
+        self.fz = []
+        self.fc = []
         if protocol == 0 or protocol == 3: # BB84 or BBM92
             for i in range(key_length):
                 r_num = rm.randint(0,3)
@@ -406,10 +424,13 @@ class EVE:
 
     # used for removing self.z,self.c,self.fc,self.fz elements that don't align
     #   with Alice and Bob
-    def prune(self, l):
+    def prune1(self, l):
         for element in l:
             del self.z[element]
             del self.c[element]
+
+    def prune2(self, l):
+        for element in l:
             del self.fc[element]
             # as B92 isn't initated with a basis choice:
             if protocol != 2: del self.fz[element]
@@ -419,6 +440,7 @@ class EVE:
     def decode(self, recieved_message):
         l = len(recieved_message)
         short_key = [self.c.pop(0) for _ in range(l)]
+        del self.fc[:l] # keep lists up to date with Alice and Bob's
         final_key = ''.join(map(str, short_key))
         bit_m = bin(int(recieved_message,2) ^ int(final_key,2))[2:].zfill(len(recieved_message))
         return bits_to_m(bit_m)
@@ -429,6 +451,7 @@ class EVE:
     def fdecode(self, recieved_message):
         l = len(recieved_message)
         short_key = [self.fc.pop(0) for _ in range(l)]
+        del self.c[:l] # keep lists up to date with Alice and Bob's
         final_key = ''.join(map(str, short_key))
         bit_m = bin(int(recieved_message,2) ^ int(final_key,2))[2:].zfill(len(recieved_message))
         return bits_to_m(bit_m)
@@ -453,19 +476,24 @@ Eve = EVE()
 #   check for errors
 # returns a boolean, being whether the public check passed or failed
 def public_compare():
-    global error_rate, error_tolerance, protocol
+    global error_rate, protocol
     if fraction.get() == 0: return True # if no bits are checked, we pass
     else:
-        n = len(Alice.a)*fraction.get() # number of bits to check
+        n = min(len(Alice.a)*fraction.get(), len(Bob.b)*fraction.get()) # number of bits to check
         count = 0
         for _ in range(int(np.ceil(n))):
-            i = rm.randint(0,len(Alice.a)-1) # grabs a random bit
+            i = rm.randint(0,min(len(Alice.a), len(Bob.b))-1) # grabs a random bit
             if Alice.a[i] == Bob.b[i]: pass # if the bit is the same we're good
             else: count += 1 # if the bit is different, add a counter
             del Alice.a[i]
             if protocol != 2: del Alice.x[i] # B92 doesn't start with bases
             del Bob.b[i]
             del Bob.y[i]
+            if eavesdropper:
+                del Eve.c[i]
+                del Eve.fc[i]
+                del Eve.z[i]
+                if protocol != 2: del Eve.fz[i]
         error_rate = round(count/n, 2) # bad bits/total bits to 2 decimal places
         if error_rate >= error_tolerance.get(): return False
         else: return True
@@ -609,54 +637,80 @@ error_tolerance_slider.pack()
 # this method takes a current page, and moves us to a new page where our first
 #   communicator inputs their message
 def first_messenger(page):
-    global game_mode, single_player, Alice, Bob, fraction, error_tolerance, alice_message, key_length
+    global game_mode, single_player, Alice, Bob, alice_message, key_length
     Bob = BOB()
     if protocol == 3:
-        key_length = 2000 # arbitrary (large) choice
+        key_length = round(2000/(1-fraction.get())) # arbitrary (large) choice
         Eve.generate_key(key_length)
     if game_mode == 1 or single_player  == 'ALICE':
         next_page(page, alice_page, None, None) # go straight to Alice's page
     elif single_player == 'BOB':
         # randomly choose alice's message from the following list:
         alice_message = rm.choice(['Are all quantum states seperable?', 'How are you?', 'Did you know a group of ravens is called a treachery?'])
-        Alice = ALICE(alice_message,fraction,error_tolerance)
+        Alice = ALICE(alice_message)
         if protocol < 3:
-            key_length = len(m_to_bits(alice_message))*10
-            Alice.generate_big_key(protocol, key_length)
+            key_length = round((len(m_to_bits(alice_message))*10)/(1-fraction.get()))
+            Alice.generate_qk(protocol, key_length)
             Bob.create_y(key_length, protocol)
             if eavesdropper:
                 Eve.create_z(key_length, protocol)
                 Eve.measure_key(Alice.quantum_key)
                 Eve.generate_fake_key(protocol,key_length)
                 Bob.measure_key(Eve.fqk)
+                if len(Bob.b) != len(Eve.fc): raise ValueError('fake classical key length mismatch')
+                if len(Alice.quantum_key) != len(Eve.fqk): raise ValueError('quantum key length mismatch')
             else: Bob.measure_key(Alice.quantum_key)
         elif protocol == 3:
             Alice.create_x(key_length)
             Bob.create_y(key_length, protocol)
             if eavesdropper:
                 Eve.create_z(key_length, protocol)
-                Alice.a, Eve.c = Eve.others_measure(Alice.x, Eve.z)
+                Alice.a, Eve.c = Eve.joint_measure(Alice.x, Eve.z)
                 Eve.generate_fake_key(protocol,key_length)
                 Bob.measure_key(Eve.fqk)
-            else: Alice.a, Bob.b = Eve.others_measure(Alice.x, Bob.y)
+                if len(Eve.qk) != len(Eve.fqk): raise ValueError('quantum key length mismatch')
+            else: Alice.a, Bob.b = Eve.joint_measure(Alice.x, Bob.y)
         if len(Alice.a) != len(Bob.b): raise ValueError("Bob and Alice length mismatch.")
+        if eavesdropper:
+            if len(Eve.fc) != len(Bob.b):
+                raise ValueError('Evef Bob len mismatch')
         bad_indices = []
-        if protocol == 0 or protocol == 1 or protocol == 3:
-            for i in range(len(Alice.x)):
-                if Alice.x[i] != Bob.y[i]: bad_indices.insert(0,i)
-        elif protocol == 2:
-            for i in range(len(Bob.y)):
-                if Bob.y[i] == Bob.b[i]: bad_indices.insert(0,i)
+        second_bad_indices = []
+        ea_bad_indices = []
+        if eavesdropper:
+            if protocol == 0 or protocol == 1 or protocol == 3:
+                for i in range(len(Alice.x)):
+                    if Eve.fz[i] != Bob.y[i]: second_bad_indices.insert(0,i)
+                    if Eve.z[i] != Alice.x[i]: ea_bad_indices.insert(0,i)
+            elif protocol == 2:
+                for i in range(len(Bob.y)):
+                    if Bob.y[i] == Bob.b[i]:
+                        second_bad_indices.insert(0,i)
+                    if Eve.z[i] == Eve.c[i]:
+                        ea_bad_indices.insert(0,i)
+            Eve.prune1(ea_bad_indices)
+            Eve.prune2(second_bad_indices)
+            bad_indices = ea_bad_indices
+        else:
+            if protocol == 0 or protocol == 1 or protocol == 3:
+                for i in range(len(Alice.x)):
+                    if Alice.x[i] != Bob.y[i]: bad_indices.insert(0,i)
+            elif protocol == 2:
+                for i in range(len(Bob.y)):
+                    if Bob.y[i] == Bob.b[i]: bad_indices.insert(0,i)
+            second_bad_indices = bad_indices
         Alice.prune(bad_indices)
-        Bob.prune(bad_indices)
-        if eavesdropper: Eve.prune(bad_indices)
+        Bob.prune(second_bad_indices)
+        if eavesdropper:
+            if len(Bob.b) != len(Eve.fc): raise ValueError('pruned fake classical key length mismatch')
+            if len(Alice.a) != len(Eve.c): raise ValueError('pruned key len mismatch')
         if public_compare():
             cyphertext = Alice.encode()
             plaintext = str(Bob.decode(cyphertext))
             bob_recieved.config(text="ALICE's message was: " + plaintext)
             if eavesdropper:
                 stolen = str(Eve.decode(cyphertext))
-                stolen_text.config(text="EVE discretily gained some information about ALICE's message and decoded: " + stolen)
+                stolen_text.config(text="EVE decoded: " + stolen)
             next_page(page, bob_page, None, None)
         else:
             error_header.config(text='The found error rate of ' + str(error_rate) + ' exceeded our error tolerance of ' + str(error_tolerance.get()))
@@ -694,12 +748,12 @@ alice_box.pack(pady=20)
 
 # method allows saving of Alice's text and progressing to next frame
 def alice_save_text():
-    global alice_message, single_player, key_length, fraction, error_tolerance, decoded_alice_message, protocol, Alice, Bob
+    global alice_message, single_player, key_length, decoded_alice_message, protocol, Alice, Bob
     alice_message = alice_box.get("1.0", tk.END).strip() # strips text from box
-    Alice = ALICE(alice_message, fraction, error_tolerance)
+    Alice = ALICE(alice_message)
     if protocol < 3:
-        key_length = len(m_to_bits(alice_message))*10
-        Alice.generate_big_key(protocol, key_length)
+        key_length = round((len(m_to_bits(alice_message))*10)/(1-fraction.get()))
+        Alice.generate_qk(protocol, key_length)
         Bob.create_y(key_length, protocol)
         if eavesdropper:
             Eve.create_z(key_length, protocol)
@@ -712,35 +766,52 @@ def alice_save_text():
         Bob.create_y(key_length, protocol)
         if eavesdropper:
             Eve.create_z(key_length, protocol)
-            Alice.a, Eve.c = Eve.others_measure(Alice.x, Eve.z)
+            Alice.a, Eve.c = Eve.joint_measure(Alice.x, Eve.z)
             Eve.generate_fake_key(protocol,key_length)
             Bob.measure_key(Eve.fqk)
-        else: Alice.a, Bob.b = Eve.others_measure(Alice.x, Bob.y)
+        else: Alice.a, Bob.b = Eve.joint_measure(Alice.x, Bob.y)
     if len(Alice.a) != len(Bob.b): raise ValueError("Bob and Alice length mismatch.")
     bad_indices = []
-    if protocol == 0 or protocol == 1 or protocol == 3:
-        for i in range(len(Alice.x)):
-            if Alice.x[i] != Bob.y[i]: bad_indices.insert(0,i)
-    elif protocol == 2:
-        for i in range(len(Bob.y)):
-            if Bob.y[i] == Bob.b[i]: bad_indices.insert(0,i)
+    second_bad_indices = []
+    ea_bad_indices = []
+    if eavesdropper:
+        if protocol == 0 or protocol == 1 or protocol == 3:
+            for i in range(len(Alice.x)):
+                if Eve.fz[i] != Bob.y[i]: second_bad_indices.insert(0,i)
+                if Eve.z[i] != Alice.x[i]: ea_bad_indices.insert(0,i)
+        elif protocol == 2:
+            for i in range(len(Bob.y)):
+                if Bob.y[i] == Bob.b[i]:
+                    second_bad_indices.insert(0,i)
+                if Eve.z[i] == Eve.c[i]:
+                    ea_bad_indices.insert(0,i)
+        Eve.prune1(ea_bad_indices)
+        Eve.prune2(second_bad_indices)
+        bad_indices = ea_bad_indices
+    else:
+        if protocol == 0 or protocol == 1 or protocol == 3:
+            for i in range(len(Alice.x)):
+                if Alice.x[i] != Bob.y[i]: bad_indices.insert(0,i)
+        elif protocol == 2:
+            for i in range(len(Bob.y)):
+                if Bob.y[i] == Bob.b[i]: bad_indices.insert(0,i)
+        second_bad_indices = bad_indices
     Alice.prune(bad_indices)
-    Bob.prune(bad_indices)
-    if eavesdropper: Eve.prune(bad_indices)
+    Bob.prune(second_bad_indices)
     if public_compare():
         code = Alice.encode()
         decoded_alice_message = str(Bob.decode(code))
         bob_recieved.config(text='ALICEs message was: ' + decoded_alice_message)
         if eavesdropper:
             stolen = str(Eve.decode(code))
-            stolen_text.config(text="EVE discretily gained some information about ALICE's message and decoded: " + stolen)
+            stolen_text.config(text="EVE decoded: " + stolen)
         if game_mode == 0:
             bob_message = rm.choice(['Yes', 'No', 'Maybe', 'Sure'])
             cypher = Bob.answer(bob_message)
             decoded_bob_message = str(Alice.decode(cypher))
             if eavesdropper:
                 stolen2 = str(Eve.decode(cypher))
-                stolen_text2.config(text="EVE discretily gained some information about BOB's message and decoded: " + stolen2)
+                stolen_text2.config(text="EVE decoded: " + stolen2)
                 restart_game_button.config(text='Click to Continue Communicating')
             restart_page_subheader.config(text=decoded_bob_message)
             next_page(alice_page, restart_page, None,None)
@@ -776,8 +847,8 @@ def bob_save_text():
     cypher = Bob.answer(bob_message)
     decoded_bob_message = str(Alice.decode(cypher))
     if eavesdropper:
-        textB =  str(Eve.decode(cypher))
-        stolen_text2.config(text="EVE discretily gained some information about ALICE's message and decoded: " + textB)
+        textB =  str(Eve.fdecode(cypher))
+        stolen_text2.config(text="EVE decoded: " + textB)
         restart_game_button.config(text='Click to Continue Communicating')
     restart_page_subheader.config(text=decoded_bob_message)
     next_page(bob_page,restart_page, None, None)
