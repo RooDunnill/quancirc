@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 # quancirc
 =======
 <<<<<<< HEAD
@@ -6,6 +7,8 @@ Hi and welcome to my Quantum Computing Simulator! I am currently a masters stude
 
 TODO: Revamp the whole program to focus around density matrices rather than qubits, this will allow for quantum channels to be implemented correctly and for mixed states to be used on the quantum circuit.
 =======
+=======
+>>>>>>> qc_new-branch
 # QCP-Group-Work
 This is a repository for our Quantum Computing Project 
 
@@ -14,11 +17,14 @@ add Fourier transform to circuit
 have a fast and slow implementation of Grovers to demonstrate speed up
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> c45bb59 (Update README.md)
 =======
 ![image](https://github.com/user-attachments/assets/13c08a38-d295-4e2b-a1a6-b35beee86649)
 >>>>>>> af4fbed (Update README.md)
 =======
+=======
+>>>>>>> qc_new-branch
 comparing old and new
 ![image](https://github.com/user-attachments/assets/13c08a38-d295-4e2b-a1a6-b35beee86649)
 comparing new for only one iteration for each, bare in mind the iterations scale linearly (for 1 oracle value, 18 is like 400 iterations, each like 10 seconds long)
@@ -30,9 +36,12 @@ this is there actual times computed for one value, so slowest it would ever be:
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 >>>>>>> 15528d5 (Update README.md)
 =======
+=======
+>>>>>>> qc_new-branch
 [[ 2.000  0.007]
  [ 3.000  0.006]
  [ 4.000  0.007]
@@ -49,6 +58,7 @@ this is there actual times computed for one value, so slowest it would ever be:
  [15.000  1.164]
  [16.000 11.368]]
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> f496eb2 (Update README.md)
 =======
 
@@ -56,3 +66,8 @@ this is there actual times computed for one value, so slowest it would ever be:
 
 >>>>>>> bc77f50 (Update README.md)
 >>>>>>> qc_old-branch
+=======
+
+ ![image](https://github.com/user-attachments/assets/1cdde0eb-5874-4ce0-ae02-20ec20cf8eae)
+
+>>>>>>> qc_new-branch
