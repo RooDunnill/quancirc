@@ -1,0 +1,22 @@
+This is the meeting log on what everyone did this week:
+
+Week 4: Before first meeting
+Roo:Started working on basic code
+Week 5: 
+Roo:Set up the github, added code, started Grovers algorithm
+Week FLW:
+<<<<<<< HEAD
+Roo: Finished Grovers
+=======
+Roo: Refactored Measure and Density to be more readable and added Circuit
+Seán: Latex on Grovers
+Week 6:
+Roo: Refactored Grovers and added Quantum information measurements and also partial trace
+Week 7:
+Roo: Again refactored Grovers implementing FWHT and sped up most operations by implementing np.sum. Also added single gate addition to circuit
+<<<<<<< HEAD
+>>>>>>> 19f234e (Update log)
+=======
+Week 8:
+added many doc strings, have fixed a number of errors and also have added a noisy option to the quantum circuit, also made single qubit measurement and state collapse
+>>>>>>> 4d059d2 (Update log)
