@@ -60,7 +60,7 @@ print_array(q0 @ q0 @ q0 @ q0)
 print_array(Hadamard * q0)
 print_array(type(Hadamard * q0))
 print_array(Hadamard * Hadamard)
-print_array(Qubit(type="seperable", vectors=[q0,q0,q1]))
+
 print_array(Qubit(type="seperable", vectors=[[1,0],[1,0],[0,1]]))
 print_array((Hadamard @ Hadamard) * Qubit(type="seperable", vectors=[q0,q0]))
 had_mult_test = Qubit(type="seperable", vectors=[q0,q0])
@@ -172,6 +172,7 @@ oracle_values2 = [1,2,3,4,664,77,5,10,12,14,16,333,334,335,400,401,41,42,1000]
 oracle_values3 = [4,5,30,41]
 oracle_values4 = [500,5,4,7,8,9,99]
 oracle_value_test = [1,2,3]
+
 Grover(oracle_values).run()
 Grover(oracle_values2).run()
 Grover(oracle_values3).run()

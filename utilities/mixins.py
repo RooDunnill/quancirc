@@ -27,6 +27,11 @@ __all__ = ["DirectSumMixin", "LinearMixin", "BaseMixin", "StrMixin", "custom_the
 def combine_attributes(self, other, op = "+"):
         """Allows the returned objects to still return name and info too"""
         kwargs = {}
+        if op == "@" and self.array_name == "vector":
+            if not isinstance(other, np.ndarray):
+                self_name_size = int(np.log2(self.dim))
+                other_name_size = int(np.log2(other.dim)) 
+                kwargs["name"] = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
         if hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
             kwargs["name"] = f"{self.name} {op} {other.name}"
 
@@ -186,12 +191,12 @@ class StrMixin(BaseMixin):
         np.set_printoptions(linewidth=10)
         if self.state_type == "mixed":
             if isinstance(self.vector[0], np.ndarray):
-                return f"[qubit]{self.name}[/qubit]\n[qubit]Vectors:\n {self.vector}[/qubit]\n and Weights:\n {self.weights}"
+                return [f"[qubit]{self.name}[/qubit]\n[qubit]Vectors:\n {self.vector}[/qubit]\n and Weights:\n {self.weights}"]
             else:
                 print_out = f"{self.name}\nWeights: {self.weights}\n"
                 for i in self.vector:
                     print_out += f"State: {i}\n"
-                return print_out
+                return [print_out]
         return [f"[qubit]{self.name}\n{self.vector}[/qubit]"]
 
 
@@ -212,5 +217,5 @@ class StrMixin(BaseMixin):
         return [f"[prob_dist]{self.name}\n{print_out_kets}[/prob_dist]"]
 
     def format_default(self):
-        return [f"test"]
+        return [f"{self}"]
 

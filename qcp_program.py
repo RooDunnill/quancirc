@@ -99,7 +99,7 @@ def binary_entropy(prob: float) -> float:
     raise QC_error(f"Binary value must be a float")
     
 
-class Qubit(StrMixin, LinearMixin):                                           #creates the qubit class
+class Qubit(StrMixin, LinAlgMixin):                                           #creates the qubit class
     """The class to define and initialise Qubits and Quantum States"""
     array_name = "vector"
     def __init__(self, **kwargs) -> None:
@@ -211,30 +211,6 @@ class Qubit(StrMixin, LinearMixin):                                           #c
         n =1/np.sqrt(2)
         qmi_vector = np.array([n+0j,0-n*1j],dtype=np.complex128)
         return cls(name="|-i>", vector=qmi_vector)
-
-    def __matmul__(self: "Qubit", other):               #this is an n x n tensor product function
-        """The tensor product function for Qubits"""
-        if isinstance(other, Qubit):           #although this tensors are all 1D  
-            self_name_size = int(np.log2(self.dim))
-            other_name_size = int(np.log2(other.dim)) 
-            new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
-            new_length: int = self.dim*other.dim
-            new_vector = np.zeros(new_length,dtype=np.complex128)
-            for i in range(self.dim):     #multiplies the second ket by each value in the first ket
-                for j in range(other.dim):          #iterates up and down the second ket
-                    new_vector[j+(i * other.dim)] += self.vector[i]*other.vector[j] #adds the values into each element of the vector
-            return Qubit(name=new_name, vector=new_vector, type=self.state_type)    #returns a new Qubit instance with a new name
-        elif isinstance(other, np.ndarray):                 #used for when you just need to compute it for a given array, this is for creating seperable states
-            other_dim = len(other)
-            new_length: int = self.dim*other_dim
-            new_vector = np.zeros(new_length,dtype=np.complex128)
-            for i in range(self.dim):     #multiplies the second ket by each value in the first ket
-                for j in range(other_dim):          #iterates up and down the second ket
-                    new_vector[j+(i * other_dim)] += self.vector[i]*other[j] #adds the values into
-            self.dim = new_length
-            self.vector = new_vector
-            return self.vector    #returns a new Object with a new name too
-        raise QubitError(f"The tensor product operation cannot be applied to type {type(other)}, expected Qubit or numpy array")
 
     def __ipow__(self: "Qubit", other: "Qubit") -> "Qubit":                 #denoted **=
         if isinstance(self, Qubit) and isinstance(other, Qubit):  
@@ -437,7 +413,6 @@ class Gate(StrMixin, LinAlgMixin, DirectSumMixin):
                     val += float(frac_bin[i+2])*2**-(i+1)
                 return val
         raise QC_error(f"The fractional binary reads the binary values in the name of the Qubit, the name of this Qubit is not made of binary values, Qubit name is {qub.name}")
-
 
     def QFT(self, other: Qubit) -> Qubit:          #also for shors although used in other algorithms
         """The Quantum Fourier Transform, for now can only act on a Qubit and is not a matrix"""
@@ -1125,7 +1100,6 @@ class Circuit(BaseMixin):
                 print_array(self.state)
             return self.state
 
-    
     def list_probs(self, qubit: int=None, povm: np.ndarray=None, text: bool=True) -> Measure:
         """Produces a list of probabilities of measurement outcomes of the state at any point"""
         self.prob_distribution = Measure(state=self.state).list_probs(qubit, povm)            #just lists all of the probabilities of that computed state
@@ -1134,7 +1108,6 @@ class Circuit(BaseMixin):
             print_array(format_ket_notation(self.prob_distribution))
         return self.prob_distribution
 
-    
     def topn_probabilities(self, qubit: int=None, povm: np.ndarray=None, text: bool=True, **kwargs) -> Measure:
         """Only prints or returns a set number of states, mostly useful for large qubit sizes"""
         prob_list = self.list_probs(qubit, povm, text=False)
@@ -1443,7 +1416,7 @@ large_oracle_values = [1120,2005,3003,4010,5000,6047,7023,8067,9098,10000,11089,
 
 def main():
     """Where you can run commands without it affecting programs that import this program"""
-
+    print_array(q0 @ q0)
     print_array(Hadamard + Hadamard)
     print_array(Hadamard - Hadamard)
     testp = Density(state=qp)
@@ -1467,3 +1440,13 @@ def main():
     print_array(Hadamard)
     print_array(Hadamard @ Hadamard)
     print_array(Density(state=qpi) @ Density(state=qmi))
+    Grover([1], n=3, iter_calc="floor").run()
+    print_array(Qubit(type="seperable", vectors=[q0,q0,q1]))
+    se_test = Qubit(type="mixed", vectors=[q0,q1], weights=[0.2,0.8],detailed=True)
+    print_array(se_test)
+    print_array(se_test.density)
+    print_array(se_test.se)
+    se_test = Qubit(type="mixed", vectors=[[1,0],[0,1]], weights=[0.2,0.8],detailed=True)
+    print_array(se_test)
+    print_array(se_test.density)
+    print_array(se_test.se)
