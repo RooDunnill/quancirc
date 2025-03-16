@@ -5,7 +5,6 @@ from .qc_errors import TensorError, MatMulError
 array_name = None
 
 class LinAlgMixin(LinearMixin):
-
     def tensor_product(self, other):
         new_length: int = self.length*other.length
         new_array = np.zeros(new_length,dtype=np.complex128)
