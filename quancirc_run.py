@@ -1,23 +1,28 @@
 import sys; sys.path.append("..")
 from classes import *
 from utilities import *
-print(Hadamard)
-test = Qubit(state=[1,0])
-hopefully_qplus = Hadamard * test
-print(hopefully_qplus)
-
-hopefully_qplus.set_display_mode("both")
-print(hopefully_qplus)
-
-print(Hadamard * Hadamard)
-print(Hadamard @ Hadamard)
-partial_test = q0 @ q1 @ q0
-pt = partial_test.partial_trace(trace_out="B", state_size=1)
-pt2 = partial_test.partial_trace(trace_out="A", state_size=1)
+partial_test = q0 @ q1 @ q1 @ q0
+pt = partial_test.partial_trace(trace_out="B", state_size=3)
+pt2 = partial_test.partial_trace(trace_out="A", state_size=3)
 print(pt)
 print(pt2)
+
+
+
+print(partial_test.isolate_qubit(0))
+print(partial_test.isolate_qubit(1))
+print(partial_test.isolate_qubit(2))
+print(partial_test.isolate_qubit(3))
+print(partial_test[0])
+print(partial_test[1])
+print(partial_test[2])
+print(partial_test[3])
+qubit_list = partial_test[:]
+print(qubit_list[0])
+print(qubit_list[1])
+print(qubit_list[2])
+print(qubit_list[3])
 partial_test = q0 @ q1 @ q0
-pt = partial_test.partial_trace(trace_out="B", state_size=2)
-pt2 = partial_test.partial_trace(trace_out="A", state_size=2)
-print(pt)
-print(pt2)
+print(partial_test.decompose_state(0))
+print(partial_test.decompose_state(1))
+print(partial_test.decompose_state(2))

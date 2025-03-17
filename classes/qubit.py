@@ -53,8 +53,9 @@ class Qubit:                                           #creates the qubit class
         else:
             raise StatePreparationError(f"The initialised object must have atleast 1 of the following: a state vector or a density matrix")
 
-        self.length = len(self.rho)
-        self.dim = int(np.sqrt(self.length))
+        
+        self.dim = len(self.rho)
+        self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))
 
     def __str__(self):
@@ -117,6 +118,86 @@ class Qubit:                                           #creates the qubit class
             raise QuantumStateError(f"The inputted objects must have attr: self.rho and other.rho")
         raise QuantumStateError(f"Cannot have types {type(self)} and {type(other)}, expected two Qubit classes")
     
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return [self[i] for i in range(self.n)]
+        elif isinstance(index, int):
+            get_rho = self.isolate_qubit(index)
+            if get_rho is None:
+                raise QuantumStateError(f"Could not isolate qubit {index}, invalid index input")
+            return get_rho
+        raise QuantumStateError(f"Index cannot be of type {type(index)}, expected type int or slice")
+
+    def partial_trace(self, **kwargs) -> np.ndarray:
+        """Computes the partial trace of a state, can apply a trace from either 'side' and can trace out an arbitrary amount of qubits
+        Args:
+            self: The density instance
+            **kwargs
+            trace_out_system:str : Chooses between A and B which to trace out, defaults to B
+            state_size:int : Chooses the number of Qubits in the trace out state, defaults to 1 Qubit
+        Returns:self.rho_a if trace_out_system = B
+                self.rho_b if trace_out_system = A"""
+        trace_out_system = kwargs.get("trace_out", None)
+        trace_out_state_size = kwargs.get("state_size", None)
+        rho = kwargs.get("rho", self.rho)
+        if trace_out_state_size is not None:
+            trace_out_state_size = int(trace_out_state_size)
+        rho_dim = len(rho)
+        traced_out_dim: int = 2**trace_out_state_size
+        reduced_dim = int(rho_dim / traced_out_dim)
+        new_mat = np.zeros((reduced_dim, reduced_dim),dtype=np.complex128)
+        traced_out_dim_range = np.arange(traced_out_dim)
+        if isinstance(rho, np.ndarray):
+            if trace_out_system == "B":
+                    for k in range(reduced_dim):
+                        for i in range(reduced_dim):           #the shapes of tracing A and B look quite different but follow a diagonalesc pattern
+                            new_mat[i, k] = np.sum(rho[traced_out_dim_range+i*traced_out_dim, traced_out_dim_range+k*traced_out_dim])
+                    return Qubit(state=new_mat, state_type=self.state_type)
+            elif trace_out_system == "A":
+                    for k in range(reduced_dim):
+                        for i in range(reduced_dim):
+                            new_mat[i, k] = np.sum(rho[reduced_dim*traced_out_dim_range+i, reduced_dim *traced_out_dim_range+k])
+                    return Qubit(state=new_mat, state_type=self.state_type)
+
+    def isolate_qubit(self, qubit):
+        if qubit is not None:
+            if qubit > self.n - 1:
+                raise QuantumStateError(f"The chosen qubit {qubit}, must be no more than the number of qubits in the state: {self.n}")
+            if qubit == 0:
+                isolated_rho = self.partial_trace(trace_out="B", state_size = self.n - 1)
+            elif qubit == self.n - 1:
+                isolated_rho = self.partial_trace(trace_out="A", state_size = self.n - 1)
+            elif isinstance(qubit, int):
+                A_rho = self.partial_trace(trace_out="B", state_size = self.n - qubit - 1)
+                A_n = int(np.log2(len(A_rho.rho)))
+                isolated_rho = self.partial_trace(rho=A_rho.rho, trace_out="A", state_size = A_n - 1)
+            else:
+                raise QuantumStateError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
+            return isolated_rho
+        
+    def decompose_state(self, qubit):
+        if qubit is not None:
+            if qubit > self.n - 1:
+                raise QuantumStateError(f"The chosen qubit {qubit}, must be no more than the number of qubits in the state: {self.n}")
+            if qubit == 0:
+                A_rho = np.array([1+1j])
+                B_rho = self.partial_trace(trace_out="A", state_size = 1)
+                isolated_rho = self.partial_trace(trace_out="B", state_size = self.n - 1)
+            elif qubit == self.n - 1:
+                A_rho = self.partial_trace(trace_out="B", state_size = 1)
+                B_rho = np.array([1+1j])
+                isolated_rho = self.partial_trace(trace_out="A", state_size = self.n - 1)
+            elif isinstance(qubit, int):
+                temp_rho = self.partial_trace(trace_out="B", state_size = self.n - qubit - 1)
+                A_rho = self.partial_trace(trace_out="B", state_size = self.n - qubit)
+                B_rho = self.partial_trace(trace_out="A", state_size = qubit + 1)
+                temp_n = int(np.log2(len(temp_rho.rho)))
+                isolated_rho = self.partial_trace(rho=temp_rho.rho, trace_out="A", state_size = temp_n - 1)
+                
+            else:
+                raise QuantumStateError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
+            return A_rho, isolated_rho, B_rho
+    
     def norm(self):
         trace_rho = np.trace(self.rho)
         if trace_rho != 0:
@@ -150,38 +231,7 @@ class Qubit:                                           #creates the qubit class
             return state_vector
         return probs, states
 
-    def partial_trace(self, **kwargs) -> np.ndarray:
-        """Computes the partial trace of a state, can apply a trace from either 'side' and can trace out an arbitrary amount of qubits
-        Args:
-            self: The density instance
-            **kwargs
-            trace_out_system:str : Chooses between A and B which to trace out, defaults to B
-            state_size:int : Chooses the number of Qubits in the trace out state, defaults to 1 Qubit
-        Returns:self.rho_a if trace_out_system = B
-                self.rho_b if trace_out_system = A"""
-        trace_out_system = kwargs.get("trace_out", None)
-        trace_out_state_size = kwargs.get("state_size", None)
-        if trace_out_state_size is not None:
-            trace_out_state_size = int(trace_out_state_size)
-        rho_dim = len(self.rho)
-        traced_out_dim: int = 2**trace_out_state_size
-        reduced_dim = int(rho_dim / traced_out_dim)
-        new_mat = np.zeros((reduced_dim, reduced_dim),dtype=np.complex128)
-        traced_out_dim_range = np.arange(traced_out_dim)
-        print(traced_out_dim)
-        print(reduced_dim)
-        print(traced_out_dim_range)
-        if isinstance(self.rho, np.ndarray):
-            if trace_out_system == "B":
-                    for k in range(reduced_dim):
-                        for i in range(reduced_dim):           #the shapes of tracing A and B look quite different but follow a diagonalesc pattern
-                            new_mat[i, k] = np.sum(self.rho[traced_out_dim_range+i*traced_out_dim, traced_out_dim_range+k*traced_out_dim])
-                    return new_mat
-            elif trace_out_system == "A":
-                    for k in range(reduced_dim):
-                        for i in range(reduced_dim):
-                            new_mat[i, k] = np.sum(self.rho[reduced_dim*traced_out_dim_range+i, reduced_dim *traced_out_dim_range+k])
-                    return new_mat
+    
 
     @classmethod
     def q0(cls, **kwargs):
