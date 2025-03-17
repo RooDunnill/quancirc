@@ -57,6 +57,7 @@ class Qubit:                                           #creates the qubit class
         self.dim = len(self.rho)
         self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))
+        self.is_valid_density_matrix()
 
     def __str__(self):
         if self.state_type == "pure":
@@ -142,14 +143,8 @@ class Qubit:                                           #creates the qubit class
             raise QuantumStateError(f"self.rho cannot be of type {type(self.rho)}, must be of type np.ndarray")
         rho_A, replaced_qubit, rho_B = self.decompose_state(index)
         if replaced_qubit.dim == new_rho.dim:
-            print()
-            print(rho_A.dim)
-            print(new_rho.dim)
-            print(rho_B.dim)
-            print()
             new_state = rho_A @ new_rho @ rho_B 
-            print(f"new state is: {new_state}")
-            new_state.norm()
+            
             self.rho = new_state.rho
         else:
             raise QuantumStateError(f"The dimensions of the new qubit must be the same as the dimensions of the old qubit")
@@ -169,7 +164,7 @@ class Qubit:                                           #creates the qubit class
         rho_dim = len(rho)
         rho_n = int(np.log2(rho_dim))
         if trace_out_state_size == rho_n:
-            return Qubit(rho=np.array([1+1j]))
+            return Qubit(rho=np.array([1]))
         if trace_out_state_size is not None:
             trace_out_state_size = int(trace_out_state_size)
         
@@ -215,7 +210,6 @@ class Qubit:                                           #creates the qubit class
                 B_rho = self.partial_trace(trace_out="A", state_size = qubit + 1)
                 temp_n = int(np.log2(len(temp_rho.rho)))
                 isolated_rho = self.partial_trace(rho=temp_rho.rho, trace_out="A", state_size = temp_n - 1)
-                
             else:
                 raise QuantumStateError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
             return A_rho, isolated_rho, B_rho
@@ -261,12 +255,22 @@ class Qubit:                                           #creates the qubit class
         print(f"QUBIT CLASS DEBUG\n")
         print(f"self.rho.shape: {self.rho.shape}")
         print(f"self.rho type: {type(self.rho)}")
-        print(f"self.rho: {self.rho}")
-        print(f"self.state: {self.build_state_from_rho()}")
+        print(f"self.rho:\n {self.rho}")
+        print(f"self.state:\n {self.build_state_from_rho()}")
         print(f"self.n: {self.n}")
         for i in range(self.n):
             print(f"Qubit {i}: {self[i]}")
         print(f"state_type: {self.state_type}")
+
+    def is_valid_density_matrix(self):
+        if not np.allclose(self.rho, self.rho.conj().T):  
+            raise QuantumStateError("Density matrix is not Hermitian")
+        if not np.array_equal(self.rho, np.array([1])):
+            eigenvalues = np.linalg.eigvalsh(self.rho)
+            if np.any(eigenvalues < 0):
+                raise QuantumStateError("Density matrix is not positive semi-definite")
+            if not np.isclose(np.trace(self.rho), 1.0):
+                raise QuantumStateError("Density matrix must have a trace of 1")
 
     
 

@@ -1,6 +1,8 @@
 import sys; sys.path.append("..")
 from classes import *
 from utilities import *
+np.set_printoptions(precision=2, suppress=True, floatmode="fixed")
+np.set_printoptions(linewidth=100)
 partial_test = q0 @ q1 @ q1 @ q0
 pt = partial_test.partial_trace(trace_out="B", state_size=3)
 pt2 = partial_test.partial_trace(trace_out="A", state_size=3)
@@ -29,7 +31,5 @@ print(partial_test.decompose_state(2))
 print(f"\n\n\n\n\n\n")
 set_test = q1 @ q1 @ q1
 set_test.debug()
-set_test[0] = q0
-set_test.debug()
-set_test[1] = q0
+set_test[0] = Hadamard * q0
 set_test.debug()
