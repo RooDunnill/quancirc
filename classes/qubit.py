@@ -122,11 +122,21 @@ class Qubit:                                           #creates the qubit class
         if isinstance(index, slice):
             return [self[i] for i in range(self.n)]
         elif isinstance(index, int):
-            get_rho = self.isolate_qubit(index)
-            if get_rho is None:
+            get_qubit = self.isolate_qubit(index)
+            if get_qubit is None:
                 raise QuantumStateError(f"Could not isolate qubit {index}, invalid index input")
-            return get_rho
+            return get_qubit
         raise QuantumStateError(f"Index cannot be of type {type(index)}, expected type int or slice")
+    
+    def __setitem__(self, index, new_rho):
+        if not isinstance(self.rho, np.ndarray):
+            raise QuantumStateError(f"self.rho cannot be of type {type(self.rho)}, must be of type np.ndarray")
+        rho_A, replaced_qubit, rho_B = self.decompose_state(index)
+        if replaced_qubit.dim == new_rho.dim:
+            new_state = rho_A @ new_rho @ rho_B 
+            self.rho = new_state.rho
+        else:
+            raise QuantumStateError(f"The dimensions of the new qubit must be the same as the dimensions of the old qubit")
 
     def partial_trace(self, **kwargs) -> np.ndarray:
         """Computes the partial trace of a state, can apply a trace from either 'side' and can trace out an arbitrary amount of qubits
@@ -140,9 +150,13 @@ class Qubit:                                           #creates the qubit class
         trace_out_system = kwargs.get("trace_out", None)
         trace_out_state_size = kwargs.get("state_size", None)
         rho = kwargs.get("rho", self.rho)
+        rho_dim = len(rho)
+        rho_n = int(np.log2(rho_dim))
+        if trace_out_state_size == rho_n:
+            return Qubit(rho=np.array([1+1j]))
         if trace_out_state_size is not None:
             trace_out_state_size = int(trace_out_state_size)
-        rho_dim = len(rho)
+        
         traced_out_dim: int = 2**trace_out_state_size
         reduced_dim = int(rho_dim / traced_out_dim)
         new_mat = np.zeros((reduced_dim, reduced_dim),dtype=np.complex128)
@@ -152,12 +166,12 @@ class Qubit:                                           #creates the qubit class
                     for k in range(reduced_dim):
                         for i in range(reduced_dim):           #the shapes of tracing A and B look quite different but follow a diagonalesc pattern
                             new_mat[i, k] = np.sum(rho[traced_out_dim_range+i*traced_out_dim, traced_out_dim_range+k*traced_out_dim])
-                    return Qubit(state=new_mat, state_type=self.state_type)
+                    return Qubit(rho=new_mat, state_type=self.state_type)
             elif trace_out_system == "A":
                     for k in range(reduced_dim):
                         for i in range(reduced_dim):
                             new_mat[i, k] = np.sum(rho[reduced_dim*traced_out_dim_range+i, reduced_dim *traced_out_dim_range+k])
-                    return Qubit(state=new_mat, state_type=self.state_type)
+                    return Qubit(rho=new_mat, state_type=self.state_type)
 
     def isolate_qubit(self, qubit):
         if qubit is not None:
