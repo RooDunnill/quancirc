@@ -34,9 +34,13 @@ set_test[0] = Hadamard * q0
 set_test.debug()
 print(Qubit.q0(n=2))
 fwht_state = Qubit.q0(n=4)
-Quan_qub_1 = q0 @ q0
-Quan_qub_2 = q1 @ q1
+Quan_qub_1 = q0
+Quan_qub_2 = q1
 print(QuantInfo.fidelity(Quan_qub_1, Quan_qub_2))
 print(QuantInfo.trace_distance(Quan_qub_1, Quan_qub_2))
 QuantInfo.state_info(Quan_qub_1)
 QuantInfo.two_state_info(Quan_qub_1, Quan_qub_2)
+test  = Quan_qub_1 | X_Gate
+test.debug()
+print(Quan_qub_1 | X_Gate)
+QuantInfo.bloch_plotter(Quan_qub_1)

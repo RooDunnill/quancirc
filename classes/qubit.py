@@ -62,6 +62,8 @@ class Qubit:                                           #creates the qubit class
             self.is_valid_density_matrix()
 
     def __str__(self):
+        if self.skip_val == True:
+            self.display_mode = "density"
         if self.state_type == "pure":
             if self.display_mode == "vector":
                 return f"Pure Quantum State Vector:\n {self.build_state_from_rho()}"
@@ -87,9 +89,9 @@ class Qubit:                                           #creates the qubit class
             return self.__class__(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
         
-    def __mul__(self, other):
+    def __mul__(self, other):      #gateT @ rho @ gate
         if isinstance(other, self.__class__):
-            raise QuantumStateError(f"Cannot matrix multiply two Quantum states together")
+            raise QuantumStateError(f"Cannot matrix multiply (double) two Quantum states together")
         elif other.class_type == "gate":
             new_rho = np.dot(np.dot(np.conj(other.matrix), self.rho), other.matrix)
             new_rho = np.round(new_rho, decimals=10)
@@ -97,7 +99,17 @@ class Qubit:                                           #creates the qubit class
             kwargs.update(combine_qubit_attr(self, other, op = "@"))
             return self.__class__(**kwargs)
         raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
-            
+    
+    def __or__(self, other):       #rho @ gate
+        if isinstance(other, self.__class__):
+            raise QuantumStateError(f"Cannot matrix multiply (singular) two Quantum states together")
+        elif other.class_type == "gate":
+            new_rho = np.dot(self.rho, other.matrix)
+            new_rho = np.round(new_rho, decimals=10)
+            kwargs = {"rho": new_rho, "skip_validation": True}
+            kwargs.update(combine_qubit_attr(self, other, op = "|"))
+            return self.__class__(**kwargs)
+        raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
 
     def __sub__(self, other):
         if isinstance(other, self.__class__):
@@ -178,12 +190,12 @@ class Qubit:                                           #creates the qubit class
                     for k in range(reduced_dim):
                         for i in range(reduced_dim):           #the shapes of tracing A and B look quite different but follow a diagonalesc pattern
                             new_mat[i, k] = np.sum(rho[traced_out_dim_range+i*traced_out_dim, traced_out_dim_range+k*traced_out_dim])
-                    return Qubit(rho=new_mat, state_type=self.state_type)
+                    return Qubit(rho=new_mat, state_type=self.state_type, skip_validation=self.skip_val)
             elif trace_out_system == "A":
                     for k in range(reduced_dim):
                         for i in range(reduced_dim):
                             new_mat[i, k] = np.sum(rho[reduced_dim*traced_out_dim_range+i, reduced_dim *traced_out_dim_range+k])
-                    return Qubit(rho=new_mat, state_type=self.state_type)
+                    return Qubit(rho=new_mat, state_type=self.state_type, skip_validation=self.skip_val)
 
     def isolate_qubit(self, qubit):
         if qubit is not None:
@@ -272,7 +284,7 @@ class Qubit:                                           #creates the qubit class
 
     def is_valid_density_matrix(self):
         if not np.allclose(self.rho, self.rho.conj().T):  
-            raise QuantumStateError(f"Density matrix is not Hermitian")
+            raise QuantumStateError(f"Density matrix is not Hermitian: {self.rho}")
         if not np.array_equal(self.rho, np.array([1])):
             eigenvalues = np.linalg.eigvalsh(self.rho)
             if np.any(eigenvalues < 0):

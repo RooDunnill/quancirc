@@ -1,7 +1,6 @@
 import time
 start = time.time()                                      
 from random import choices, randint                                            #used for measuring
-import atexit
 import matplotlib.pyplot as plt
 from scipy.linalg import sqrtm, logm
 from utilities import *
@@ -28,6 +27,7 @@ def prog_end():    #made it to make the code at the end of the program a little 
     interval: float = stop - start
     console.rule(f"{interval:.3f} seconds elapsed",style="main_header")         #gives final time of the code
     plt.show()                             #makes sure to plot graphs after the function
+    
 atexit.register(prog_end)
 
 console.rule(style="main_header")     #creates the start message

@@ -1,8 +1,10 @@
 import numpy as np
 from utilities import QuantInfoError
-from utilities.print_settings import p_prec, linewid
+from utilities.config import p_prec, linewid
 from .qubit import Qubit
+from .gate import X_Gate, Y_Gate, Z_Gate
 from scipy.linalg import sqrtm, logm
+import matplotlib.pyplot as plt
 
 class QuantInfo:
      
@@ -122,4 +124,37 @@ class QuantInfo:
                 raise QuantInfoError(f"Error in computing relative entropy: {e}")
         raise QuantInfoError(f"Incorrect type {type(state_1)} and type {type(state_2)}, expected both Qubit types")
     
-    
+    def bloch_plotter(qubit: Qubit) -> None:
+        """A bloch plotter that can plot a single Qubit on the bloch sphere with Matplotlib"""
+        plot_counter = 0
+        X_qub = qubit | X_Gate
+        Y_qub = qubit | Y_Gate
+        Z_qub = qubit | Z_Gate
+        x = np.trace(X_qub.rho)
+        y = np.trace(Y_qub.rho)
+        z = np.trace(Z_qub.rho)
+        x = x.real
+        y = x.real
+        z = z.real
+        ax = plt.axes(projection="3d")
+        ax.quiver(0,0,0,x,y,z)
+        u, v = np.mgrid[0:2*np.pi:50j, 0:np.pi:50j]
+        x_sp = np.cos(u)*np.sin(v)
+        y_sp = np.sin(u)*np.sin(v)
+        z_sp = np.cos(v)
+        ax.set_xlabel("X_Axis")
+        ax.set_ylabel("Y Axis")
+        ax.set_zlabel("Z Axis")
+        ax.set_title("Bloch Sphere")
+        ax.plot_surface(x_sp, y_sp, z_sp, color="g", alpha=0.3)
+        ax.axes.grid(axis="x")
+        ax.text(0,0,1,"|0>")
+        ax.text(0,0,-1,"|1>")
+        ax.text(1,0,0,"|+>")
+        ax.text(-1,0,0,"|->")
+        ax.text(0,1,0,"|i>")
+        ax.text(0,-1,0,"|-i>")
+        ax.plot([-1,1],[0,0],color="black")
+        ax.plot([0,0],[-1,1],color="black")
+        ax.plot([0,0],[-1,1],zdir="y",color="black")
+        plot_counter += 1
