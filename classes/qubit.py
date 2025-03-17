@@ -124,7 +124,7 @@ class Qubit:                                           #creates the qubit class
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             if self.rho is not None and other.rho is not None:
-                return self.rho == other.rho
+                return np.allclose(self.rho, other.rho)
             raise QuantumStateError(f"The inputted objects must have attr: self.rho and other.rho")
         raise QuantumStateError(f"Cannot have types {type(self)} and {type(other)}, expected two Qubit classes")
     
@@ -144,7 +144,6 @@ class Qubit:                                           #creates the qubit class
         rho_A, replaced_qubit, rho_B = self.decompose_state(index)
         if replaced_qubit.dim == new_rho.dim:
             new_state = rho_A @ new_rho @ rho_B 
-            
             self.rho = new_state.rho
         else:
             raise QuantumStateError(f"The dimensions of the new qubit must be the same as the dimensions of the old qubit")
@@ -215,11 +214,13 @@ class Qubit:                                           #creates the qubit class
             return A_rho, isolated_rho, B_rho
     
     def norm(self):
-        trace_rho = np.trace(self.rho)
-        if trace_rho != 0:
-            self.rho = self.rho / trace_rho
-        else:
-            raise QuantumStateError(f"The trace of the density matrix cannot be 0 and so cannot normalise")
+        if self.rho.shape[0] == self.rho.shape[1]:
+            trace_rho = np.trace(self.rho)
+            if trace_rho != 0:
+                self.rho = self.rho / trace_rho
+            else:
+                raise QuantumStateError(f"The trace of the density matrix cannot be 0 and so cannot normalise")
+        raise QuantumStateError(f"self.rho must be a square matrix, not of shape {self.rho.shape}")
 
     def set_display_mode(self, mode):
         if mode not in ["vector", "density", "both"]:
@@ -227,7 +228,9 @@ class Qubit:                                           #creates the qubit class
         self.display_mode = mode
 
     def build_pure_rho(self):
-        return np.outer(np.conj(self.state), self.state)
+        if isinstance(self.state, np.ndarray):
+            return np.outer(np.conj(self.state), self.state)
+        raise QuantumStateError(f"self.state cannot be of type {type(self.state)}, expected np.ndarray")
     
     def build_mixed_rho(self):
         if self.weights is not None:
@@ -235,6 +238,7 @@ class Qubit:                                           #creates the qubit class
             for i in range(len(self.weights)):
                 mixed_rho += self.weights[i] * np.outer(np.conj(self.state[i]), self.state[i])
             return mixed_rho
+        raise QuantumStateError(f"For a mixed rho to be made, you must provide weights in kwargs")
         
     def build_state_from_rho(self):
         probs, states = np.linalg.eigh(self.rho)
@@ -251,8 +255,9 @@ class Qubit:                                           #creates the qubit class
         return probs, states
     
     def debug(self):
-        print(f"\n\n")
-        print(f"QUBIT CLASS DEBUG\n")
+        print(f"\n")
+        print(f"QUBIT CLASS DEBUG")
+        print("-" * 40)
         print(f"self.rho.shape: {self.rho.shape}")
         print(f"self.rho type: {type(self.rho)}")
         print(f"self.rho:\n {self.rho}")
@@ -261,6 +266,7 @@ class Qubit:                                           #creates the qubit class
         for i in range(self.n):
             print(f"Qubit {i}: {self[i]}")
         print(f"state_type: {self.state_type}")
+        print("-" * 40)
 
     def is_valid_density_matrix(self):
         if not np.allclose(self.rho, self.rho.conj().T):  
