@@ -43,8 +43,16 @@ class QuantInfo:
 
 
     @staticmethod
-    def purity(state: Qubit) -> float:
+    def purity(state: Qubit) -> float:      #a measure of mixedness
         return np.trace(np.dot(state.rho, state.rho))
+    
+    @staticmethod    #an approximation of von neumann
+    def linear_entropy(state: Qubit) -> float:
+        return 1 - QuantInfo.purity(state)
+
+    @staticmethod
+    def quantum_discord(state_1: Qubit, state_2: Qubit) -> float:     #measures non classical correlation
+        return QuantInfo.quantum_mutual_info(state_1, state_2) - QuantInfo.quantum_conditional_entropy(state_1, state_2)
 
     @staticmethod
     def fidelity(state_1: Qubit, state_2: Qubit) -> float:
@@ -124,18 +132,18 @@ class QuantInfo:
                 raise QuantInfoError(f"Error in computing relative entropy: {e}")
         raise QuantInfoError(f"Incorrect type {type(state_1)} and type {type(state_2)}, expected both Qubit types")
     
+    @staticmethod
+    def bloch_vector(qubit: Qubit) -> np.ndarray:
+        x = np.real(np.trace((qubit | X_Gate).rho))
+        y = np.real(np.trace((qubit | Y_Gate).rho))
+        z = np.real(np.trace((qubit | Z_Gate).rho))
+        return np.array([x, y, z])
+
+    @staticmethod
     def bloch_plotter(qubit: Qubit) -> None:
         """A bloch plotter that can plot a single Qubit on the bloch sphere with Matplotlib"""
         plot_counter = 0
-        X_qub = qubit | X_Gate
-        Y_qub = qubit | Y_Gate
-        Z_qub = qubit | Z_Gate
-        x = np.trace(X_qub.rho)
-        y = np.trace(Y_qub.rho)
-        z = np.trace(Z_qub.rho)
-        x = x.real
-        y = x.real
-        z = z.real
+        x, y, z = QuantInfo.bloch_vector(qubit)
         ax = plt.axes(projection="3d")
         ax.quiver(0,0,0,x,y,z)
         u, v = np.mgrid[0:2*np.pi:50j, 0:np.pi:50j]

@@ -44,3 +44,4 @@ test  = Quan_qub_1 | X_Gate
 test.debug()
 print(Quan_qub_1 | X_Gate)
 QuantInfo.bloch_plotter(Quan_qub_1)
+print(binary_entropy(0.5))
