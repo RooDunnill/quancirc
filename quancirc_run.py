@@ -11,3 +11,13 @@ print(hopefully_qplus)
 
 print(Hadamard * Hadamard)
 print(Hadamard @ Hadamard)
+partial_test = q0 @ q1 @ q0
+pt = partial_test.partial_trace(trace_out="B", state_size=1)
+pt2 = partial_test.partial_trace(trace_out="A", state_size=1)
+print(pt)
+print(pt2)
+partial_test = q0 @ q1 @ q0
+pt = partial_test.partial_trace(trace_out="B", state_size=2)
+pt2 = partial_test.partial_trace(trace_out="A", state_size=2)
+print(pt)
+print(pt2)

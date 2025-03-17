@@ -57,7 +57,6 @@ class Qubit:                                           #creates the qubit class
         self.dim = int(np.sqrt(self.length))
         self.n = int(np.log2(self.dim))
 
-
     def __str__(self):
         if self.display_mode == "vector":
             return f"Quantum State Vector: {self.build_state_from_rho()}"
@@ -65,10 +64,7 @@ class Qubit:                                           #creates the qubit class
             return f"Quantum State Density Matrix: {self.rho}"
         elif self.display_mode == "both":
             return f"Quantum State Vector:\n {self.build_state_from_rho()}\n and Density Matrix:\n {self.rho}"
-        
-
     
-        
     def __matmul__(self, other):
         if isinstance(other, self.__class__):
             new_rho = np.kron(self.rho, other.rho)
@@ -76,8 +72,7 @@ class Qubit:                                           #creates the qubit class
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "@"))
             return self.__class__(**kwargs)
-        else:
-            raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
         
     def __mul__(self, other):
         if isinstance(other, self.__class__):
@@ -97,8 +92,7 @@ class Qubit:                                           #creates the qubit class
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "-"))
             return self.__class__(**kwargs)
-        else:
-            raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
     
     def __add__(self, other):
         if isinstance(other, self.__class__):
@@ -106,8 +100,7 @@ class Qubit:                                           #creates the qubit class
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "+"))
             return self.__class__(**kwargs)
-        else:
-            raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
     
     def __and__(self, other):
         if isinstance(other, self.__class__):
@@ -115,8 +108,7 @@ class Qubit:                                           #creates the qubit class
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "&"))
             return self.__class__(**kwargs)
-        else:
-            raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
     
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -158,7 +150,39 @@ class Qubit:                                           #creates the qubit class
             return state_vector
         return probs, states
 
-    
+    def partial_trace(self, **kwargs) -> np.ndarray:
+        """Computes the partial trace of a state, can apply a trace from either 'side' and can trace out an arbitrary amount of qubits
+        Args:
+            self: The density instance
+            **kwargs
+            trace_out_system:str : Chooses between A and B which to trace out, defaults to B
+            state_size:int : Chooses the number of Qubits in the trace out state, defaults to 1 Qubit
+        Returns:self.rho_a if trace_out_system = B
+                self.rho_b if trace_out_system = A"""
+        trace_out_system = kwargs.get("trace_out", None)
+        trace_out_state_size = kwargs.get("state_size", None)
+        if trace_out_state_size is not None:
+            trace_out_state_size = int(trace_out_state_size)
+        rho_dim = len(self.rho)
+        traced_out_dim: int = 2**trace_out_state_size
+        reduced_dim = int(rho_dim / traced_out_dim)
+        new_mat = np.zeros((reduced_dim, reduced_dim),dtype=np.complex128)
+        traced_out_dim_range = np.arange(traced_out_dim)
+        print(traced_out_dim)
+        print(reduced_dim)
+        print(traced_out_dim_range)
+        if isinstance(self.rho, np.ndarray):
+            if trace_out_system == "B":
+                    for k in range(reduced_dim):
+                        for i in range(reduced_dim):           #the shapes of tracing A and B look quite different but follow a diagonalesc pattern
+                            new_mat[i, k] = np.sum(self.rho[traced_out_dim_range+i*traced_out_dim, traced_out_dim_range+k*traced_out_dim])
+                    return new_mat
+            elif trace_out_system == "A":
+                    for k in range(reduced_dim):
+                        for i in range(reduced_dim):
+                            new_mat[i, k] = np.sum(self.rho[reduced_dim*traced_out_dim_range+i, reduced_dim *traced_out_dim_range+k])
+                    return new_mat
+
     @classmethod
     def q0(cls, **kwargs):
         return q0(cls, **kwargs)

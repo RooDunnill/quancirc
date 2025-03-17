@@ -789,7 +789,7 @@ class Density(Gate):       #makes a matrix of the probabilities, useful for enta
                             new_mat[i+k*reduced_dim] = np.sum(self.rho[reduced_dim*(traced_out_dim_range+traced_out_dim_range*rho_dim)+i+k*rho_dim])
                     self.rho_b = new_mat
                     return self.rho_b
-        DensityError(f"self.rho cannot be of type {type(self.rho)}, expected numpy array")
+        raise DensityError(f"self.rho cannot be of type {type(self.rho)}, expected numpy array")
 
 
 class Measure(StrMixin, LinearMixin):
