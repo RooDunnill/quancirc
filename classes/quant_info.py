@@ -3,11 +3,11 @@ from utilities import QuantInfoError
 from utilities.print_settings import p_prec, linewid
 from .qubit import Qubit
 from scipy.linalg import sqrtm, logm
+
 class QuantInfo:
      
     @staticmethod
     def state_info(state: Qubit, title=True) -> str:
-        
         if title:
             print("-" * linewid)
             print(f"QUANTUM INFORMATION OVERVIEW")
