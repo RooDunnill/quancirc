@@ -1,4 +1,4 @@
-from .qc_errors import MixinError
+
 import numpy as np
 from rich.console import Console
 from rich.theme import Theme
@@ -72,7 +72,7 @@ class DirectSumMixin(BaseMixin):
     def __and__(self, other):    #this is the direct sum, mostly used for creating CNOT gates
         if isinstance(other, self.__class__) and self.array_name:
             new_mat = self.direct_sum(other)
-            kwargs = {self.array_name: new_mat}
+            kwargs = {"rho": new_mat}
             kwargs.update(combine_attributes(self, other, op = "&"))
             return self.__class__(**kwargs)
         

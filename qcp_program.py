@@ -1450,3 +1450,4 @@ def main():
     print_array(se_test)
     print_array(se_test.density)
     print_array(se_test.se)
+    print_array(Identity @ Identity)

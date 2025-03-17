@@ -7,7 +7,7 @@ class QC_error(Exception):                 #a custom error class to raise custom
     def __str__(self):
         return f"{self.message}"
     
-class QubitError(QC_error):
+class QuantumStateError(QC_error):
     """Error related to qubits and their operations"""
     def __init__(self, message="Invalid qubit operation or state"):
         self.message = message
@@ -16,12 +16,6 @@ class QubitError(QC_error):
 class GateError(QC_error):
     """Error related to quantum gates and their operations"""
     def __init__(self, message="Invalid gate operation"):
-        self.message = message
-        super().__init__(self.message)
-
-class DensityError(QC_error):
-    """Error related to density matrices and their operations"""
-    def __init__(self, message="Invalid density operation"):
         self.message = message
         super().__init__(self.message)
 
@@ -39,26 +33,17 @@ class MeasurementError(QC_error):
 
 class StatePreparationError(QC_error):
     """Error related to quantum state preparation."""
-    def __init__(self, message="Failed to prepare the qubit state"):
-        self.message = message
-        super().__init__(self.message)
-
-class MixinError(QC_error):
-    def __init__(self, message="Mixin Error from the dunder methods"):
+    def __init__(self, message="Invalid State Preparation Operation"):
         self.message = message
         super().__init__(self.message)
 
 class PrintError(QC_error):
-    def __init__(self, message="print array error"):
+    def __init__(self, message="Invalid Print Operation"):
         self.message = message
         super().__init__(self.message)
 
-class TensorError(QC_error):
-    def __init__(self, message="Tensor Error has oocured"):
+class QuantInfoError(QC_error):
+    def __init__(self, message="Invalid Quantum Information Operation"):
         self.message = message
         super().__init__(self.message)
 
-class MatMulError(QC_error):
-    def __init__(self, message="Matrix Multiplication Error has oocured"):
-        self.message = message
-        super().__init__(self.message)
