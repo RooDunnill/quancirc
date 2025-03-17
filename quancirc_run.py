@@ -26,14 +26,10 @@ partial_test = q0 @ q1 @ q0
 print(partial_test.decompose_state(0))
 print(partial_test.decompose_state(1))
 print(partial_test.decompose_state(2))
-set_test = q1 @ q1 @ q1 @ q1
-print(set_test[1].dim)
-print(set_test[1])
+print(f"\n\n\n\n\n\n")
+set_test = q1 @ q1 @ q1
+set_test.debug()
 set_test[0] = q0
-print(set_test)
+set_test.debug()
 set_test[1] = q0
-print(set_test)
-set_test[2] = q0
-print(set_test)
-set_test[3] = q0
-print(set_test)
+set_test.debug()

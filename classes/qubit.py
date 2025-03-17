@@ -59,12 +59,21 @@ class Qubit:                                           #creates the qubit class
         self.n = int(np.log2(self.dim))
 
     def __str__(self):
-        if self.display_mode == "vector":
-            return f"Quantum State Vector: {self.build_state_from_rho()}"
-        elif self.display_mode == "density":
-            return f"Quantum State Density Matrix: {self.rho}"
-        elif self.display_mode == "both":
-            return f"Quantum State Vector:\n {self.build_state_from_rho()}\n and Density Matrix:\n {self.rho}"
+        if self.state_type == "pure":
+            if self.display_mode == "vector":
+                return f"Pure Quantum State Vector:\n {self.build_state_from_rho()}"
+            elif self.display_mode == "density":
+                return f"Pure Quantum State Density Matrix:\n {self.rho}"
+            elif self.display_mode == "both":
+                return f"Pure Quantum State Vector:\n {self.build_state_from_rho()}\n and Density Matrix:\n {self.rho}"
+        elif self.state_type == "mixed":
+            weights, state = self.build_state_from_rho()
+            if self.display_mode == "vector":
+                return f"Mixed Quantum State Vector:\n Weights:\n {weights}\n and States:\n {state}"
+            elif self.display_mode == "density":
+                return f"Mixed Quantum State Density Matrix:\n {self.rho}"
+            elif self.display_mode == "both":
+                return f"Mixed Quantum State Vector:\n Weights:\n {weights}\n and States:\n {state}\n and Density Matrix:\n {self.rho}"
     
     def __matmul__(self, other):
         if isinstance(other, self.__class__):
@@ -133,7 +142,14 @@ class Qubit:                                           #creates the qubit class
             raise QuantumStateError(f"self.rho cannot be of type {type(self.rho)}, must be of type np.ndarray")
         rho_A, replaced_qubit, rho_B = self.decompose_state(index)
         if replaced_qubit.dim == new_rho.dim:
+            print()
+            print(rho_A.dim)
+            print(new_rho.dim)
+            print(rho_B.dim)
+            print()
             new_state = rho_A @ new_rho @ rho_B 
+            print(f"new state is: {new_state}")
+            new_state.norm()
             self.rho = new_state.rho
         else:
             raise QuantumStateError(f"The dimensions of the new qubit must be the same as the dimensions of the old qubit")
@@ -193,15 +209,7 @@ class Qubit:                                           #creates the qubit class
         if qubit is not None:
             if qubit > self.n - 1:
                 raise QuantumStateError(f"The chosen qubit {qubit}, must be no more than the number of qubits in the state: {self.n}")
-            if qubit == 0:
-                A_rho = np.array([1+1j])
-                B_rho = self.partial_trace(trace_out="A", state_size = 1)
-                isolated_rho = self.partial_trace(trace_out="B", state_size = self.n - 1)
-            elif qubit == self.n - 1:
-                A_rho = self.partial_trace(trace_out="B", state_size = 1)
-                B_rho = np.array([1+1j])
-                isolated_rho = self.partial_trace(trace_out="A", state_size = self.n - 1)
-            elif isinstance(qubit, int):
+            if isinstance(qubit, int):
                 temp_rho = self.partial_trace(trace_out="B", state_size = self.n - qubit - 1)
                 A_rho = self.partial_trace(trace_out="B", state_size = self.n - qubit)
                 B_rho = self.partial_trace(trace_out="A", state_size = qubit + 1)
@@ -237,13 +245,28 @@ class Qubit:                                           #creates the qubit class
     def build_state_from_rho(self):
         probs, states = np.linalg.eigh(self.rho)
         max_eigenvalue = np.argmax(np.isclose(probs, 1.0))
+        if np.any(probs) > 1.0:
+            raise QuantumStateError(f"You cannot have a probability over 1, the probabilities {probs} have been computed incorrectly")
         if np.any(np.isclose(probs, 1.0)):
             state_vector = states[:, max_eigenvalue]
             norm = np.linalg.norm(state_vector)
             if norm != 0:
                 state_vector /= norm
             return state_vector
+        self.state_type = "mixed"
         return probs, states
+    
+    def debug(self):
+        print(f"\n\n")
+        print(f"QUBIT CLASS DEBUG\n")
+        print(f"self.rho.shape: {self.rho.shape}")
+        print(f"self.rho type: {type(self.rho)}")
+        print(f"self.rho: {self.rho}")
+        print(f"self.state: {self.build_state_from_rho()}")
+        print(f"self.n: {self.n}")
+        for i in range(self.n):
+            print(f"Qubit {i}: {self[i]}")
+        print(f"state_type: {self.state_type}")
 
     
 
