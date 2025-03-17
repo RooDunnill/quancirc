@@ -84,7 +84,7 @@ class Gate:
         raise GateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
     
     @staticmethod
-    def FWHT(other):
+    def FWHT(other):   #not currently working
         """The Fast Walsh Hadamard Transform, used heavily in Grover's to apply the tensored Hadamard"""
         if other.class_type == "qubit":
             sqrt2_inv = 1/np.sqrt(2)

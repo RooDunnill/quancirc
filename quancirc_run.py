@@ -1,8 +1,7 @@
 import sys; sys.path.append("..")
 from classes import *
 from utilities import *
-np.set_printoptions(precision=2, suppress=True, floatmode="fixed")
-np.set_printoptions(linewidth=100)
+
 partial_test = q0 @ q1 @ q1 @ q0
 pt = partial_test.partial_trace(trace_out="B", state_size=3)
 pt2 = partial_test.partial_trace(trace_out="A", state_size=3)
@@ -33,3 +32,11 @@ set_test = q1 @ q1 @ q1
 set_test.debug()
 set_test[0] = Hadamard * q0
 set_test.debug()
+print(Qubit.q0(n=2))
+fwht_state = Qubit.q0(n=4)
+Quan_qub_1 = q0 @ q0
+Quan_qub_2 = q1 @ q1
+print(QuantInfo.fidelity(Quan_qub_1, Quan_qub_2))
+print(QuantInfo.trace_distance(Quan_qub_1, Quan_qub_2))
+QuantInfo.state_info(Quan_qub_1)
+QuantInfo.two_state_info(Quan_qub_1, Quan_qub_2)

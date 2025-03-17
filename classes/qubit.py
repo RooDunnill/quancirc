@@ -1,5 +1,5 @@
 import numpy as np
-from utilities import QuantumStateError, StatePreparationError
+from utilities import QuantumStateError, StatePreparationError, linewid
 from .static_methods.qubit_methods import *
 
 
@@ -57,7 +57,9 @@ class Qubit:                                           #creates the qubit class
         self.dim = len(self.rho)
         self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))
-        self.is_valid_density_matrix()
+        self.skip_val = kwargs.get("skip_validation", False)
+        if not self.skip_val:
+            self.is_valid_density_matrix()
 
     def __str__(self):
         if self.state_type == "pure":
@@ -100,7 +102,7 @@ class Qubit:                                           #creates the qubit class
     def __sub__(self, other):
         if isinstance(other, self.__class__):
             new_rho = self.rho - other.rho
-            kwargs = {"rho": new_rho}
+            kwargs = {"rho": new_rho, "skip_validation": True}
             kwargs.update(combine_qubit_attr(self, other, op = "-"))
             return self.__class__(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
@@ -256,8 +258,8 @@ class Qubit:                                           #creates the qubit class
     
     def debug(self):
         print(f"\n")
+        print("-" * linewid)
         print(f"QUBIT CLASS DEBUG")
-        print("-" * 40)
         print(f"self.rho.shape: {self.rho.shape}")
         print(f"self.rho type: {type(self.rho)}")
         print(f"self.rho:\n {self.rho}")
@@ -266,43 +268,45 @@ class Qubit:                                           #creates the qubit class
         for i in range(self.n):
             print(f"Qubit {i}: {self[i]}")
         print(f"state_type: {self.state_type}")
-        print("-" * 40)
+        print("-" * linewid)
 
     def is_valid_density_matrix(self):
         if not np.allclose(self.rho, self.rho.conj().T):  
-            raise QuantumStateError("Density matrix is not Hermitian")
+            raise QuantumStateError(f"Density matrix is not Hermitian")
         if not np.array_equal(self.rho, np.array([1])):
             eigenvalues = np.linalg.eigvalsh(self.rho)
             if np.any(eigenvalues < 0):
-                raise QuantumStateError("Density matrix is not positive semi-definite")
+                negative_indices = np.where(eigenvalues < 0)[0]
+                raise QuantumStateError(f"Density matrix is not positive semi-definite. "
+                                     f"Negative eigenvalues found at indices {negative_indices}")
             if not np.isclose(np.trace(self.rho), 1.0):
-                raise QuantumStateError("Density matrix must have a trace of 1")
+                raise QuantumStateError(f"Density matrix must have a trace of 1, not of trace {np.trace(self.rho)}")
 
     
 
     @classmethod
     def q0(cls, **kwargs):
-        return q0(cls, **kwargs)
+        return q0_state(cls, **kwargs)
 
     @classmethod
     def q1(cls, **kwargs):
-        return q1(cls, **kwargs)
+        return q1_state(cls, **kwargs)
 
     @classmethod
     def qp(cls):
-        return qp(cls)
+        return qp_state(cls)
 
     @classmethod
     def qm(cls):
-        return qm(cls)
+        return qm_state(cls)
 
     @classmethod
     def qpi(cls):
-        return qpi(cls)
+        return qpi_state(cls)
 
     @classmethod
     def qmi(cls):
-        return qmi(cls)
+        return qmi_state(cls)
     
 q0 = Qubit.q0()
 q1 = Qubit.q1()
