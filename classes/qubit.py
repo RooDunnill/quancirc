@@ -1,12 +1,32 @@
 import numpy as np
 from utilities import QuantumStateError, StatePreparationError
-from .class_methods.qubit_methods import *
+from .static_methods.qubit_methods import *
 
+
+def combine_qubit_attr(self, other, op = "+"):
+        """Allows the returned objects to still return name and info too"""
+        kwargs = {}
+        if op == "@":
+            self_name_size = int(np.log2(self.dim))
+            other_name_size = int(np.log2(other.dim)) 
+            kwargs["name"] = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
+        elif hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
+            kwargs["name"] = f"{self.name} {op} {other.name}"
+        if hasattr(self, "state_type") and hasattr(other, "state_type"):
+            if self.state_type == "mixed" or other.state_type == "mixed":
+                kwargs["state_type"] = "mixed"
+            elif self.state_type == "pure" or other.state_type == "pure":
+                kwargs["state_type"] = "pure"
+            else:
+                raise QuantumStateError(f"The state types must be either 'pure' or 'mixed', not {self.state_type} and {other.state_type}")
+        return kwargs
 
 class Qubit:                                           #creates the qubit class
     """The class to define and initialise Qubits and Quantum States"""
 
     def __init__(self, **kwargs) -> None:
+        self.prec = 3
+        self.class_type = "qubit"
         self.name: str = kwargs.get("name", None)
         self.state_type: str = kwargs.get("type", "pure")                   #the default qubit is a single pure qubit |0>
         self.display_mode = "vector"
@@ -40,36 +60,21 @@ class Qubit:                                           #creates the qubit class
 
     def __str__(self):
         if self.display_mode == "vector":
-            return f"Quantum State Vector: {self.build_pure_state()}"
+            return f"Quantum State Vector: {self.build_state_from_rho()}"
         elif self.display_mode == "density":
             return f"Quantum State Density Matrix: {self.rho}"
         elif self.display_mode == "both":
-            return f"Quantum State Vector:\n {self.build_pure_state()}\n and Density Matrix:\n {self.rho}"
+            return f"Quantum State Vector:\n {self.build_state_from_rho()}\n and Density Matrix:\n {self.rho}"
         
 
-    def combine_qubit_attr(self, other, op = "+"):
-        """Allows the returned objects to still return name and info too"""
-        kwargs = {}
-        if op == "@":
-            self_name_size = int(np.log2(self.dim))
-            other_name_size = int(np.log2(other.dim)) 
-            kwargs["name"] = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
-        elif hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
-            kwargs["name"] = f"{self.name} {op} {other.name}"
-        if hasattr(self, "state_type") and hasattr(other, "state_type"):
-            if self.state_type == "mixed" or other.state_type == "mixed":
-                kwargs["state_type"] = "mixed"
-            elif self.state_type == "pure" or other.state_type == "pure":
-                kwargs["state_type"] = "pure"
-            else:
-                raise QuantumStateError(f"The state types must be either 'pure' or 'mixed', not {self.state_type} and {other.state_type}")
-        return kwargs
+    
         
     def __matmul__(self, other):
         if isinstance(other, self.__class__):
             new_rho = np.kron(self.rho, other.rho)
+            new_rho = np.round(new_rho, decimals=10)
             kwargs = {"rho": new_rho}
-            kwargs.update(self.combine_qubit_attr(other, op = "@"))
+            kwargs.update(combine_qubit_attr(self, other, op = "@"))
             return self.__class__(**kwargs)
         else:
             raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
@@ -77,16 +82,20 @@ class Qubit:                                           #creates the qubit class
     def __mul__(self, other):
         if isinstance(other, self.__class__):
             raise QuantumStateError(f"Cannot matrix multiply two Quantum states together")
-        else:
-            new_rho = np.dot(self.rho)
+        elif other.class_type == "gate":
+            new_rho = np.dot(np.dot(np.conj(other.matrix), self.rho), other.matrix)
+            new_rho = np.round(new_rho, decimals=10)
+            kwargs = {"rho": new_rho}
+            kwargs.update(combine_qubit_attr(self, other, op = "@"))
+            return self.__class__(**kwargs)
+        raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
             
-
 
     def __sub__(self, other):
         if isinstance(other, self.__class__):
             new_rho = self.rho - other.rho
             kwargs = {"rho": new_rho}
-            kwargs.update(self.combine_qubit_attr(other, op = "-"))
+            kwargs.update(combine_qubit_attr(self, other, op = "-"))
             return self.__class__(**kwargs)
         else:
             raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
@@ -95,7 +104,7 @@ class Qubit:                                           #creates the qubit class
         if isinstance(other, self.__class__):
             new_rho = self.rho + other.rho
             kwargs = {"rho": new_rho}
-            kwargs.update(self.combine_qubit_attr(other, op = "+"))
+            kwargs.update(combine_qubit_attr(self, other, op = "+"))
             return self.__class__(**kwargs)
         else:
             raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
@@ -104,13 +113,17 @@ class Qubit:                                           #creates the qubit class
         if isinstance(other, self.__class__):
             new_rho = np.block([[self.rho, np.zeros_like(other.rho)], [np.zeros_like(self.rho), other.rho]])
             kwargs = {"rho": new_rho}
-            kwargs.update(self.combine_qubit_attr(other, op = "&"))
+            kwargs.update(combine_qubit_attr(self, other, op = "&"))
             return self.__class__(**kwargs)
         else:
             raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
     
     def __eq__(self, other):
-        return self.rho == other.rho
+        if isinstance(other, self.__class__):
+            if self.rho is not None and other.rho is not None:
+                return self.rho == other.rho
+            raise QuantumStateError(f"The inputted objects must have attr: self.rho and other.rho")
+        raise QuantumStateError(f"Cannot have types {type(self)} and {type(other)}, expected two Qubit classes")
     
     def norm(self):
         trace_rho = np.trace(self.rho)
@@ -134,12 +147,17 @@ class Qubit:                                           #creates the qubit class
                 mixed_rho += self.weights[i] * np.outer(np.conj(self.state[i]), self.state[i])
             return mixed_rho
         
-    def build_pure_state(self):
-        return np.diag(self.rho)
-
-    def build_mixed_state(self):
-        probs, states = np.linalg(self.rho)
+    def build_state_from_rho(self):
+        probs, states = np.linalg.eigh(self.rho)
+        max_eigenvalue = np.argmax(np.isclose(probs, 1.0))
+        if np.any(np.isclose(probs, 1.0)):
+            state_vector = states[:, max_eigenvalue]
+            norm = np.linalg.norm(state_vector)
+            if norm != 0:
+                state_vector /= norm
+            return state_vector
         return probs, states
+
     
     @classmethod
     def q0(cls, **kwargs):
