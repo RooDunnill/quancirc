@@ -13,6 +13,12 @@ class QuantumStateError(QC_error):
         self.message = message
         super().__init__(self.message)
 
+class BitError(QC_error):
+    """Error related to bits and their operations"""
+    def __init__(self, message="Invalid bit operation or state"):
+        self.message = message
+        super().__init__(self.message)
+
 class GateError(QC_error):
     """Error related to quantum gates and their operations"""
     def __init__(self, message="Invalid gate operation"):

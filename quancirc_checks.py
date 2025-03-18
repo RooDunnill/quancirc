@@ -40,3 +40,6 @@ print(QuantInfo.fidelity(Quan_qub_1, Quan_qub_2))
 print(QuantInfo.trace_distance(Quan_qub_1, Quan_qub_2))
 
 QuantInfo.two_state_info(Quan_qub_1, Quan_qub_2)
+bit_test = Bit(4)
+bit_test[2] = True
+print(bit_test)
