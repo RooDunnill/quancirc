@@ -3,8 +3,8 @@ import atexit
 import time
 import matplotlib.pyplot as plt
 start = time.time() 
-p_prec: int = 2
-linewid: int = 100
+p_prec: int = 3
+linewid: int = 150
 set_printoptions(precision=p_prec, suppress=True, floatmode="fixed")
 set_printoptions(linewidth=linewid)
 

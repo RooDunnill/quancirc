@@ -14,8 +14,15 @@ class QuantInfo:
             print("-" * linewid)
             print(f"QUANTUM INFORMATION OVERVIEW")
         print(f"Purity of state: {QuantInfo.purity(state):.{p_prec}f}")
+        print(f"Linear Entropy of state: {QuantInfo.linear_entropy(state):.{p_prec}f}")
         print(f"Von Neumann Entropy of the whole state: {QuantInfo.vn_entropy(state):.{p_prec}f}")
+        print(f"Information on the states individual qubits:")
+        print("-" * int(linewid/2))
         for i in range(state.n):
+            print(f"Qubit {i}:")
+            print("-" * int(linewid/4))
+            print(f"Purity of qubit {i}: {QuantInfo.purity(state[i]):.{p_prec}f}")
+            print(f"Linear Entropy of qubit {i}: {QuantInfo.linear_entropy(state[i]):.{p_prec}f}")
             print(f"Von Neumann entropy of qubit {i}: {QuantInfo.vn_entropy(state[i]):.{p_prec}f}")
         if state.state_type == "mixed":
             print(f"Shannon Entropy: {QuantInfo.shannon_entropy(state):.{p_prec}f}")
@@ -26,29 +33,33 @@ class QuantInfo:
     def two_state_info(state_1: Qubit, state_2: Qubit) -> str:
         print("-" * linewid)
         print(f"QUANTUM INFORMATION OF TWO STATES OVERVIEW")
-        print(f"\nIndividual Info for {state_1.name}:")
+        print(f"\nIndividual Info for {state_1.name}:") if state_1.name else print(f"\nIndividual Info for State 1:")
         print("-" * int(linewid/2))
         QuantInfo.state_info(state_1, title=False)
-        print(f"\nIndividual Info for {state_2.name}:")
+        print(f"\nIndividual Info for {state_2.name}:") if state_2.name else print(f"\nIndividual Info for State 2:")
         print("-" * int(linewid/2))
         QuantInfo.state_info(state_2, title=False)
-        print(f"\nInfo for the states together:")
+        if state_1.name and state_2.name:
+            print(f"\nInfo for the states {state_1.name} and {state_2.name} together:")
+        else:
+            print(f"\nInfo for State 1 and State 2 together:")
         print("-" * int(linewid/2))
         print(f"Fidelity: {QuantInfo.fidelity(state_1, state_2):.{p_prec}f}")
         print(f"Trace Distance: {QuantInfo.trace_distance(state_1, state_2):.{p_prec}f}")
         print(f"Quantum Conditional Entropy: {QuantInfo.quantum_conditional_entropy(state_1, state_2):.{p_prec}f}")
         print(f"Quantum Mutual Information: {QuantInfo.quantum_mutual_info(state_1, state_2):.{p_prec}f}")
         print(f"Quantum Relative Entropy: {QuantInfo.quantum_relative_entropy(state_1, state_2):.{p_prec}f}")
+        print(f"Quantum Discord: {QuantInfo.quantum_discord(state_1, state_2):.{p_prec}f}")
         print("-" * linewid)
 
 
     @staticmethod
     def purity(state: Qubit) -> float:      #a measure of mixedness
-        return np.trace(np.dot(state.rho, state.rho))
+        return np.trace(np.dot(state.rho, state.rho)).real
     
     @staticmethod    #an approximation of von neumann
     def linear_entropy(state: Qubit) -> float:
-        return 1 - QuantInfo.purity(state)
+        return 1 - QuantInfo.purity(state).real
 
     @staticmethod
     def quantum_discord(state_1: Qubit, state_2: Qubit) -> float:     #measures non classical correlation
