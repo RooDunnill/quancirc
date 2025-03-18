@@ -1,6 +1,7 @@
 import numpy as np
 from utilities import QuantumStateError, StatePreparationError, linewid
 from .static_methods.qubit_methods import *
+from utilities.config import p_prec
 
 
 def combine_qubit_attr(self, other, op = "+"):
@@ -62,23 +63,30 @@ class Qubit:                                           #creates the qubit class
             self.is_valid_density_matrix()
 
     def __str__(self):
-        if self.skip_val == True:
+        if self.skip_val:
             self.display_mode = "density"
+
+        rho_str = np.array2string(self.rho, precision=p_prec, separator=', ', suppress_small=True)
+
         if self.state_type == "pure":
+            state_str = np.array2string(self.build_state_from_rho(), precision=p_prec, separator=', ', suppress_small=True)
             if self.display_mode == "vector":
-                return f"Pure Quantum State Vector:\n {self.build_state_from_rho()}"
+                return f"Pure Quantum State Vector:\n{state_str}"
             elif self.display_mode == "density":
-                return f"Pure Quantum State Density Matrix:\n {self.rho}"
+                return f"Pure Quantum State Density Matrix:\n{rho_str}"
             elif self.display_mode == "both":
-                return f"Pure Quantum State Vector:\n {self.build_state_from_rho()}\n and Density Matrix:\n {self.rho}"
+                return f"Pure Quantum State Vector:\n{state_str}\n\nDensity Matrix:\n{rho_str}"
+
         elif self.state_type == "mixed":
             weights, state = self.build_state_from_rho()
+            weights_str = np.array2string(weights, precision=p_prec, separator=', ', suppress_small=True)
+            state_str = np.array2string(state, precision=p_prec, separator=', ', suppress_small=True)
             if self.display_mode == "vector":
-                return f"Mixed Quantum State Vector:\n Weights:\n {weights}\n and States:\n {state}"
+                return f"Mixed Quantum State Vector:\nWeights:\n{weights_str}\n\nStates:\n{state_str}"
             elif self.display_mode == "density":
-                return f"Mixed Quantum State Density Matrix:\n {self.rho}"
+                return f"Mixed Quantum State Density Matrix:\n{rho_str}"
             elif self.display_mode == "both":
-                return f"Mixed Quantum State Vector:\n Weights:\n {weights}\n and States:\n {state}\n and Density Matrix:\n {self.rho}"
+                return f"Mixed Quantum State Vector:\nWeights:\n{weights_str}\n\nStates:\n{state_str}\n\nDensity Matrix:\n{rho_str}"
     
     def __matmul__(self, other):
         if isinstance(other, self.__class__):

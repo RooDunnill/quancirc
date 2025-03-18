@@ -1,7 +1,8 @@
 import numpy as np
-from utilities import GateError
+from utilities.qc_errors import GateError
 from .static_methods.gate_methods import *
 from .qubit import combine_qubit_attr
+from utilities.config import p_prec
 
 
 def combine_gate_attr(self, other, op = "+"):
@@ -29,10 +30,11 @@ class Gate:
         self.n: int =  0 if self.dim == 0 else int(np.log2(self.dim))
 
     def __str__(self):
+        matrix_str = np.array2string(self.matrix, precision=p_prec, separator=', ', suppress_small=True)
         if self.name is not None:
-            return f"{self.name}\n{self.matrix}"
+            return f"{self.name}\n{matrix_str}"
         else:
-            return f"Quantum Gate\n{self.matrix}"
+            return f"Quantum Gate\n{matrix_str}"
         
     def __and__(self, other):
         if isinstance(other, self.__class__):

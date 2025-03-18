@@ -7,7 +7,6 @@ from scipy.linalg import sqrtm, logm
 import matplotlib.pyplot as plt
 
 class QuantInfo:
-     
     @staticmethod
     def state_info(state: Qubit, title=True) -> str:
         if title:
@@ -145,10 +144,14 @@ class QuantInfo:
     
     @staticmethod
     def bloch_vector(qubit: Qubit) -> np.ndarray:
-        x = np.real(np.trace((qubit | X_Gate).rho))
-        y = np.real(np.trace((qubit | Y_Gate).rho))
-        z = np.real(np.trace((qubit | Z_Gate).rho))
-        return np.array([x, y, z])
+        if not isinstance(qubit, Qubit):
+            raise QuantInfoError(f"qubit cannot be of type {type(qubit)}, expected type Qubit")
+        if qubit.n == 1:
+            x = np.real(np.trace((qubit | X_Gate).rho))
+            y = np.real(np.trace((qubit | Y_Gate).rho))
+            z = np.real(np.trace((qubit | Z_Gate).rho))
+            return np.array([x, y, z])
+        raise QuantInfoError(f"Can only visualise single qubit states in a Bloch Sphere repr")
 
     @staticmethod
     def bloch_plotter(qubit: Qubit) -> None:
