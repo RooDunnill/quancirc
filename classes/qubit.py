@@ -93,69 +93,69 @@ class Qubit:                                           #creates the qubit class
             elif self.display_mode == "both":
                 return f"Mixed Quantum State Vector:\nWeights:\n{weights_str}\n\nStates:\n{state_str}\n\nDensity Matrix:\n{rho_str}"
     
-    def __matmul__(self, other):
-        if isinstance(other, self.__class__):
+    def __matmul__(self: "Qubit", other: "Qubit") -> "Qubit":
+        if isinstance(other, Qubit):
             new_rho = np.kron(self.rho, other.rho)
             new_rho = np.round(new_rho, decimals=10)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "@"))
-            return self.__class__(**kwargs)
-        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+            return Qubit(**kwargs)
+        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
         
-    def __mul__(self, other):      #gateT @ rho @ gate
-        if isinstance(other, self.__class__):
+    def __mul__(self: "Qubit", other: "Qubit") -> "Qubit":      #gateT @ rho @ gate
+        if isinstance(other, Qubit):
             raise QuantumStateError(f"Cannot matrix multiply (double) two Quantum states together")
         elif other.class_type == "gate":
             new_rho = np.dot(np.dot(np.conj(other.matrix), self.rho), other.matrix)
             new_rho = np.round(new_rho, decimals=10)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "@"))
-            return self.__class__(**kwargs)
+            return Qubit(**kwargs)
         raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
     
-    def __or__(self, other):       #rho @ gate
-        if isinstance(other, self.__class__):
+    def __or__(self: "Qubit", other: "Qubit") -> "Qubit":       #rho @ gate
+        if isinstance(other, Qubit):
             raise QuantumStateError(f"Cannot matrix multiply (singular) two Quantum states together")
         elif other.class_type == "gate":
             new_rho = np.dot(self.rho, other.matrix)
             new_rho = np.round(new_rho, decimals=10)
             kwargs = {"rho": new_rho, "skip_validation": True}
             kwargs.update(combine_qubit_attr(self, other, op = "|"))
-            return self.__class__(**kwargs)
+            return Qubit(**kwargs)
         raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
 
-    def __sub__(self, other):
-        if isinstance(other, self.__class__):
+    def __sub__(self: "Qubit", other: "Qubit") -> "Qubit":
+        if isinstance(other, Qubit):
             new_rho = self.rho - other.rho
             kwargs = {"rho": new_rho, "skip_validation": True}
             kwargs.update(combine_qubit_attr(self, other, op = "-"))
-            return self.__class__(**kwargs)
-        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+            return Qubit(**kwargs)
+        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
-    def __add__(self, other):
-        if isinstance(other, self.__class__):
+    def __add__(self: "Qubit", other: "Qubit") -> "Qubit":
+        if isinstance(other, Qubit):
             new_rho = self.rho + other.rho
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "+"))
-            return self.__class__(**kwargs)
-        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+            return Qubit(**kwargs)
+        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
-    def __and__(self, other):
-        if isinstance(other, self.__class__):
+    def __and__(self: "Qubit", other: "Qubit") -> "Qubit":
+        if isinstance(other, Qubit):
             new_rho = np.block([[self.rho, np.zeros_like(other.rho)], [np.zeros_like(self.rho), other.rho]])
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "&"))
-            return self.__class__(**kwargs)
-        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+            return Qubit(**kwargs)
+        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
+    def __eq__(self: "Qubit", other: "Qubit") -> bool:
+        if isinstance(other, Qubit):
             if self.rho is not None and other.rho is not None:
                 return np.allclose(self.rho, other.rho)
             raise QuantumStateError(f"The inputted objects must have attr: self.rho and other.rho")
         raise QuantumStateError(f"Cannot have types {type(self)} and {type(other)}, expected two Qubit classes")
     
-    def __getitem__(self, index):
+    def __getitem__(self: "Qubit", index):
         if isinstance(index, slice):
             return [self[i] for i in range(self.n)]
         elif isinstance(index, int):
@@ -165,17 +165,17 @@ class Qubit:                                           #creates the qubit class
             return get_qubit
         raise QuantumStateError(f"Index cannot be of type {type(index)}, expected type int or slice")
     
-    def __setitem__(self, index, new_rho):
+    def __setitem__(self: "Qubit", index: int, new_state: "Qubit") -> None:
         if not isinstance(self.rho, np.ndarray):
             raise QuantumStateError(f"self.rho cannot be of type {type(self.rho)}, must be of type np.ndarray")
         rho_A, replaced_qubit, rho_B = self.decompose_state(index)
-        if replaced_qubit.dim == new_rho.dim:
-            new_state = rho_A @ new_rho @ rho_B 
+        if replaced_qubit.dim == new_state.dim:
+            new_state = rho_A @ new_state @ rho_B 
             self.rho = new_state.rho
         else:
             raise QuantumStateError(f"The dimensions of the new qubit must be the same as the dimensions of the old qubit")
 
-    def partial_trace(self, **kwargs) -> np.ndarray:
+    def partial_trace(self, **kwargs) -> "Qubit":
         """Computes the partial trace of a state, can apply a trace from either 'side' and can trace out an arbitrary amount of qubits
         Args:
             self: The density instance
@@ -211,37 +211,37 @@ class Qubit:                                           #creates the qubit class
                             new_mat[i, k] = np.sum(rho[reduced_dim*traced_out_dim_range+i, reduced_dim *traced_out_dim_range+k])
                     return copy_qubit_attr(self, rho=new_mat)
 
-    def isolate_qubit(self, qubit):
-        if qubit is not None:
-            if qubit > self.n - 1:
-                raise QuantumStateError(f"The chosen qubit {qubit}, must be no more than the number of qubits in the state: {self.n}")
-            if qubit == 0:
+    def isolate_qubit(self, qubit_index: int) -> "Qubit":
+        if qubit_index is not None and isinstance(qubit_index, int):
+            if qubit_index > self.n - 1:
+                raise QuantumStateError(f"The chosen qubit {qubit_index}, must be no more than the number of qubits in the state: {self.n}")
+            if qubit_index == 0:
                 isolated_rho = self.partial_trace(trace_out="B", state_size = self.n - 1)
-            elif qubit == self.n - 1:
+            elif qubit_index == self.n - 1:
                 isolated_rho = self.partial_trace(trace_out="A", state_size = self.n - 1)
-            elif isinstance(qubit, int):
-                A_rho = self.partial_trace(trace_out="B", state_size = self.n - qubit - 1)
+            elif isinstance(qubit_index, int):
+                A_rho = self.partial_trace(trace_out="B", state_size = self.n - qubit_index - 1)
                 A_n = int(np.log2(len(A_rho.rho)))
                 isolated_rho = self.partial_trace(rho=A_rho.rho, trace_out="A", state_size = A_n - 1)
             else:
-                raise QuantumStateError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
+                raise QuantumStateError(f"Inputted qubit cannot be of type {type(qubit_index)}, expected int") 
             return isolated_rho
         
-    def decompose_state(self, qubit):
-        if qubit is not None:
-            if qubit > self.n - 1:
-                raise QuantumStateError(f"The chosen qubit {qubit}, must be no more than the number of qubits in the state: {self.n}")
-            if isinstance(qubit, int):
-                temp_rho = self.partial_trace(trace_out="B", state_size = self.n - qubit - 1)
-                A_rho = self.partial_trace(trace_out="B", state_size = self.n - qubit)
-                B_rho = self.partial_trace(trace_out="A", state_size = qubit + 1)
+    def decompose_state(self, qubit_index: int) -> tuple["Qubit", "Qubit", "Qubit"]:
+        if qubit_index is not None:
+            if qubit_index > self.n - 1:
+                raise QuantumStateError(f"The chosen qubit {qubit_index}, must be no more than the number of qubits in the state: {self.n}")
+            if isinstance(qubit_index, int):
+                temp_rho = self.partial_trace(trace_out="B", state_size = self.n - qubit_index - 1)
+                A_rho = self.partial_trace(trace_out="B", state_size = self.n - qubit_index)
+                B_rho = self.partial_trace(trace_out="A", state_size = qubit_index + 1)
                 temp_n = int(np.log2(len(temp_rho.rho)))
                 isolated_rho = self.partial_trace(rho=temp_rho.rho, trace_out="A", state_size = temp_n - 1)
             else:
-                raise QuantumStateError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
+                raise QuantumStateError(f"Inputted qubit cannot be of type {type(qubit_index)}, expected int") 
             return A_rho, isolated_rho, B_rho
     
-    def norm(self):
+    def norm(self) -> None:
         if self.rho.shape[0] == self.rho.shape[1]:
             trace_rho = np.trace(self.rho)
             if trace_rho != 0:
@@ -250,25 +250,25 @@ class Qubit:                                           #creates the qubit class
                 raise QuantumStateError(f"The trace of the density matrix cannot be 0 and so cannot normalise")
         raise QuantumStateError(f"self.rho must be a square matrix, not of shape {self.rho.shape}")
 
-    def set_display_mode(self, mode):
+    def set_display_mode(self, mode: str) -> None:
         if mode not in ["vector", "density", "both"]:
             raise QuantumStateError(f"The display mode must be set in 'vector', 'density' or 'both'")
         self.display_mode = mode
 
-    def build_pure_rho(self):
+    def build_pure_rho(self) -> np.ndarray:
         if isinstance(self.state, np.ndarray):
             return np.outer(np.conj(self.state), self.state)
         raise QuantumStateError(f"self.state cannot be of type {type(self.state)}, expected np.ndarray")
     
-    def build_mixed_rho(self):
+    def build_mixed_rho(self) -> np.ndarray:
         if self.weights is not None:
-            mixed_rho = np.zeroes(len(self.state[0])**2, dtype=np.complex128)
+            mixed_rho = np.zeros(len(self.state[0])**2, dtype=np.complex128)
             for i in range(len(self.weights)):
                 mixed_rho += self.weights[i] * np.outer(np.conj(self.state[i]), self.state[i])
             return mixed_rho
         raise QuantumStateError(f"For a mixed rho to be made, you must provide weights in kwargs")
         
-    def build_state_from_rho(self):
+    def build_state_from_rho(self) -> np.ndarray:
         probs, states = np.linalg.eigh(self.rho)
         max_eigenvalue = np.argmax(np.isclose(probs, 1.0))
         if np.any(probs) > 1.0:
