@@ -34,7 +34,6 @@ class Gate:
             if not np.all(np.isclose(np.diag(gate_check),1.0, atol=1e-3)):
                 raise GateError(f"This gate is not unitary {self.matrix}")
 
-
     def __str__(self):
         matrix_str = np.array2string(self.matrix, precision=p_prec, separator=', ', suppress_small=True)
         if self.name is not None:
@@ -57,8 +56,11 @@ class Gate:
                 return self.matrix == other.matrix
             raise GateError(f"The inputted objects must have attr: self.matrix and other.matrix")
         raise GateError(f"Cannot have types {type(self)} and {type(other)}, expected two Gate classes")
-
     
+    def __getitem__(self, index):
+        if isinstance(index, tuple) and len(index) == 2:
+            row, col = index
+            return self.matrix[row, col]
 
     def __matmul__(self, other):
         if isinstance(other, self.__class__):
@@ -90,26 +92,6 @@ class Gate:
             kwargs.update(combine_gate_attr(self, other, op = "*"))
             return self.__class__(**kwargs)
         raise GateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
-    
-    @staticmethod
-    def FWHT(other):   #not currently working
-        """The Fast Walsh Hadamard Transform, used heavily in Grover's to apply the tensored Hadamard"""
-        if other.class_type == "qubit":
-            sqrt2_inv = 1/np.sqrt(2)
-            vec = other.state
-            for i in range(other.n):                                            #loops through each size of qubit below the size of the state
-                step_size = 2**(i + 1)                                          #is the dim of the current qubit tieration size 
-                half_step = step_size // 2                                      #half the step size to go between odd indexes
-                outer_range = np.arange(0, other.dim, step_size)[:, None]       #more efficient intergration of a loop over the state dim in steps of the current dim 
-                inner_range = np.arange(half_step)                               
-                indices = outer_range + inner_range                        
-                a, b = vec[indices], vec[indices + half_step]
-                vec[indices] = (a + b) * sqrt2_inv
-                vec[indices + half_step] = (a - b) * sqrt2_inv                        #normalisation has been taken out giving a slight speed up in performance
-            kwargs = {"state": vec}
-            return other.__class__(**kwargs)
-        raise TypeError(f"This can't act on this type, only on Qubits")
-
 
     @classmethod                             #creates any specific control gate
     def C_Gate(cls, **kwargs):
