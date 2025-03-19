@@ -18,15 +18,14 @@ class Measure:
                 raise MeasureError(f"Inputted povm cannot be of type {type(povm)}, expected np.ndarray")
             if not povm:
                 if isinstance(self.state.rho, np.ndarray):
-                    root_probs = np.diagonal(self.state.rho)
-                    probs = (np.conj(root_probs) * root_probs).real
+                    probs = np.diagonal(self.state.rho).real
                     if np.isclose(np.sum(probs), 1.0, atol=1e-5):
                         return probs
-                    raise MeasureError(f"The sum of the probabilities adds up to {np.sum(probs)}, however it must sum to 1 to be valid")
+                    raise MeasureError(f"The sum of the probabilities adds up to {np.sum(probs)}, however it must sum to 1 to be valid, probs: {probs}")
                 raise MeasureError(f"Inputted state cannot have a state.rho of type  {type(self.state.rho)}, expected np.ndarray")
         raise MeasureError(f"Inputted state cannot be of type {type(self.state)}, expected Qubit class")
        
-    def measure_state(self, povm: np.ndarray = None) -> str:
+    def measure_state(self, povm: np.ndarray = None) -> Qubit:
         probs = self.list_probs(povm)
         measurement = choices(range(len(probs)), weights=probs)[0]
         if povm:

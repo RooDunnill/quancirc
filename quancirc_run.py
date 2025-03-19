@@ -18,7 +18,7 @@ and_test1[2] = 1
 print(and_test1 & and_test2)
 print(and_test1 | and_test2)
 print(and_test1 ^ and_test2)
-measure_test_qubit = q1 @ q0
+measure_test_qubit = qm @ qp
 measure_test = Measure(state=measure_test_qubit).list_probs()
 print(measure_test)
 pm_state = Measure(state=measure_test_qubit).measure_state()

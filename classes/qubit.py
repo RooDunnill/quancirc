@@ -300,7 +300,7 @@ class Qubit:                                           #creates the qubit class
             raise QuantumStateError(f"Density matrix is not Hermitian: {self.rho}")
         if not np.array_equal(self.rho, np.array([1])):
             eigenvalues = np.linalg.eigvalsh(self.rho)
-            if np.any(eigenvalues < 0):
+            if np.any(eigenvalues < -1e-4):
                 negative_indices = np.where(eigenvalues < 0)[0]
                 raise QuantumStateError(f"Density matrix is not positive semi-definite. "
                                      f"Negative eigenvalues found at indices {negative_indices}")
