@@ -36,3 +36,7 @@ print(measure_test_qub0)
 pm_state_qub0 = Measure(state = measure_test_qubit[0]).measure_state()
 pm_state_qub0.set_display_mode("both")
 print(pm_state_qub0)
+povm = [[[1,0],[0,0]],[[0,0],[0,1]]]
+povm_qub = q0
+print(Measure(state=povm_qub).list_probs(povm=povm))
+print(Measure(state=povm_qub).measure_state(povm=povm))
