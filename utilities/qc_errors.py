@@ -31,7 +31,7 @@ class QuantumCircuitError(QC_error):
         self.message = message
         super().__init__(self.message)
 
-class MeasurementError(QC_error):
+class MeasureError(QC_error):
     """Error related to quantum measurements."""
     def __init__(self, message="Measurement operation failed"):
         self.message = message
