@@ -3,8 +3,8 @@ from classes import *
 from utilities import *
 
 partial_test = q0 @ q1 @ q1 @ q0
-pt = partial_test.partial_trace(trace_out="B", state_size=3)
-pt2 = partial_test.partial_trace(trace_out="A", state_size=3)
+pt = partial_test.partial_trace("B", 3)
+pt2 = partial_test.partial_trace("A", 3)
 print(pt)
 print(pt2)
 
