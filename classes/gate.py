@@ -28,6 +28,10 @@ class Gate:
         self.length: int = len(self.matrix)
         self.dim: int = int(np.sqrt(self.length))
         self.n: int =  0 if self.dim == 0 else int(np.log2(self.dim))
+        gate_check = np.dot(np.conj(self.matrix.T), self.matrix)
+        if not np.all(np.isclose(np.diag(gate_check),1.0, atol=1e-3)):
+            raise GateError(f"This gate is not unitary {self.matrix}")
+
 
     def __str__(self):
         matrix_str = np.array2string(self.matrix, precision=p_prec, separator=', ', suppress_small=True)
