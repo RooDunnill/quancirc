@@ -23,14 +23,16 @@ class Gate:
             raise GateError(f"The gate cannot be of type: {type(self.matrix)}, expected type list or np.ndarray")
         else:
             self.matrix = np.array(self.matrix, dtype=np.complex128)
-            if self.matrix.shape[0] != self.matrix.shape[1]:
-                raise GateError(f"All gates must be of a square shape. This gate has shape {self.matrix.shape[0]} x {self.matrix.shape[1]}")
-        self.length: int = len(self.matrix)
-        self.dim: int = int(np.sqrt(self.length))
+            if np.size(self.matrix) != 1:
+                if self.matrix.shape[0] != self.matrix.shape[1]:
+                    raise GateError(f"All gates must be of a square shape. This gate has shape {self.matrix.shape[0]} x {self.matrix.shape[1]}")
+        self.dim: int = len(self.matrix)
+        self.length = self.dim ** 2
         self.n: int =  0 if self.dim == 0 else int(np.log2(self.dim))
         gate_check = np.dot(np.conj(self.matrix.T), self.matrix)
-        if not np.all(np.isclose(np.diag(gate_check),1.0, atol=1e-3)):
-            raise GateError(f"This gate is not unitary {self.matrix}")
+        if np.size(self.matrix) != 1:
+            if not np.all(np.isclose(np.diag(gate_check),1.0, atol=1e-3)):
+                raise GateError(f"This gate is not unitary {self.matrix}")
 
 
     def __str__(self):

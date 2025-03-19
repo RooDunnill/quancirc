@@ -31,6 +31,7 @@ class Qubit:                                           #creates the qubit class
 
     def __init__(self, **kwargs) -> None:
         self.skip_val = kwargs.get("skip_validation", False)
+        self.index = None
         self.class_type = "qubit"
         self.name: str = kwargs.get("name", None)
         self.state_type: str = kwargs.get("type", None)                   #the default qubit is a single pure qubit |0>
@@ -145,6 +146,9 @@ class Qubit:                                           #creates the qubit class
             get_qubit = self.isolate_qubit(index)
             if get_qubit is None:
                 raise QuantumStateError(f"Could not isolate qubit {index}, invalid index input")
+            get_qubit.index = index
+            get_qubit.state_type = self.state_type
+            
             return get_qubit
         raise QuantumStateError(f"Index cannot be of type {type(index)}, expected type int or slice")
     
