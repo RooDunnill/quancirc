@@ -25,20 +25,23 @@ def combine_qubit_attr(self, other, op: str = None):
                 raise QuantumStateError(f"The state types must be either 'pure' or 'mixed', not {self.state_type} and {other.state_type}")
         return kwargs
 
+def copy_qubit_attr(qubit, **overrides):
+    attributes = vars(qubit).copy()
+    attributes.update(overrides)
+    return qubit.__class__(**attributes)
+
 class Qubit:                                           #creates the qubit class
     """The class to define and initialise Qubits and Quantum States"""
 
     def __init__(self, **kwargs) -> None:
-        self.prec = 3
         self.class_type = "qubit"
         self.name: str = kwargs.get("name", None)
         self.state_type: str = kwargs.get("type", "pure")                   #the default qubit is a single pure qubit |0>
-        self.display_mode = "vector"
+        self.display_mode = kwargs.get("display_mode", "vector")
         self.weights: list = kwargs.get("weights", None)
         self.name: str = kwargs.get("name","|Quantum State>")
         self.state: list = kwargs.get("state", None)
         self.rho: list = kwargs.get("rho", None)
-        self.single = False
 
         if self.state is not None:
             if not isinstance(self.state, (list, np.ndarray)):
@@ -69,9 +72,7 @@ class Qubit:                                           #creates the qubit class
     def __str__(self):
         if self.skip_val:
             self.display_mode = "density"
-
         rho_str = np.array2string(self.rho, precision=p_prec, separator=', ', suppress_small=True)
-
         if self.state_type == "pure":
             state_str = np.array2string(self.build_state_from_rho(), precision=p_prec, separator=', ', suppress_small=True)
             if self.display_mode == "vector":
@@ -185,7 +186,6 @@ class Qubit:                                           #creates the qubit class
                 self.rho_b if trace_out_system = A"""
         trace_out_system = kwargs.get("trace_out", None)
         trace_out_state_size = kwargs.get("state_size", None)
-        single = kwargs.get("single", False)
         rho = kwargs.get("rho", self.rho)
         rho_dim = len(rho)
         rho_n = int(np.log2(rho_dim))
@@ -199,29 +199,30 @@ class Qubit:                                           #creates the qubit class
         new_mat = np.zeros((reduced_dim, reduced_dim),dtype=np.complex128)
         traced_out_dim_range = np.arange(traced_out_dim)
         if isinstance(rho, np.ndarray):
+            kwargs = vars(self).copy()
             if trace_out_system == "B":
                     for k in range(reduced_dim):
                         for i in range(reduced_dim):           #the shapes of tracing A and B look quite different but follow a diagonalesc pattern
                             new_mat[i, k] = np.sum(rho[traced_out_dim_range+i*traced_out_dim, traced_out_dim_range+k*traced_out_dim])
-                    return Qubit(rho=new_mat, state_type=self.state_type, skip_validation=self.skip_val, single=single)
+                    return copy_qubit_attr(self, rho=new_mat)
             elif trace_out_system == "A":
                     for k in range(reduced_dim):
                         for i in range(reduced_dim):
                             new_mat[i, k] = np.sum(rho[reduced_dim*traced_out_dim_range+i, reduced_dim *traced_out_dim_range+k])
-                    return Qubit(rho=new_mat, state_type=self.state_type, skip_validation=self.skip_val, single=single)
+                    return copy_qubit_attr(self, rho=new_mat)
 
     def isolate_qubit(self, qubit):
         if qubit is not None:
             if qubit > self.n - 1:
                 raise QuantumStateError(f"The chosen qubit {qubit}, must be no more than the number of qubits in the state: {self.n}")
             if qubit == 0:
-                isolated_rho = self.partial_trace(trace_out="B", state_size = self.n - 1, single=True)
+                isolated_rho = self.partial_trace(trace_out="B", state_size = self.n - 1)
             elif qubit == self.n - 1:
-                isolated_rho = self.partial_trace(trace_out="A", state_size = self.n - 1, single=True)
+                isolated_rho = self.partial_trace(trace_out="A", state_size = self.n - 1)
             elif isinstance(qubit, int):
                 A_rho = self.partial_trace(trace_out="B", state_size = self.n - qubit - 1)
                 A_n = int(np.log2(len(A_rho.rho)))
-                isolated_rho = self.partial_trace(rho=A_rho.rho, trace_out="A", state_size = A_n - 1, single=True)
+                isolated_rho = self.partial_trace(rho=A_rho.rho, trace_out="A", state_size = A_n - 1)
             else:
                 raise QuantumStateError(f"Inputted qubit cannot be of type {type(qubit)}, expected int") 
             return isolated_rho
@@ -293,6 +294,8 @@ class Qubit:                                           #creates the qubit class
         for i in range(self.n):
             print(f"Qubit {i}: {self[i]}")
         print(f"state_type: {self.state_type}")
+        print(f"All attributes and variables of the Qubit object:")
+        print(vars(self))
         print("-" * linewid)
 
     def is_valid_density_matrix(self):

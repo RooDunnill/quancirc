@@ -6,12 +6,16 @@ class Bit:
         if isinstance(val, (bool, int)):
             self.class_type = "bit"
             self.val = val
+            if self.val not in range(0,2) and not isinstance(self.val, bool):
+                raise BitError(f"self.val cannot be of {type(self.val)} and not be {0,1}. self.val: {self.val}")
             self.num_bits = num_bits
             bit_setup = np.ones(num_bits) if val == True else np.zeros(num_bits)
             self.bits = kwargs.get("bits", bit_setup)
             self.name = kwargs.get("name", None)
         else:
-            raise BitError(f"val cannot be of type {type(val)}, expected bool type")
+            raise BitError(f"val cannot be of type {type(val)}, expected type bool")
+        if not isinstance(self.bits, (list, np.ndarray)):
+            raise BitError(f"self.bits cannot be of type {type(self.bits)}, expected type np.ndarray or type list")
 
     def __str__(self):
         bits_int = self.bits.astype(int)

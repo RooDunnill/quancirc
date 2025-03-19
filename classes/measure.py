@@ -5,12 +5,20 @@ from classes.qubit import *
 
 
 class Measure:
-    def __init__(self, state):
+    def __init__(self, state, **kwargs):
         self.class_type = "measure"
         self.state = state
 
+        if not isinstance(self.state, Qubit):
+            raise MeasureError(f"state cannot be of type {type(state)}, expected type type Qubit")
+        if not isinstance(self.state.rho, np.ndarray):
+            raise MeasureError(f"state.rho cannot be of type {type(state.rho)}, expected type np.ndarray")
+
+
+
+
     def list_probs(self, povm: np.ndarray=None) -> np.ndarray:
-        if self.state.class_type == "qubit":
+        if isinstance(self.state, Qubit):
             if povm:
                 if isinstance(povm, (np.ndarray, list)):
                     probs = np.array([np.real(np.trace(P * self.state.rho)) for P in povm], dtype=np.float64)
