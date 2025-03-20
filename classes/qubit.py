@@ -2,6 +2,7 @@ import numpy as np
 from utilities import QuantumStateError, StatePreparationError, linewid
 from .static_methods.qubit_methods import *
 from utilities.config import p_prec
+from .validation_funcs import rho_validation
 
 
 def combine_qubit_attr(self, other, op: str = None):
@@ -24,6 +25,8 @@ def combine_qubit_attr(self, other, op: str = None):
             else:
                 raise QuantumStateError(f"The state types must be either 'pure' or 'mixed', not {self.state_type} and {other.state_type}")
         return kwargs
+
+
 
 
 class Qubit:                                           #creates the qubit class
@@ -300,20 +303,6 @@ class Qubit:                                           #creates the qubit class
         print(vars(self))
         print("-" * linewid)
 
-    def rho_validation(self) -> None:
-        """Checks if a density matrix is valid in __init__, returns type None"""
-        if not self.skip_val:
-            if not np.allclose(self.rho, self.rho.conj().T):  
-                raise StatePreparationError(f"Density matrix is not Hermitian: {self.rho}")
-            if not np.array_equal(self.rho, np.array([1])):
-                eigenvalues = np.linalg.eigvalsh(self.rho)
-                if np.any(eigenvalues < -1e-4):
-                    negative_indices = np.where(eigenvalues < 0)[0]
-                    raise StatePreparationError(f"Density matrix is not positive semi-definite. "
-                                        f"Negative eigenvalues found at indices {negative_indices}")
-                if not np.isclose(np.trace(self.rho), 1.0):
-                    raise StatePreparationError(f"Density matrix must have a trace of 1, not of trace {np.trace(self.rho)}")
-            
     def state_type_checker(self) -> None:
         """Checks that state type and corrects if needed, returns type None"""
         if not self.skip_val:
@@ -347,7 +336,7 @@ class Qubit:                                           #creates the qubit class
         else:
             raise StatePreparationError(f"The initialised object must have atleast 1 of the following: a state vector or a density matrix")
         self.state_type_checker()
-        self.rho_validation()
+        rho_validation(self)
         self.dim = len(self.rho)
         self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))

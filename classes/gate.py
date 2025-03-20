@@ -3,6 +3,7 @@ from utilities.qc_errors import GateError
 from .static_methods.gate_methods import *
 from .qubit import combine_qubit_attr
 from utilities.config import p_prec
+from .validation_funcs import gate_validation
 
 
 def combine_gate_attr(self, other, op = "+"):
@@ -12,30 +13,22 @@ def combine_gate_attr(self, other, op = "+"):
             kwargs["name"] = f"{self.name} {op} {other.name}"
         return kwargs
 
+
+
+
 class Gate:
     def __init__(self, **kwargs):
         self.class_type = "gate"
         self.name = kwargs.get("name", None)
         self.matrix = kwargs.get("matrix", None)
-        self.gate_validation()
+        gate_validation(self)
         self.dim: int = len(self.matrix)
         self.length = self.dim ** 2
         self.n: int =  int(np.log2(self.dim))
         
 
 
-    def gate_validation(self):
-        if self.matrix is None:
-            raise GateError(f"Gates can only be initialised if they are provided with a matrix")
-        if not isinstance(self.matrix, (list, np.ndarray)):
-            raise GateError(f"The gate cannot be of type: {type(self.matrix)}, expected type list or np.ndarray")
-        self.matrix = np.array(self.matrix, dtype=np.complex128)
-        if np.size(self.matrix) != 1:
-            if self.matrix.shape[0] != self.matrix.shape[1]:
-                raise GateError(f"All gates must be of a square shape. This gate has shape {self.matrix.shape[0]} x {self.matrix.shape[1]}")
-            gate_check = np.dot(np.conj(self.matrix.T), self.matrix)
-            if not np.all(np.isclose(np.diag(gate_check),1.0, atol=1e-3)):
-                raise GateError(f"This gate is not unitary {self.matrix}")
+    
 
 
     def __str__(self):

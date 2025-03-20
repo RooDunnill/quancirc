@@ -2,20 +2,20 @@ import numpy as np
 from utilities.qc_errors import MeasureError
 from random import choices, randint
 from classes.qubit import *
+from .validation_funcs import measure_validation
+
+
+            
 
 
 class Measure:
     def __init__(self, state, **kwargs):
         self.class_type = "measure"
         self.state = state
-
-        if not isinstance(self.state, Qubit):
-            raise MeasureError(f"state cannot be of type {type(state)}, expected type type Qubit")
-        if not isinstance(self.state.rho, np.ndarray):
-            raise MeasureError(f"state.rho cannot be of type {type(state.rho)}, expected type np.ndarray")
-
-
-
+        measure_validation(self)
+        
+        
+   
 
     def list_probs(self, povm: np.ndarray=None) -> np.ndarray:
         if isinstance(self.state, Qubit):
@@ -46,3 +46,5 @@ class Measure:
             post_measurement_vector[measurement] = 1
             post_measurement_density = np.outer(post_measurement_vector, post_measurement_vector.conj())
             return Qubit(rho=post_measurement_density, state_type=self.state.state_type)
+
+    
