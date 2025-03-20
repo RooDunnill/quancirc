@@ -5,30 +5,30 @@ from .gate import *
 from .quant_info import *
 from .measure import *
 from utilities.qc_errors import QuantumCircuitError
+from utilities.validation_funcs import circuit_validation
+
+
+    
+
 
 
 class Circuit:
     def __init__(self, **kwargs):
         self.qubit_num = kwargs.get("q", 1)
         self.bit_num = kwargs.get("b", 1)
+        self.verbose = kwargs.get("verbose", False)
+        circuit_validation(self)
         self.gates = []
-        self.state, self.bits = self.init_circuit()
         self.index_qubit = None
         self.prob_distribution = None
         self.circuit_gate = None
         self.qubits_to_bits = []
         self.collapsed = False
+        self.state, self.bits = self.init_circuit()
+    
 
     def init_circuit(self) -> tuple[Qubit, Bit]:
-        if isinstance(self.qubit_num, int):
-            state = Qubit.q0(n=self.qubit_num)
-        else:
-            raise QuantumCircuitError(f"q cannot be of type {type(self.qubit_num)}, expected type int")
-        if isinstance(self.bit_num, int):
-            bits = Bit(self.bit_num)
-        else:
-            raise QuantumCircuitError(f"b cannot be of type {type(self.bit_num)}, expected type int")
-        return state, bits
+        return Qubit.q0(n=self.qubit_num), Bit(self.bit_num)
 
     def __str__(self):
         return f"{self.state}\n{self.prob_distribution}"
@@ -43,6 +43,7 @@ class Circuit:
             self.gates.append(enlarged_gate)
         else:
             self.gates.append(gate)
+        
 
     def compute_final_gate(self):
         final_gate = Gate.Identity(n=self.qubit_num)
@@ -70,10 +71,21 @@ class Circuit:
             self.state = Measure(state=self.state).measure_state(povm)
             self.collapsed = True
             return self.state
+        
+    def purity(self):
+        return QuantInfo.purity(self.state)
+    
+    def linear_entropy(self):
+        return QuantInfo.linear_entropy(self.state)
 
     def get_info(self):
-        pass
+        return QuantInfo.state_info(self.state)
+    
+    def vn_entropy(self):
+        return QuantInfo.vn_entropy(self.state)
+    
+    def shannon_entropy(self):
+        return QuantInfo.shannon_entropy(self.state)
 
     def debug(self):
         pass
-

@@ -13,30 +13,20 @@ def combine_gate_attr(self, other, op = "+"):
             kwargs["name"] = f"{self.name} {op} {other.name}"
         return kwargs
 
-
-
-
 class Gate:
     def __init__(self, **kwargs):
         self.class_type = "gate"
-        self.name = kwargs.get("name", None)
+        self.name = kwargs.get("name", "Quantum Gate")
         self.matrix = kwargs.get("matrix", None)
         gate_validation(self)
         self.dim: int = len(self.matrix)
         self.length = self.dim ** 2
         self.n: int =  int(np.log2(self.dim))
         
-
-
-    
-
-
     def __str__(self):
         matrix_str = np.array2string(self.matrix, precision=p_prec, separator=', ', suppress_small=True)
-        if self.name is not None:
-            return f"{self.name}\n{matrix_str}"
-        else:
-            return f"Quantum Gate\n{matrix_str}"
+        return f"{self.name}\n{matrix_str}"
+      
         
     def __and__(self, other):
         if isinstance(other, self.__class__):

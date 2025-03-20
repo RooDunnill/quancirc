@@ -2,7 +2,7 @@ import numpy as np
 from utilities.qc_errors import QuantumStateError, StatePreparationError
 from .static_methods.qubit_methods import *
 from utilities.config import p_prec, linewid
-from utilities.validation_funcs import rho_validation
+from utilities.validation_funcs import qubit_validation, rho_validation
 
 
 def combine_qubit_attr(self, other, op: str = None):
@@ -34,19 +34,27 @@ class Qubit:                                           #creates the qubit class
 
     def __init__(self, **kwargs) -> None:
         self.skip_val = kwargs.get("skip_validation", False)
-        self.index = None
+        
         self.class_type = "qubit"
         self.name: str = kwargs.get("name", None)
-        self.state_type: str = kwargs.get("type", None)                   #the default qubit is a single pure qubit |0>
+                       
         self.display_mode = kwargs.get("display_mode", "vector")
         self.weights: list = kwargs.get("weights", None)
         self.name: str = kwargs.get("name","|Quantum State>")
         self.state: list = kwargs.get("state", None)
         self.rho: list = kwargs.get("rho", None)
-        if self.rho is None and self.state is None:
-            self.rho = np.eye(1)
-            self.skip_val = True
+
+        self.state_type = None
+        self.index = None
+
+        qubit_validation(self)
         self.rho_init()
+        rho_validation(self)
+        self.return_state_type()
+
+        self.dim = len(self.rho)
+        self.length = self.dim ** 2
+        self.n = int(np.log2(self.dim))
 
     def __str__(self):
         if self.skip_val:
@@ -303,7 +311,7 @@ class Qubit:                                           #creates the qubit class
         print(vars(self))
         print("-" * linewid)
 
-    def state_type_checker(self) -> None:
+    def return_state_type(self) -> None:
         """Checks that state type and corrects if needed, returns type None"""
         if not self.skip_val:
             purity = np.trace(np.dot(self.rho, self.rho))
@@ -318,28 +326,22 @@ class Qubit:                                           #creates the qubit class
 
     def rho_init(self) -> None:
         """Builds and checks the rho attribute during __init__, returns type None"""
+        if self.rho is None and self.state is None:
+            self.rho = np.eye(1)
+            self.skip_val = True
+
         if self.state is not None:
             if not isinstance(self.state, (list, np.ndarray)):
                 raise StatePreparationError(f"The inputted self.state cannot be of type {type(self.state)}, expected list or np.ndarray")
             self.state = np.array(self.state, dtype=np.complex128)
+            if self.rho is None:
+                if self.weights:
+                    self.rho = self.build_mixed_rho()
+                else:
+                    self.rho = self.build_pure_rho()
+            
 
-        if self.state is not None and self.rho is None:
-            if self.weights:
-                self.rho = self.build_mixed_rho()
-            else:
-                self.rho = self.build_pure_rho()
         
-        if self.rho is not None:
-            if not isinstance(self.rho, (list, np.ndarray)):
-                raise StatePreparationError(f"The inputted self.rho cannot be of type {type(self.rho)}, expected list or np.ndarray")
-            self.rho = np.array(self.rho, dtype=np.complex128)
-        else:
-            raise StatePreparationError(f"The initialised object must have atleast 1 of the following: a state vector or a density matrix")
-        self.state_type_checker()
-        rho_validation(self)
-        self.dim = len(self.rho)
-        self.length = self.dim ** 2
-        self.n = int(np.log2(self.dim))
 
     
 

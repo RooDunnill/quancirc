@@ -15,6 +15,7 @@ class QuantInfo:
         print(f"Purity of state: {QuantInfo.purity(state):.{p_prec}f}")
         print(f"Linear Entropy of state: {QuantInfo.linear_entropy(state):.{p_prec}f}")
         print(f"Von Neumann Entropy of the whole state: {QuantInfo.vn_entropy(state):.{p_prec}f}")
+        print(f"Shannon Entropy of the whole state: {QuantInfo.shannon_entropy(state):.{p_prec}f}")
         print(f"Information on the states individual qubits:")
         print("-" * int(linewid/2))
         for i in range(state.n):
@@ -23,8 +24,7 @@ class QuantInfo:
             print(f"Purity of qubit {i}: {QuantInfo.purity(state[i]):.{p_prec}f}")
             print(f"Linear Entropy of qubit {i}: {QuantInfo.linear_entropy(state[i]):.{p_prec}f}")
             print(f"Von Neumann entropy of qubit {i}: {QuantInfo.vn_entropy(state[i]):.{p_prec}f}")
-        if state.state_type == "mixed":
-            print(f"Shannon Entropy: {QuantInfo.shannon_entropy(state):.{p_prec}f}")
+            print(f"Shannon Entropy of qubit: {QuantInfo.shannon_entropy(state[i]):.{p_prec}f}")
         if title:
             print("-" * linewid)
 
@@ -59,6 +59,29 @@ class QuantInfo:
     @staticmethod    #an approximation of von neumann
     def linear_entropy(state: Qubit) -> float:
         return 1 - QuantInfo.purity(state).real
+    
+    @staticmethod
+    def vn_entropy(state: Qubit) -> float:
+        if isinstance(state, Qubit):
+            eigenvalues, eigenvectors = np.linalg.eig(state.rho)
+            entropy = 0
+            for ev in eigenvalues:
+                if ev > 0:    #prevents ev=0 which would create an infinity from the log2
+                    entropy -= ev * np.log2(ev)
+            if entropy < 1e-10:         #rounds the value if very very small
+                entropy = 0.0
+            return entropy
+        raise QuantInfo(f"State cannot be of type {type(state)}, must be of type Qubit")
+    
+    @staticmethod
+    def shannon_entropy(state: Qubit) -> float:
+        if isinstance(state, Qubit):
+            diag_probs = np.diag(state.rho)
+            entropy = -np.sum(diag_probs[diag_probs > 0] * np.log2(diag_probs[diag_probs > 0]))
+            if entropy < 1e-10:         #rounds the value if very very small
+                entropy = 0.0
+            return entropy
+        raise QuantInfoError(f"No mixed Quantum state of type Qubit provided")
 
     @staticmethod
     def quantum_discord(state_1: Qubit, state_2: Qubit) -> float:     #measures non classical correlation
@@ -85,31 +108,7 @@ class QuantInfo:
         trace_dist = np.sum(0.5 * np.abs(diff_state.rho[dim_range, dim_range]))
         return trace_dist
       
-    @staticmethod
-    def vn_entropy(state: Qubit) -> float:
-        if isinstance(state, Qubit):
-            rho = state.rho
-            eigenvalues, eigenvectors = np.linalg.eig(rho)
-            entropy = 0
-            for ev in eigenvalues:
-                if ev > 0:    #prevents ev=0 which would create an infinity from the log2
-                    entropy -= ev * np.log2(ev)
-            if entropy < 1e-10:         #rounds the value if very very small
-                entropy = 0.0
-            return entropy
-        raise QuantInfo(f"State cannot be of type {type(state)}, must be of type Qubit")
     
-    @staticmethod
-    def shannon_entropy(state: Qubit) -> float:
-        if isinstance(state, Qubit) and state.state_type == "mixed":
-            entropy = 0
-            for weights in state.weights:
-                if weights > 0:    #again to stop infinities
-                    entropy -= weights * np.log2(weights)
-            if entropy < 1e-10:
-                entropy = 0.0
-            return entropy
-        raise QuantInfoError(f"No mixed Quantum state of type Qubit provided")
     
     @staticmethod
     def quantum_conditional_entropy(state_1: Qubit, state_2: Qubit) -> float:    #rho is the one that goes first in S(A|B)
