@@ -1,8 +1,8 @@
 import numpy as np
-from utilities import QuantumStateError, StatePreparationError, linewid
+from utilities.qc_errors import QuantumStateError, StatePreparationError
 from .static_methods.qubit_methods import *
-from utilities.config import p_prec
-from .validation_funcs import rho_validation
+from utilities.config import p_prec, linewid
+from utilities.validation_funcs import rho_validation
 
 
 def combine_qubit_attr(self, other, op: str = None):

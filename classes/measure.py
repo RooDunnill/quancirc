@@ -2,7 +2,7 @@ import numpy as np
 from utilities.qc_errors import MeasureError
 from random import choices, randint
 from classes.qubit import *
-from .validation_funcs import measure_validation
+from utilities.validation_funcs import measure_validation
 
 
             
