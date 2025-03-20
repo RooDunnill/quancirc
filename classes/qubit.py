@@ -84,7 +84,7 @@ class Qubit:                                           #creates the qubit class
         if isinstance(other, Qubit):
             raise QuantumStateError(f"Cannot matrix multiply (double) two Quantum states together")
         elif other.class_type == "gate":
-            new_rho = np.dot(np.dot(np.conj(other.matrix), self.rho), other.matrix)
+            new_rho = np.dot(np.dot(other.matrix, self.rho), np.conj(other.matrix.T))
             new_rho = np.round(new_rho, decimals=10)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "@"))
@@ -148,7 +148,7 @@ class Qubit:                                           #creates the qubit class
                 raise QuantumStateError(f"Could not isolate qubit {index}, invalid index input")
             get_qubit.index = index
             get_qubit.state_type = self.state_type
-            
+
             return get_qubit
         raise QuantumStateError(f"Index cannot be of type {type(index)}, expected type int or slice")
     
@@ -300,7 +300,7 @@ class Qubit:                                           #creates the qubit class
         print(vars(self))
         print("-" * linewid)
 
-    def is_valid_density_matrix(self) -> None:
+    def rho_validation(self) -> None:
         """Checks if a density matrix is valid in __init__, returns type None"""
         if not self.skip_val:
             if not np.allclose(self.rho, self.rho.conj().T):  
@@ -347,7 +347,7 @@ class Qubit:                                           #creates the qubit class
         else:
             raise StatePreparationError(f"The initialised object must have atleast 1 of the following: a state vector or a density matrix")
         self.state_type_checker()
-        self.is_valid_density_matrix()
+        self.rho_validation()
         self.dim = len(self.rho)
         self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))

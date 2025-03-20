@@ -9,15 +9,9 @@ def identity_gate(cls, **kwargs):
         Gate, the identity gate with either custom qubits or for a single Qubit"""
     n = kwargs.get("n", 1)
     if isinstance(n, int):
-        if n == 0:
-            new_mat = np.array([1], dtype=np.complex128)     #better to set up like this than just not make it for some functions that require tensor products
-            return cls(name="Identity Gate", matrix=new_mat, dim=0)
         dim = int(2**n)
         new_mat = np.eye(dim, dtype=np.complex128)
         return cls(name="Identity Gate", matrix=new_mat)
-    else: 
-        Id_matrix = [[1,0],[0,1]]
-        return cls(name="Identity Gate", matrix=Id_matrix)
 
 def X_Gate(cls):
     """The X Gate, which can flip the Qubits in the X or computational basis"""

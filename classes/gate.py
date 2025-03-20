@@ -17,22 +17,26 @@ class Gate:
         self.class_type = "gate"
         self.name = kwargs.get("name", None)
         self.matrix = kwargs.get("matrix", None)
+        self.gate_validation()
+        self.dim: int = len(self.matrix)
+        self.length = self.dim ** 2
+        self.n: int =  int(np.log2(self.dim))
+        
+
+
+    def gate_validation(self):
         if self.matrix is None:
             raise GateError(f"Gates can only be initialised if they are provided with a matrix")
         if not isinstance(self.matrix, (list, np.ndarray)):
             raise GateError(f"The gate cannot be of type: {type(self.matrix)}, expected type list or np.ndarray")
-        else:
-            self.matrix = np.array(self.matrix, dtype=np.complex128)
-            if np.size(self.matrix) != 1:
-                if self.matrix.shape[0] != self.matrix.shape[1]:
-                    raise GateError(f"All gates must be of a square shape. This gate has shape {self.matrix.shape[0]} x {self.matrix.shape[1]}")
-        self.dim: int = len(self.matrix)
-        self.length = self.dim ** 2
-        self.n: int =  0 if self.dim == 0 else int(np.log2(self.dim))
-        gate_check = np.dot(np.conj(self.matrix.T), self.matrix)
+        self.matrix = np.array(self.matrix, dtype=np.complex128)
         if np.size(self.matrix) != 1:
+            if self.matrix.shape[0] != self.matrix.shape[1]:
+                raise GateError(f"All gates must be of a square shape. This gate has shape {self.matrix.shape[0]} x {self.matrix.shape[1]}")
+            gate_check = np.dot(np.conj(self.matrix.T), self.matrix)
             if not np.all(np.isclose(np.diag(gate_check),1.0, atol=1e-3)):
                 raise GateError(f"This gate is not unitary {self.matrix}")
+
 
     def __str__(self):
         matrix_str = np.array2string(self.matrix, precision=p_prec, separator=', ', suppress_small=True)
@@ -80,7 +84,7 @@ class Gate:
             kwargs.update(combine_gate_attr(self, other, op = "*"))
             return self.__class__(**kwargs)
         elif other.class_type == "qubit":
-            new_rho = np.dot(np.dot(np.conj(self.matrix), other.rho), self.matrix)
+            new_rho = np.dot(np.dot(self.matrix, other.rho), np.conj(self.matrix.T))
             new_rho = np.round(new_rho, decimals=10)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "*"))
