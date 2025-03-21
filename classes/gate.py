@@ -22,12 +22,16 @@ class Gate:
         self.dim: int = len(self.matrix)
         self.length = self.dim ** 2
         self.n: int =  int(np.log2(self.dim))
+        self.immutable = False
         
     def __str__(self) -> str:
         matrix_str = np.array2string(self.matrix, precision=p_prec, separator=', ', suppress_small=True)
         return f"{self.name}\n{matrix_str}"
       
-    def __setattr__(self, )
+    def __setattr__(self, name, value):
+        if getattr(self, "immutable", False):
+            raise AttributeError(f"Cannot modify immutable object: {name}")
+        super().__setattr__(name, value)
 
 
 
@@ -119,39 +123,57 @@ class Gate:
 
     @classmethod
     def Identity(cls, **kwargs):
-        return identity_gate(cls, **kwargs)
+        gate = identity_gate(cls, **kwargs)
+        gate.immutable = True
+        return gate
 
     @classmethod
     def Hadamard(cls):
-        return Hadamard(cls)
+        gate = Hadamard(cls)
+        gate.immutable = True
+        return gate
     
     @classmethod
     def X_Gate(cls):
-        return X_Gate(cls)
+        gate = X_Gate(cls)
+        gate.immutable = True
+        return gate
     
     @classmethod
     def Y_Gate(cls):
-        return Y_Gate(cls)
+        gate = Y_Gate(cls)
+        gate.immutable = True
+        return gate
     
     @classmethod
     def Z_Gate(cls):
-        return Z_Gate(cls)
+        gate = Z_Gate(cls)
+        gate.immutable = True
+        return gate
     
     @classmethod
     def X_Gate(cls):
-        return X_Gate(cls)
+        gate = X_Gate(cls)
+        gate.immutable = True
+        return gate
     
     @classmethod
     def P_Gate(cls, theta, **kwargs):
-        return phase_gate(cls, theta, **kwargs)
+        gate = phase_gate(cls, theta, **kwargs)
+        gate.immutable = True
+        return gate
     
     @classmethod
     def U_Gate(cls, a, b, c):
-        return unitary_gate(cls, a, b, c)
+        gate = unitary_gate(cls, a, b, c)
+        gate.immutable = True
+        return gate
     
     @classmethod
     def Swap(cls, **kwargs):
-        return swap_gate(cls, **kwargs)
+        gate = swap_gate(cls, **kwargs)
+        gate.immutable = True
+        return gate
 
 
 
