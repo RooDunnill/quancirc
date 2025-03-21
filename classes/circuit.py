@@ -38,7 +38,7 @@ class Circuit:
         if qubit is not None:
             if qubit in self.collapsed_qubits:
                 raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
-            enlarged_gate = Gate.Identity(n=qubit) @ gate @ Gate.Identity(n=self.qubit_num - qubit * gate.n - gate.n)
+            enlarged_gate = Gate.Identity(n=qubit) % gate % Gate.Identity(n=self.qubit_num - qubit * gate.n - gate.n)
             self.gates.append(enlarged_gate)
         else:
             self.gates.append(gate)
@@ -46,12 +46,12 @@ class Circuit:
     def compute_final_gate(self):
         final_gate = Gate.Identity(n=self.qubit_num)
         for gate in reversed(self.gates):         #goes backwards through the list and applies them
-            final_gate = final_gate * gate
+            final_gate = final_gate @ gate
         return final_gate
 
     def apply_gates(self):
         for gate in self.gates:
-            self.state = gate * self.state
+            self.state = gate @ self.state
             self.state.set_display_mode("both")
         self.depth += len(self.gates)
         self.gates = []

@@ -54,7 +54,7 @@ class Gate:
             new_matrix = np.kron(self.matrix, other.matrix)
             new_matrix = np.round(new_matrix, decimals=10)
             kwargs = {"matrix": new_matrix}
-            kwargs.update(combine_gate_attr(self, other, op = "@"))
+            kwargs.update(combine_gate_attr(self, other, op = "%"))
             return self.__class__(**kwargs)
         else:
             raise GateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
@@ -64,19 +64,19 @@ class Gate:
             new_matrix = np.dot(self.matrix, other.matrix)
             new_matrix = np.round(new_matrix, decimals=10)
             kwargs = {"matrix": new_matrix}
-            kwargs.update(combine_gate_attr(self, other, op = "*"))
+            kwargs.update(combine_gate_attr(self, other, op = "@"))
             return self.__class__(**kwargs)
         elif other.class_type == "qubit":
             new_rho = np.dot(np.dot(self.matrix, other.rho), np.conj(self.matrix.T))
             new_rho = np.round(new_rho, decimals=10)
             kwargs = {"rho": new_rho}
-            kwargs.update(combine_qubit_attr(self, other, op = "*"))
+            kwargs.update(combine_qubit_attr(self, other, op = "@"))
             return other.__class__(**kwargs)
         elif isinstance(other, np.ndarray):
             new_matrix = np.dot(self.matrix, other)
             new_matrix = np.round(new_matrix, decimals=10)
             kwargs = {"matrix": new_matrix}
-            kwargs.update(combine_gate_attr(self, other, op = "*"))
+            kwargs.update(combine_gate_attr(self, other, op = "@"))
             return self.__class__(**kwargs)
         raise GateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
 
@@ -94,7 +94,7 @@ class Gate:
         if gate_type == "standard":
             return cls(name=f"Control {gate_action.name}", matrix=new_gate.matrix)
         elif gate_type == "inverted":
-            new_gate = Gate.Swap() * new_gate * Gate.Swap()
+            new_gate = Gate.Swap() @ new_gate @ Gate.Swap()
             return cls(name=f"Inverted Control {gate_action.name}", matrix=new_gate.matrix)
 
     @classmethod

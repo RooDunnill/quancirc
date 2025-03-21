@@ -8,7 +8,7 @@ from utilities.validation_funcs import qubit_validation, rho_validation
 def combine_qubit_attr(self, other, op: str = None):
         """Allows the returned objects to still return name and info too"""
         kwargs = {}
-        if op == "@":
+        if op == "%":
             self_name_size = int(np.log2(self.dim))
             other_name_size = int(np.log2(other.dim)) 
             kwargs["name"] = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
@@ -99,17 +99,17 @@ class Qubit:                                           #creates the qubit class
             elif self.display_mode == "both":
                 return f"Mixed Quantum State Vector:\nWeights:\n{weights_str}\n\nStates:\n{state_str}\n\nDensity Matrix:\n{rho_str}"
     
-    def __matmul__(self: "Qubit", other: "Qubit") -> "Qubit":
+    def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
         if isinstance(other, Qubit):
             new_rho = np.kron(self.rho, other.rho)
             new_rho = np.round(new_rho, decimals=10)
             kwargs = {"rho": new_rho}
-            kwargs.update(combine_qubit_attr(self, other, op = "@"))
+            kwargs.update(combine_qubit_attr(self, other, op = "%"))
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
         
-    def __mul__(self: "Qubit", other: "Qubit") -> "Qubit":      #gateT @ rho @ gate
+    def __matmul__(self: "Qubit", other: "Qubit") -> "Qubit":      #gateT @ rho @ gate
         """Matrix multiplication between two Qubit objects, returns a Qubit object"""
         if isinstance(other, Qubit):
             raise QuantumStateError(f"Cannot matrix multiply (double) two Quantum states together")
@@ -117,9 +117,15 @@ class Qubit:                                           #creates the qubit class
             new_rho = np.dot(np.dot(other.matrix, self.rho), np.conj(other.matrix.T))
             new_rho = np.round(new_rho, decimals=10)
             kwargs = {"rho": new_rho}
-            kwargs.update(combine_qubit_attr(self, other, op = "@"))
+            kwargs.update(combine_qubit_attr(self, other, op = "*"))
             return Qubit(**kwargs)
         raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
+    
+    def __mul__(self: "Qubit", other: int | float):
+        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
+
+    def __rmul__(self: "Qubit", other: int | float):
+        return self.__mul__(other)
     
     def __or__(self: "Qubit", other: "Qubit") -> "Qubit":       #rho @ gate
         """Non unitary matrix multiplication between a gate and a Qubit, used mostly for Quantum Information Calculations, returns a Qubit object"""
@@ -188,7 +194,7 @@ class Qubit:                                           #creates the qubit class
             raise QuantumStateError(f"self.rho cannot be of type {type(self.rho)}, must be of type np.ndarray")
         rho_A, replaced_qubit, rho_B = self.decompose_state(index)
         if replaced_qubit.dim == new_state.dim:
-            new_state = rho_A @ new_state @ rho_B 
+            new_state = rho_A % new_state % rho_B 
             if new_state.dim == self.dim:
                 self.rho = new_state.rho
             else:

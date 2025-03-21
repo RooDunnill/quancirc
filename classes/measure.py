@@ -21,7 +21,7 @@ class Measure:
         if isinstance(self.state, Qubit):
             if povm:
                 if isinstance(povm, (np.ndarray, list)):
-                    probs = np.array([np.real(np.trace(P * self.state.rho)) for P in povm], dtype=np.float64)
+                    probs = np.array([np.real(np.trace(P @ self.state.rho)) for P in povm], dtype=np.float64)
                     return probs
                 raise MeasureError(f"Inputted povm cannot be of type {type(povm)}, expected np.ndarray")
             if not povm:

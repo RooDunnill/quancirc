@@ -94,7 +94,7 @@ class QuantInfo:
         if isinstance(state_1, Qubit) and isinstance(state_2, Qubit):
             rho_1 = state_1.rho
             rho_2 = state_2.rho
-            product =  sqrtm(rho_1) * rho_2 * sqrtm(rho_1)
+            product =  sqrtm(rho_1) @ rho_2 @ sqrtm(rho_1)
             sqrt_product = sqrtm(product)
             mat_trace = np.trace(sqrt_product)
             fidelity = (mat_trace*np.conj(mat_trace)).real
@@ -118,7 +118,7 @@ class QuantInfo:
     @staticmethod
     def quantum_mutual_info(state_1, state_2) -> float:                   #S(A:B)
         if isinstance(state_1, Qubit) and isinstance(state_2, Qubit):
-            mut_info = QuantInfo.vn_entropy(state_1) + QuantInfo.vn_entropy(state_2) - QuantInfo.vn_entropy(state_1 @ state_2)
+            mut_info = QuantInfo.vn_entropy(state_1) + QuantInfo.vn_entropy(state_2) - QuantInfo.vn_entropy(state_1 % state_2)
             return mut_info
         raise QuantInfoError(f"state_1 and state_2 must both be of type Qubit, not of type {type(state_1)} and {type(state_2)}")
 
@@ -129,7 +129,7 @@ class QuantInfo:
             rho_2 = state_2.rho
             eigenvalues_1, eigenvectors_1 = np.linalg.eig(rho_1)
             eigenvalues_2, eigenvectors_2 = np.linalg.eig(rho_2)
-            threshold = 1e-15
+            threshold = 1e-10
             eigenvalues_1 = np.maximum(eigenvalues_1, threshold)
             eigenvalues_2 = np.maximum(eigenvalues_2, threshold)
             rho_1 = eigenvectors_1 @ np.diag(eigenvalues_1) @ eigenvectors_1.T
