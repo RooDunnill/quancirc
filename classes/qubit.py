@@ -20,10 +20,10 @@ def combine_qubit_attr(self, other, op: str = None):
         if isinstance(self, Qubit) and isinstance(other, Qubit):
             if self.skip_val or other.skip_val:
                 kwargs["skip_validation"] = True
-            if hasattr(self, "index") ^ hasattr(other, "index"):
-                if self.index:
+            if isinstance(self.index, int) != isinstance(other.index, int):
+                if isinstance(self.index, int):
                     kwargs["index"] = self.index
-                elif other.index:
+                else:
                     kwargs["index"] = other.index
             if hasattr(self, "display_mode") and hasattr(other, "display_mode"):
                 if self.display_mode == "both" or other.display_mode == "both":
@@ -53,7 +53,7 @@ class Qubit:                                           #creates the qubit class
         self.state: list = kwargs.get("state", None)
         self.rho: list = kwargs.get("rho", None)
         self.state_type = None
-        self.index = None
+        self.index = kwargs.get("index", None)
 
         qubit_validation(self)
         self.rho_init()
@@ -140,7 +140,10 @@ class Qubit:                                           #creates the qubit class
     
     def __mul__(self: "Qubit", other: int | float) -> "Qubit":
         if isinstance(other, (int, float)):
-            return Qubit(rho = self.rho * other)
+            new_rho = self.rho * other
+            kwargs = {"rho": new_rho}
+            kwargs.update(combine_qubit_attr(self, other, op = "*"))
+            return Qubit(**kwargs)
         raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
     def __rmul__(self: "Qubit", other: int| float) -> "Qubit":
@@ -171,7 +174,7 @@ class Qubit:                                           #creates the qubit class
         """Addition of two Qubit rho matrices, returns a Qubit object"""
         if isinstance(other, Qubit):
             new_rho = self.rho + other.rho
-            kwargs = {"rho": new_rho}
+            kwargs = {"rho": new_rho, "skip_validation": True}
             kwargs.update(combine_qubit_attr(self, other, op = "+"))
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
@@ -202,8 +205,6 @@ class Qubit:                                           #creates the qubit class
             if get_qubit is None:
                 raise QuantumStateError(f"Could not isolate qubit {index}, invalid index input")
             get_qubit.index = index
-            get_qubit.state_type = self.state_type
-
             return get_qubit
         raise QuantumStateError(f"Index cannot be of type {type(index)}, expected type int or slice")
     

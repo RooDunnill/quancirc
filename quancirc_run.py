@@ -12,3 +12,8 @@ print(attr_sum.display_mode)
 print(attr_sum.skip_val)
 print(type(attr_sum))
 print(attr_sum)
+index_test = q0 % q0 % q0
+test = index_test[0]
+print(test.index)
+test2 = test % q0
+print(test2.index)
