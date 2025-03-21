@@ -49,7 +49,7 @@ class Gate:
             row, col = index
             return self.matrix[row, col]
 
-    def __matmul__(self, other):
+    def __mod__(self, other):
         if isinstance(other, self.__class__):
             new_matrix = np.kron(self.matrix, other.matrix)
             new_matrix = np.round(new_matrix, decimals=10)
@@ -59,7 +59,7 @@ class Gate:
         else:
             raise GateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
         
-    def __mul__(self, other):
+    def __matmul__(self, other):
         if isinstance(other, self.__class__):
             new_matrix = np.dot(self.matrix, other.matrix)
             new_matrix = np.round(new_matrix, decimals=10)

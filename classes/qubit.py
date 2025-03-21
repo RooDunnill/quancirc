@@ -27,23 +27,17 @@ def combine_qubit_attr(self, other, op: str = None):
         return kwargs
 
 
-
-
 class Qubit:                                           #creates the qubit class
     """The class to define and initialise Qubits and Quantum States"""
-
     def __init__(self, **kwargs) -> None:
         self.skip_val = kwargs.get("skip_validation", False)
-        
         self.class_type = "qubit"
         self.name: str = kwargs.get("name", None)
-                       
         self.display_mode = kwargs.get("display_mode", "vector")
         self.weights: list = kwargs.get("weights", None)
         self.name: str = kwargs.get("name","|Quantum State>")
         self.state: list = kwargs.get("state", None)
         self.rho: list = kwargs.get("rho", None)
-
         self.state_type = None
         self.index = None
 
@@ -55,6 +49,31 @@ class Qubit:                                           #creates the qubit class
         self.dim = len(self.rho)
         self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))
+
+    def return_state_type(self) -> None:
+        """Checks that state type and corrects if needed, returns type None"""
+        if not self.skip_val:
+            purity = np.trace(np.dot(self.rho, self.rho))
+            if np.isclose(purity, 1.0, atol=1e-4):
+                self.state_type = "pure"
+            elif purity < 1:
+                self.state_type = "mixed"
+            else:
+                raise StatePreparationError(f"The purity of a state must be between 0 and 1, purity: {purity}")
+        else:
+            self.state_type = "non unitary"
+
+    def rho_init(self) -> None:
+        """Builds and checks the rho attribute during __init__, returns type None"""
+        if self.rho is None and self.state is None:
+            self.rho = np.eye(1)
+            self.skip_val = True
+
+        if self.rho is None:
+            if self.weights:
+                self.rho = self.build_mixed_rho()
+            else:
+                self.rho = self.build_pure_rho()
 
     def __str__(self):
         if self.skip_val:
@@ -294,11 +313,12 @@ class Qubit:                                           #creates the qubit class
         self.state_type = "mixed"
         return probs, states
     
-    def debug(self) -> None:
+    def debug(self, title=True) -> None:
         """Prints out lots of information on the Qubits core properties primarily for debug purposes, returns type None"""
         print(f"\n")
-        print("-" * linewid)
-        print(f"QUBIT CLASS DEBUG")
+        if title:
+            print("-" * linewid)
+            print(f"QUBIT DEBUG")
         print(f"self.rho.shape: {self.rho.shape}")
         print(f"self.rho type: {type(self.rho)}")
         print(f"self.rho:\n {self.rho}")
@@ -309,41 +329,12 @@ class Qubit:                                           #creates the qubit class
         print(f"state_type: {self.state_type}")
         print(f"All attributes and variables of the Qubit object:")
         print(vars(self))
-        print("-" * linewid)
-
-    def return_state_type(self) -> None:
-        """Checks that state type and corrects if needed, returns type None"""
-        if not self.skip_val:
-            purity = np.trace(np.dot(self.rho, self.rho))
-            if np.isclose(purity, 1.0, atol=1e-4):
-                self.state_type = "pure"
-            elif purity < 1:
-                self.state_type = "mixed"
-            else:
-                raise StatePreparationError(f"The purity of a state must be between 0 and 1, purity: {purity}")
-        else:
-            self.state_type = "non unitary"
-
-    def rho_init(self) -> None:
-        """Builds and checks the rho attribute during __init__, returns type None"""
-        if self.rho is None and self.state is None:
-            self.rho = np.eye(1)
-            self.skip_val = True
-
-        if self.state is not None:
-            if not isinstance(self.state, (list, np.ndarray)):
-                raise StatePreparationError(f"The inputted self.state cannot be of type {type(self.state)}, expected list or np.ndarray")
-            self.state = np.array(self.state, dtype=np.complex128)
-            if self.rho is None:
-                if self.weights:
-                    self.rho = self.build_mixed_rho()
-                else:
-                    self.rho = self.build_pure_rho()
-            
-
-        
+        if title:
+            print("-" * linewid)
 
     
+            
+
 
     @classmethod
     def q0(cls, **kwargs):
