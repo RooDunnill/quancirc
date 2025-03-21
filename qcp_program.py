@@ -970,15 +970,7 @@ class Circuit(BaseMixin):
             print_array(gate)
 
     def add_quantum_channel(self, Q_channel: str, prob: float, text: bool=True) -> Qubit:
-        """Allows for the addition of Quantum channeld, mainly used to simulat noise and errors
-            Args:
-                self: The quantum circuit
-                Q_channel: str: The type of channel or error
-                prob: float: the probability of that error occuring
-                text: bool: if True, prints out what its doing
-            Returns:
-                Qubit: returns the state with the noise applied to it"""
-        new_name = f"noisy {self.state.name}"
+
         if self.collapsed == True:
             raise MeasurementError(f"Noise cannot be applied to a collapsed state")
         K0: Gate = Gate.Identity(n=self.n)

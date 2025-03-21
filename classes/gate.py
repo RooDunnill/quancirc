@@ -59,6 +59,23 @@ class Gate:
         else:
             raise GateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
         
+    def __mul__(self: "Gate", other: int | float) -> "Gate":
+        if isinstance(other, (int, float)):
+            new_mat = self.matrix * other
+            kwargs = {"matrix": new_mat}
+            kwargs.update(combine_gate_attr(self, other, op = "*"))
+            return Gate(**kwargs)
+        raise GateError(f"The variable with which you are multiplying the Gate by cannot be of type {type(other)}, expected type int or type float")
+
+    def __rmul__(self: "Gate", other: int | float) -> "Gate":
+        return self.__mul__(other)
+    
+    def __imul__(self, other):
+        if isinstance(other, (int, float)):
+            self.matrix *= other
+            return self
+        raise GateError(f"The variable with which you are multiplying the Gate by cannot be of type {type(other)}, expected type int or type float")
+        
     def __matmul__(self, other) -> "Gate":
         if isinstance(other, Gate):
             new_matrix = np.dot(self.matrix, other.matrix)

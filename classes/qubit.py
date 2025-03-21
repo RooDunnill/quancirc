@@ -146,8 +146,14 @@ class Qubit:                                           #creates the qubit class
             return Qubit(**kwargs)
         raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
-    def __rmul__(self: "Qubit", other: int| float) -> "Qubit":
+    def __rmul__(self: "Qubit", other: int | float) -> "Qubit":
         return self.__mul__(other)
+    
+    def __imul__(self, other):
+        if isinstance(other, (int, float)):
+            self.rho *= other
+            return self
+        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
     
     def __or__(self: "Qubit", other: "Qubit") -> "Qubit":       #rho | gate
         """Non unitary matrix multiplication between a gate and a Qubit, used mostly for Quantum Information Calculations, returns a Qubit object"""
@@ -177,6 +183,12 @@ class Qubit:                                           #creates the qubit class
             kwargs = {"rho": new_rho, "skip_validation": True}
             kwargs.update(combine_qubit_attr(self, other, op = "+"))
             return Qubit(**kwargs)
+        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+    
+    def __iadd__(self, other):
+        if isinstance(other, Qubit):
+            self.rho = self.rho + other.rho
+            return self
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
     def __and__(self: "Qubit", other: "Qubit") -> "Qubit":

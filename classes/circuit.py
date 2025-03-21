@@ -22,9 +22,67 @@ class Circuit:
         self.collapsed_qubits = []
         self.collapsed = False
         self.state, self.bits = self.init_circuit()
+
     
     def init_circuit(self) -> tuple[Qubit, Bit]:
         return Qubit.q0(n=self.qubit_num), Bit(self.bit_num)
+    
+    def config_noise(self, **kwargs):
+        self.noisy = kwargs.get("noise", False)
+        self.noise_type = kwargs.get("noise_type", None)
+        self.channel = kwargs.get("channel", None)
+
+
+    def kraus_generator(self, channel, prob):
+        K0 = Gate.Identity(n = self.state.n)
+        K0 *= np.sqrt(1 - prob)**self.state.n
+        if channel == "Depol":
+            Kx = X_Gate
+            Ky = Y_Gate
+            Kz = Z_Gate
+            for i in range(self.state.n - 1):
+                Kx = Kx % X_Gate
+                Ky = Ky % Y_Gate
+                Kz = Kz % Z_Gate
+            Kx *= np.sqrt(prob/3)**self.state.n
+            Ky *= np.sqrt(prob/3)**self.state.n
+            Kz *= np.sqrt(prob/3)**self.state.n
+            return K0, Kx, Ky, Kz
+        elif channel == "X":
+            K1 = X_Gate
+        elif channel == "Y":
+            K1 = Y_Gate
+        elif channel == "Z":
+            K1 = Z_Gate
+        gate = K1
+        for i in range(self.state.n - 1):
+            K1 = K1 % gate
+        K1 *= np.sqrt(prob)**self.state.n
+        return K0, K1
+
+
+    def add_quantum_channel(self, channel, prob):
+        if self.collapsed:
+            QuantumCircuitError(f"Cannot apply a quantum channel to a collapsed state")
+        old_index = self.state.index
+        old_name = self.state.name
+        kraus_ops = self.kraus_generator(channel, prob)
+        epsilon_rho = np.zeros((self.state.dim, self.state.dim), dtype=np.complex128)
+        epsilon = Qubit(rho=epsilon_rho, skip_validation=True)
+        self.state.skip_val = True
+        for k in kraus_ops:
+            print(k)
+            k_applied = k @ self.state
+            epsilon += k_applied
+        kwargs = {"rho": epsilon.rho, "skip_validation": False, "name": f"{channel} channel applied to {old_name}", "index": old_index}
+        print(epsilon.rho)
+        self.state = Qubit(**kwargs)
+        return self.state
+            
+        
+        
+
+
 
     def __str__(self):
         return f"{self.state}\n{self.prob_distribution}"
@@ -38,7 +96,9 @@ class Circuit:
         if qubit is not None:
             if qubit in self.collapsed_qubits:
                 raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
-            enlarged_gate = Gate.Identity(n=qubit) % gate % Gate.Identity(n=self.qubit_num - qubit * gate.n - gate.n)
+            if gate.n != 1:
+                raise QuantumCircuitError(f"Can only apply single qubit gates to a single qubit")
+            enlarged_gate = Gate.Identity(n=qubit) % gate % Gate.Identity(n=self.qubit_num - qubit - 1)
             self.gates.append(enlarged_gate)
         else:
             self.gates.append(gate)
