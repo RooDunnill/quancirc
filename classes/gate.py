@@ -6,7 +6,7 @@ from utilities.config import p_prec
 from utilities.validation_funcs import gate_validation
 
 
-def combine_gate_attr(self, other, op = "+"):
+def combine_gate_attr(self: "Gate", other: "Gate", op = "+") -> list:
         """Allows the returned objects to still return name too"""
         kwargs = {}
         if hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
@@ -23,49 +23,49 @@ class Gate:
         self.length = self.dim ** 2
         self.n: int =  int(np.log2(self.dim))
         
-    def __str__(self):
+    def __str__(self) -> str:
         matrix_str = np.array2string(self.matrix, precision=p_prec, separator=', ', suppress_small=True)
         return f"{self.name}\n{matrix_str}"
       
         
-    def __and__(self, other):
-        if isinstance(other, self.__class__):
+    def __and__(self, other) -> "Gate":
+        if isinstance(other, Gate):
             new_matrix = np.block([[self.matrix, np.zeros_like(other.matrix)], [np.zeros_like(self.matrix), other.matrix]])
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "&"))
-            return self.__class__(**kwargs)
+            return Gate(**kwargs)
         else:
-            raise GateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+            raise GateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
+    def __eq__(self, other) -> bool:
+        if isinstance(other, Gate):
             if self.matrix is not None and other.matrix is not None:
                 return self.matrix == other.matrix
             raise GateError(f"The inputted objects must have attr: self.matrix and other.matrix")
         raise GateError(f"Cannot have types {type(self)} and {type(other)}, expected two Gate classes")
     
-    def __getitem__(self, index):
+    def __getitem__(self, index: tuple[int, int]) -> np.ndarray:
         if isinstance(index, tuple) and len(index) == 2:
             row, col = index
             return self.matrix[row, col]
 
-    def __mod__(self, other):
-        if isinstance(other, self.__class__):
+    def __mod__(self, other) -> "Gate":            #tensor product
+        if isinstance(other, Gate):
             new_matrix = np.kron(self.matrix, other.matrix)
             new_matrix = np.round(new_matrix, decimals=10)
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "%"))
-            return self.__class__(**kwargs)
+            return Gate(**kwargs)
         else:
-            raise GateError(f"The classes do not match or the array is not defined. They are of types {type(self.__class__)} and {type(other.__class__)}")
+            raise GateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
         
-    def __matmul__(self, other):
-        if isinstance(other, self.__class__):
+    def __matmul__(self, other) -> "Gate":
+        if isinstance(other, Gate):
             new_matrix = np.dot(self.matrix, other.matrix)
             new_matrix = np.round(new_matrix, decimals=10)
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "@"))
-            return self.__class__(**kwargs)
+            return Gate(**kwargs)
         elif other.class_type == "qubit":
             new_rho = np.dot(np.dot(self.matrix, other.rho), np.conj(self.matrix.T))
             new_rho = np.round(new_rho, decimals=10)
@@ -77,7 +77,7 @@ class Gate:
             new_matrix = np.round(new_matrix, decimals=10)
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "@"))
-            return self.__class__(**kwargs)
+            return Gate(**kwargs)
         raise GateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
 
     @classmethod                             #creates any specific control gate

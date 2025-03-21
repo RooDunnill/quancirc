@@ -17,13 +17,12 @@ def combine_qubit_attr(self, other, op: str = None):
                 kwargs["name"] = f"{self.name} {op} {other.name}"
             else:
                 kwargs["name"] = f"{self.name}"
-        if hasattr(self, "state_type") and hasattr(other, "state_type"):
-            if self.state_type == "mixed" or other.state_type == "mixed":
-                kwargs["state_type"] = "mixed"
-            elif self.state_type == "pure" or other.state_type == "pure":
-                kwargs["state_type"] = "pure"
-            else:
-                raise QuantumStateError(f"The state types must be either 'pure' or 'mixed', not {self.state_type} and {other.state_type}")
+        if isinstance(self, Qubit) and isinstance(other, Qubit):
+            if self.skip_val or other.skip_val:
+                kwargs["skip_val"] = True
+        elif isinstance(other, Qubit):
+            if other.skip_val:
+                kwargs["skip_val"] = True
         return kwargs
 
 
@@ -75,7 +74,7 @@ class Qubit:                                           #creates the qubit class
             else:
                 self.rho = self.build_pure_rho()
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.skip_val:
             self.display_mode = "density"
         rho_str = np.array2string(self.rho, precision=p_prec, separator=', ', suppress_small=True)
@@ -121,10 +120,12 @@ class Qubit:                                           #creates the qubit class
             return Qubit(**kwargs)
         raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
     
-    def __mul__(self: "Qubit", other: int | float):
+    def __mul__(self: "Qubit", other: int | float) -> "Qubit":
+        if isinstance(other, (int, float)):
+            return Qubit(rho = self.rho * other)
         raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
-    def __rmul__(self: "Qubit", other: int | float):
+    def __rmul__(self: "Qubit", other: int| float) -> "Qubit":
         return self.__mul__(other)
     
     def __or__(self: "Qubit", other: "Qubit") -> "Qubit":       #rho @ gate
@@ -174,7 +175,7 @@ class Qubit:                                           #creates the qubit class
             raise QuantumStateError(f"The inputted objects must have attr: self.rho and other.rho")
         raise QuantumStateError(f"Cannot have types {type(self)} and {type(other)}, expected two Qubit classes")
     
-    def __getitem__(self: "Qubit", index):
+    def __getitem__(self: "Qubit", index: int | slice):
         """Allows for a single Qubit to be returned from an index of a multi Qubit state, returns Qubit object"""
         if isinstance(index, slice):
             return [self[i] for i in range(self.n)]
