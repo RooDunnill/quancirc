@@ -29,10 +29,10 @@ def qubit_validation(state) -> None:
                 raise StatePreparationError(f"The absolute square of the elements of the state must sum to 1, not to {sum_check}")
             
 def rho_validation(state):
+    if not isinstance(state.rho, (list, np.ndarray)):
+        raise StatePreparationError(f"The inputted self.rho cannot be of type {type(state.rho)}, expected type list or type np.ndarray")
+    state.rho = np.array(state.rho, dtype=np.complex128)
     if not state.skip_val:
-        if not isinstance(state.rho, (list, np.ndarray)):
-            raise StatePreparationError(f"The inputted self.rho cannot be of type {type(state.rho)}, expected type list or type np.ndarray")
-        state.rho = np.array(state.rho, dtype=np.complex128)
         if not np.allclose(state.rho, state.rho.conj().T):  
             raise StatePreparationError(f"Density matrix is not Hermitian: {state.rho}")
         if not np.array_equal(state.rho, np.array([1])):
@@ -45,14 +45,14 @@ def rho_validation(state):
                 raise StatePreparationError(f"Density matrix must have a trace of 1, not of trace {np.trace(state.rho)}")
 
 def gate_validation(gate):
-    if gate.skip_val:
-        if not isinstance(gate.name, str):
+    if not isinstance(gate.name, str):
             raise GateError(f"self.name cannot be of type: {type(gate.name)}, expected type str")
-        if gate.matrix is None:
-            raise GateError(f"Gates can only be initialised if they are provided with a matrix")
-        if not isinstance(gate.matrix, (list, np.ndarray)):
-            raise GateError(f"The gate cannot be of type: {type(gate.matrix)}, expected type list or np.ndarray")
-        gate.matrix = np.array(gate.matrix, dtype=np.complex128)
+    if gate.matrix is None:
+        raise GateError(f"Gates can only be initialised if they are provided with a matrix")
+    if not isinstance(gate.matrix, (list, np.ndarray)):
+        raise GateError(f"The gate cannot be of type: {type(gate.matrix)}, expected type list or np.ndarray")
+    gate.matrix = np.array(gate.matrix, dtype=np.complex128)
+    if gate.skip_val:
         if np.size(gate.matrix) != 1:
             if gate.matrix.shape[0] != gate.matrix.shape[1]:
                 raise GateError(f"All gates must be of a square shape. This gate has shape {gate.matrix.shape[0]} x {gate.matrix.shape[1]}")

@@ -81,17 +81,17 @@ class Circuit:
         if channel == "Depol":
             Kx = Gate.X_Gate()
             Kx.skip_val = True
-            Ky = Y_Gate
+            Ky = Gate.Y_Gate()
             Ky.skip_val = True
-            Kz = Z_Gate
+            Kz = Gate.Z_Gate()
             Kz.skip_val = True
             return K0, Kx, Ky, Kz
         elif channel == "X":
-            K1 = X_Gate
+            K1 = Gate.X_Gate()
         elif channel == "Y":
-            K1 = Y_Gate
+            K1 = Gate.Y_Gate()
         elif channel == "Z":
-            K1 = Z_Gate
+            K1 = Gate.Z_Gate()
         K1.skip_val = True
         K1 *= np.sqrt(prob)
         return K0, K1

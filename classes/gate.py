@@ -37,8 +37,6 @@ class Gate:
             raise AttributeError(f"Cannot modify immutable object: {name}")
         super().__setattr__(name, value)
 
-
-
     def __and__(self, other) -> "Gate":
         if isinstance(other, Gate):
             new_matrix = np.block([[self.matrix, np.zeros_like(other.matrix)], [np.zeros_like(self.matrix), other.matrix]])
@@ -167,6 +165,7 @@ class Gate:
         gate = swap_gate(cls, **kwargs)
         return gate
 
+    
 
 
 X_Gate = Gate.X_Gate()             #initialises the default gates
