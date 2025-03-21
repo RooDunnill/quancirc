@@ -13,22 +13,22 @@ def identity_gate(cls, **kwargs):
         new_mat = np.eye(dim, dtype=np.complex128)
         return cls(name="Identity Gate", matrix=new_mat)
 
-def X_Gate(cls):
+def pauli_x_gate(cls):
     """The X Gate, which can flip the Qubits in the X or computational basis"""
     X_matrix = [[0,1],[1,0]]
     return cls(name="X Gate", matrix=X_matrix)
 
-def Y_Gate(cls):
+def pauli_y_gate(cls):
     """The Y Gate, which can flip the Qubits in the Y basis"""
     Y_matrix = [[0,np.complex128(0-1j)],[np.complex128(0+1j),0]]
     return cls(name="Y Gate", matrix=Y_matrix)
 
-def Z_Gate(cls):
+def pauli_z_gate(cls):
     """The Z Gate, which can flip the Qubits in the Z basis or |+>, |-> basis"""
     Z_matrix = [[1,0],[0,-1]]
     return cls(name="Z Gate", matrix=Z_matrix)
 
-def Hadamard(cls):
+def hadamard_gate(cls):
     """THe Hadamard Gate, commonly used to rotate between the computational or X basis and the |+>, |-> or Z basis"""
     n = 1/np.sqrt(2)
     H_matrix = [[n,n],[n,-n]]

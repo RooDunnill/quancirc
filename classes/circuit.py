@@ -75,12 +75,16 @@ class Circuit:
         return K0, K1
     
     def single_kraus_generator(self, channel, prob):
-        K0 = Identity
+        K0 = Gate.Identity()
+        K0.skip_val = True
         K0 *= np.sqrt(1 - prob)
         if channel == "Depol":
-            Kx = X_Gate
+            Kx = Gate.X_Gate()
+            Kx.skip_val = True
             Ky = Y_Gate
+            Ky.skip_val = True
             Kz = Z_Gate
+            Kz.skip_val = True
             return K0, Kx, Ky, Kz
         elif channel == "X":
             K1 = X_Gate
@@ -88,6 +92,7 @@ class Circuit:
             K1 = Y_Gate
         elif channel == "Z":
             K1 = Z_Gate
+        K1.skip_val = True
         K1 *= np.sqrt(prob)
         return K0, K1
     

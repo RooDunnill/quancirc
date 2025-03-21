@@ -11,10 +11,14 @@ def combine_gate_attr(self: "Gate", other: "Gate", op = "+") -> list:
         kwargs = {}
         if hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
             kwargs["name"] = f"{self.name} {op} {other.name}"
+        if isinstance(self, Gate) and isinstance(other, Gate):
+            if self.skip_val or other.skip_val:
+                kwargs["skip_validation"] = True
         return kwargs
 
 class Gate:
     def __init__(self, **kwargs):
+        self.skip_val = kwargs.get("skip_validation", False)
         self.class_type = "gate"
         self.name = kwargs.get("name", "Quantum Gate")
         self.matrix = kwargs.get("matrix", None)
@@ -79,8 +83,10 @@ class Gate:
     
     def __imul__(self, other):
         if isinstance(other, (int, float)):
-            self.matrix *= other
-            return self
+            new_mat = self.matrix * other
+            kwargs = {"matrix": new_mat}
+            kwargs.update(combine_gate_attr(self, other, op = "*"))
+            return Gate(**kwargs)
         raise GateError(f"The variable with which you are multiplying the Gate by cannot be of type {type(other)}, expected type int or type float")
         
     def __matmul__(self, other) -> "Gate":
@@ -124,66 +130,62 @@ class Gate:
     @classmethod
     def Identity(cls, **kwargs):
         gate = identity_gate(cls, **kwargs)
-        gate.immutable = True
         return gate
 
     @classmethod
     def Hadamard(cls):
-        gate = Hadamard(cls)
-        gate.immutable = True
+        gate = hadamard_gate(cls)
         return gate
     
     @classmethod
     def X_Gate(cls):
-        gate = X_Gate(cls)
-        gate.immutable = True
+        gate = pauli_x_gate(cls)
         return gate
     
     @classmethod
     def Y_Gate(cls):
-        gate = Y_Gate(cls)
-        gate.immutable = True
+        gate = pauli_y_gate(cls)
         return gate
     
     @classmethod
     def Z_Gate(cls):
-        gate = Z_Gate(cls)
-        gate.immutable = True
+        gate = pauli_z_gate(cls)
         return gate
-    
-    @classmethod
-    def X_Gate(cls):
-        gate = X_Gate(cls)
-        gate.immutable = True
-        return gate
-    
+
     @classmethod
     def P_Gate(cls, theta, **kwargs):
         gate = phase_gate(cls, theta, **kwargs)
-        gate.immutable = True
         return gate
     
     @classmethod
     def U_Gate(cls, a, b, c):
         gate = unitary_gate(cls, a, b, c)
-        gate.immutable = True
         return gate
     
     @classmethod
     def Swap(cls, **kwargs):
         gate = swap_gate(cls, **kwargs)
-        gate.immutable = True
         return gate
 
 
 
 X_Gate = Gate.X_Gate()             #initialises the default gates
+X_Gate.immutable = True
 Y_Gate = Gate.Y_Gate()
+Y_Gate.immutable = True
 Z_Gate = Gate.Z_Gate()
+Z_Gate.immutable = True
 Identity = Gate.Identity()
+Identity.immutable = True
 Hadamard = Gate.Hadamard()
+Hadamard.immutable = True
 CNot_flip = Gate.C_Gate(type="inverted", name="CNot_flip")
+CNot_flip.immutable = True
 CNot = Gate.C_Gate(type="standard", name="CNot")
+CNot.immutable = True
 Swap = Gate.Swap()
+Swap.immutable = True
 S_Gate = Gate.P_Gate(theta=np.pi/2, name="S Gate")
+S_Gate.immutable = True
 T_Gate = Gate.P_Gate(theta=np.pi/4, name="T Gate")
+T_Gate.immutable = True
