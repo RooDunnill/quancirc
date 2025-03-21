@@ -19,10 +19,25 @@ def combine_qubit_attr(self, other, op: str = None):
                 kwargs["name"] = f"{self.name}"
         if isinstance(self, Qubit) and isinstance(other, Qubit):
             if self.skip_val or other.skip_val:
-                kwargs["skip_val"] = True
+                kwargs["skip_validation"] = True
+            if hasattr(self, "index") ^ hasattr(other, "index"):
+                if self.index:
+                    kwargs["index"] = self.index
+                elif other.index:
+                    kwargs["index"] = other.index
+            if hasattr(self, "display_mode") and hasattr(other, "display_mode"):
+                if self.display_mode == "both" or other.display_mode == "both":
+                    kwargs["display_mode"] = "both"
+                elif self.display_mode == "density" or other.display_mode == "density":
+                    kwargs["display_mode"] = "density"
+                else:
+                    kwargs["display_mode"] = "vector"
         elif isinstance(other, Qubit):
             if other.skip_val:
-                kwargs["skip_val"] = True
+                kwargs["skip_validation"] = True
+            if hasattr(other, "index"):
+                kwargs["index"] = other.index
+        
         return kwargs
 
 
@@ -51,16 +66,16 @@ class Qubit:                                           #creates the qubit class
 
     def return_state_type(self) -> None:
         """Checks that state type and corrects if needed, returns type None"""
-        if not self.skip_val:
-            purity = np.trace(np.dot(self.rho, self.rho))
-            if np.isclose(purity, 1.0, atol=1e-4):
-                self.state_type = "pure"
-            elif purity < 1:
-                self.state_type = "mixed"
-            else:
-                raise StatePreparationError(f"The purity of a state must be between 0 and 1, purity: {purity}")
-        else:
+        purity = np.trace(np.dot(self.rho, self.rho))
+        if np.isclose(purity, 1.0, atol=1e-4):
+            self.state_type = "pure"
+        elif purity < 1:
+            self.state_type = "mixed"
+        elif self.skip_val:
             self.state_type = "non unitary"
+        else:
+            raise StatePreparationError(f"The purity of a state must be between 0 and 1, purity: {purity}")
+            
 
     def rho_init(self) -> None:
         """Builds and checks the rho attribute during __init__, returns type None"""
@@ -75,8 +90,6 @@ class Qubit:                                           #creates the qubit class
                 self.rho = self.build_pure_rho()
 
     def __str__(self) -> str:
-        if self.skip_val:
-            self.display_mode = "density"
         rho_str = np.array2string(self.rho, precision=p_prec, separator=', ', suppress_small=True)
         if self.state_type == "pure":
             state_str = np.array2string(self.build_state_from_rho(), precision=p_prec, separator=', ', suppress_small=True)
@@ -97,6 +110,11 @@ class Qubit:                                           #creates the qubit class
                 return f"Mixed Quantum State Density Matrix:\n{rho_str}"
             elif self.display_mode == "both":
                 return f"Mixed Quantum State Vector:\nWeights:\n{weights_str}\n\nStates:\n{state_str}\n\nDensity Matrix:\n{rho_str}"
+            
+        elif self.state_type == "non unitary":
+            state_str = np.array2string(self.build_state_from_rho(), precision=p_prec, separator=', ', suppress_small=True)
+            return f"Non Quantum State Density Matrix:\n{rho_str}"
+
     
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
@@ -128,14 +146,14 @@ class Qubit:                                           #creates the qubit class
     def __rmul__(self: "Qubit", other: int| float) -> "Qubit":
         return self.__mul__(other)
     
-    def __or__(self: "Qubit", other: "Qubit") -> "Qubit":       #rho @ gate
+    def __or__(self: "Qubit", other: "Qubit") -> "Qubit":       #rho | gate
         """Non unitary matrix multiplication between a gate and a Qubit, used mostly for Quantum Information Calculations, returns a Qubit object"""
         if isinstance(other, Qubit):
             raise QuantumStateError(f"Cannot matrix multiply (singular) two Quantum states together")
         elif other.class_type == "gate":
             new_rho = np.dot(self.rho, other.matrix)
             new_rho = np.round(new_rho, decimals=10)
-            kwargs = {"rho": new_rho, "skip_validation": True}
+            kwargs = {"rho": new_rho, "skip_validation": True}            #CAREFUL skip val here
             kwargs.update(combine_qubit_attr(self, other, op = "|"))
             return Qubit(**kwargs)
         raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
@@ -144,7 +162,7 @@ class Qubit:                                           #creates the qubit class
         """Subtraction of two Qubit rho matrices, returns a Qubit object"""
         if isinstance(other, Qubit):
             new_rho = self.rho - other.rho
-            kwargs = {"rho": new_rho, "skip_validation": True}
+            kwargs = {"rho": new_rho, "skip_validation": True}                #CAREFUL skip val here
             kwargs.update(combine_qubit_attr(self, other, op = "-"))
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")

@@ -1,16 +1,14 @@
 from classes import *
 
 
-print(Hadamard @ Identity)
-print(CNot)
-print(CNot * (Hadamard @ Identity))
-
-Bell = Circuit(q=2)
-Bell.add_gate(Hadamard, 0)
-Bell.add_gate(CNot)
-Bell.apply_gates()
-Bell.measure_state()
-print(Bell.state)
-Bell.measure_state()
-print(Bell.state)
-print(Bell.purity())
+attr_test_0 = q0
+attr_test_0.set_display_mode("both")
+attr_test_0.skip_val = True
+print(attr_test_0.skip_val)
+attr_test_1 = q1
+attr_test_1.set_display_mode("density")
+attr_sum = attr_test_0 % attr_test_1
+print(attr_sum.display_mode)
+print(attr_sum.skip_val)
+print(type(attr_sum))
+print(attr_sum)
