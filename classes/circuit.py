@@ -8,6 +8,20 @@ from utilities.qc_errors import QuantumCircuitError
 from utilities.validation_funcs import circuit_validation
 
 
+def kraus_validation(kraus_operators: list | tuple | np.ndarray):
+    if isinstance(kraus_operators, (list, tuple, np.ndarray)):
+
+        kraus_dim = len(kraus_operators[0].matrix)
+        kraus_sum = np.zeros((kraus_dim, kraus_dim), dtype=np.complex128)
+        for i in kraus_operators:
+            kraus = i.matrix
+            kraus_sum += np.conj(kraus).T @ kraus
+        if not np.allclose(kraus_sum, np.eye(kraus_dim)):
+            raise QuantumCircuitError(f"These kraus operators are invalid as they don't sum to the identity matrix.")
+        
+
+
+
 class Circuit:
     def __init__(self, **kwargs):
         self.qubit_num = kwargs.get("q", 1)
@@ -59,9 +73,54 @@ class Circuit:
             K1 = K1 % gate
         K1 *= np.sqrt(prob)**self.state.n
         return K0, K1
+    
+    def single_kraus_generator(self, channel, prob):
+        K0 = Identity
+        K0 *= np.sqrt(1 - prob)
+        if channel == "Depol":
+            Kx = X_Gate
+            Ky = Y_Gate
+            Kz = Z_Gate
+            return K0, Kx, Ky, Kz
+        elif channel == "X":
+            K1 = X_Gate
+        elif channel == "Y":
+            K1 = Y_Gate
+        elif channel == "Z":
+            K1 = Z_Gate
+        K1 *= np.sqrt(prob)
+        return K0, K1
+    
+    
+
+    def apply_channel_to_qubit(self, qubit, channel, prob):
+        if self.collapsed:
+            QuantumCircuitError(f"Cannot apply a quantum channel to a collapsed state")
+        qubit_state = self.state[qubit]
+        old_index = qubit_state.index
+        old_name = qubit_state.name
+        kraus_ops = self.single_kraus_generator(channel, prob)
+        kraus_validation(kraus_ops)
+        epsilon_rho = np.zeros((2, 2), dtype=np.complex128)
+        epsilon = Qubit(rho=epsilon_rho, skip_validation=True)
+        qubit_state.skip_val = True
+        for k in kraus_ops:
+            k_applied = k @ qubit_state
+            epsilon += k_applied
+        kwargs = {"rho": epsilon.rho, "skip_validation": False, "name": f"{channel} channel applied to {old_name}", "index": old_index}
+        print(epsilon.rho)
+        qubit_state = Qubit(**kwargs)
+        self.state[qubit] = qubit_state
+        return self.state
+
+    def apply_local_channel_to_qubit(self, channel, prob):
+        for i in range(self.qubit_num):
+            self.apply_channel_to_qubit(i, channel, prob)
+        return self.state
 
 
-    def add_quantum_channel(self, channel, prob):
+
+    def apply_state_wide_channel(self, channel, prob):
         if self.collapsed:
             QuantumCircuitError(f"Cannot apply a quantum channel to a collapsed state")
         old_index = self.state.index
@@ -78,6 +137,8 @@ class Circuit:
         print(epsilon.rho)
         self.state = Qubit(**kwargs)
         return self.state
+    
+    
             
         
         

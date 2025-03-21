@@ -27,7 +27,10 @@ class Gate:
         matrix_str = np.array2string(self.matrix, precision=p_prec, separator=', ', suppress_small=True)
         return f"{self.name}\n{matrix_str}"
       
-        
+    def __setattr__(self, )
+
+
+
     def __and__(self, other) -> "Gate":
         if isinstance(other, Gate):
             new_matrix = np.block([[self.matrix, np.zeros_like(other.matrix)], [np.zeros_like(self.matrix), other.matrix]])
