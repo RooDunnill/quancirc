@@ -1,5 +1,5 @@
 import numpy as np
-from ..utilities.qc_errors import BitError
+from ..circuit_utilities.qc_errors import BitError
 
 class Bit:
     def __init__(self, num_bits: int, val: bool=False, **kwargs):

@@ -1,4 +1,4 @@
-from quancirc_circuit.classes import *
+from quancirc.quancirc_circuit.classes import *
 
 
 info_test = Circuit(q=4)

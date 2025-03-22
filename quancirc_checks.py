@@ -1,6 +1,4 @@
-import sys; sys.path.append("..")
-from quancirc_circuit.classes import *
-from quancirc_circuit.utilities import *
+from .quancirc_circuit.classes import *
 
 partial_test = q0 % q1 % q1 % q0
 pt = partial_test.partial_trace("B", 3)

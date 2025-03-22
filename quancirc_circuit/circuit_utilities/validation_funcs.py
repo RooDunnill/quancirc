@@ -1,5 +1,5 @@
 import numpy as np
-from ..utilities.qc_errors import *
+from ..circuit_utilities.qc_errors import *
 
 def qubit_validation(state) -> None:
     """Checks if a density matrix is valid in __init__, returns type None"""
@@ -75,3 +75,14 @@ def circuit_validation(circuit):
         raise QuantumCircuitError(f"self.bit_num cannot be of type {type(circuit.bit_num)}, expected type int")
     if not isinstance(circuit.verbose, bool):
         raise QuantumCircuitError(f"self.verbose cannot be of type {type(circuit.bit_num)}, expected type bool")
+
+def kraus_validation(kraus_operators: list | tuple | np.ndarray):
+    if isinstance(kraus_operators, (list, tuple, np.ndarray)):
+
+        kraus_dim = len(kraus_operators[0].matrix)
+        kraus_sum = np.zeros((kraus_dim, kraus_dim), dtype=np.complex128)
+        for i in kraus_operators:
+            kraus = i.matrix
+            kraus_sum += np.conj(kraus).T @ kraus
+        if not np.allclose(kraus_sum, np.eye(kraus_dim)):
+            raise QuantumCircuitError(f"These kraus operators are invalid as they don't sum to the identity matrix.")

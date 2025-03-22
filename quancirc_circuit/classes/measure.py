@@ -1,8 +1,8 @@
 import numpy as np
-from ..utilities.qc_errors import MeasureError
+from ..circuit_utilities.qc_errors import MeasureError
 from random import choices, randint
 from .qubit import *
-from ..utilities.validation_funcs import measure_validation
+from ..circuit_utilities.validation_funcs import measure_validation
 
 
             

@@ -4,24 +4,12 @@ from .bit import *
 from .gate import *
 from .quant_info import *
 from .measure import *
-from ..utilities.qc_errors import QuantumCircuitError
-from ..utilities.validation_funcs import circuit_validation
+from ..circuit_utilities.qc_errors import QuantumCircuitError
+from ..circuit_utilities.validation_funcs import circuit_validation, kraus_validation
 
 
-def kraus_validation(kraus_operators: list | tuple | np.ndarray):
-    if isinstance(kraus_operators, (list, tuple, np.ndarray)):
 
-        kraus_dim = len(kraus_operators[0].matrix)
-        kraus_sum = np.zeros((kraus_dim, kraus_dim), dtype=np.complex128)
-        for i in kraus_operators:
-            kraus = i.matrix
-            kraus_sum += np.conj(kraus).T @ kraus
-        if not np.allclose(kraus_sum, np.eye(kraus_dim)):
-            raise QuantumCircuitError(f"These kraus operators are invalid as they don't sum to the identity matrix.")
         
-
-
-
 class Circuit:
     def __init__(self, **kwargs):
         self.qubit_num = kwargs.get("q", 1)
@@ -98,8 +86,6 @@ class Circuit:
         K1 *= np.sqrt(prob)
         return K0, K1
     
-    
-
     def apply_channel_to_qubit(self, qubit, channel, prob):
         if self.collapsed:
             QuantumCircuitError(f"Cannot apply a quantum channel to a collapsed state")
@@ -125,8 +111,6 @@ class Circuit:
             self.apply_channel_to_qubit(i, channel, prob)
         return self.state
 
-
-
     def apply_state_wide_channel(self, channel, prob):
         if self.collapsed:
             QuantumCircuitError(f"Cannot apply a quantum channel to a collapsed state")
@@ -142,14 +126,7 @@ class Circuit:
         kwargs = {"rho": epsilon.rho, "skip_validation": False, "name": f"{channel} channel applied to {old_name}", "index": old_index}
         self.state = Qubit(**kwargs)
         return self.state
-    
-    
             
-        
-        
-
-
-
     def __str__(self):
         return f"{self.state}\n{self.prob_distribution}"
     

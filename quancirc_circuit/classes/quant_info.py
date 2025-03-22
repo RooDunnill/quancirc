@@ -1,6 +1,6 @@
 import numpy as np
-from ..utilities import QuantInfoError
-from ..utilities.config import p_prec, linewid
+from ..circuit_utilities import QuantInfoError
+from quancirc.utilities.config import *
 from .qubit import Qubit
 from .gate import X_Gate, Y_Gate, Z_Gate
 from scipy.linalg import sqrtm, logm
