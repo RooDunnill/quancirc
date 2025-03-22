@@ -1,9 +1,9 @@
 import numpy as np
-from utilities.qc_errors import GateError
+from ..utilities.qc_errors import GateError
 from .static_methods.gate_methods import *
 from .qubit import combine_qubit_attr
-from utilities.config import p_prec
-from utilities.validation_funcs import gate_validation
+from ..utilities.config import p_prec
+from ..utilities.validation_funcs import gate_validation
 
 
 def combine_gate_attr(self: "Gate", other: "Gate", op = "+") -> list:

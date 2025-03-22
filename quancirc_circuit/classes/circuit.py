@@ -4,8 +4,8 @@ from .bit import *
 from .gate import *
 from .quant_info import *
 from .measure import *
-from utilities.qc_errors import QuantumCircuitError
-from utilities.validation_funcs import circuit_validation
+from ..utilities.qc_errors import QuantumCircuitError
+from ..utilities.validation_funcs import circuit_validation
 
 
 def kraus_validation(kraus_operators: list | tuple | np.ndarray):
@@ -161,7 +161,7 @@ class Circuit:
     def add_gate(self, gate, qubit=None):
         if self.collapsed:
             raise QuantumCircuitError(f"This state has already been measured and so no further gates can be applied")
-        if qubit is not None:
+        if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
             if qubit in self.collapsed_qubits:
                 raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
             if gate.n != 1:
