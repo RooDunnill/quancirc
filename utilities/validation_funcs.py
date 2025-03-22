@@ -3,6 +3,16 @@ from utilities.qc_errors import *
 
 def qubit_validation(state) -> None:
     """Checks if a density matrix is valid in __init__, returns type None"""
+    if state.state is not None:
+        if not isinstance(state.state, (list, np.ndarray)):
+            raise StatePreparationError(f"The inputted self.state cannot be of type {type(state.state)}, expected type list or type np.ndarray")
+        state.state = np.array(state.state, dtype=np.complex128)
+        if len(state.state.shape) != 1:
+            raise StatePreparationError(f"The inputted self.state must be 1D not {state.state.shape}")
+    if state.weights is not None:
+        if not isinstance(state.weights, (list, np.ndarray)):
+            raise StatePreparationError(f"The inputted self.weights cannot be of type {type(state.weights)}, expected type list or type np.ndarray")
+        state.weights = np.array(state.weights, dtype=np.float64)
     if not state.skip_val:
         if not isinstance(state.skip_val, bool):
             raise StatePreparationError(f"The inputted self.skip_val cannot be of type {type(state.skip_val)}, expected type bool")
@@ -11,19 +21,13 @@ def qubit_validation(state) -> None:
         if not isinstance(state.display_mode, str):
             raise StatePreparationError(f"The inputted self.display_mode cannot be of type {type(state.display_mode)}, expected type str")
         if state.weights is not None:
-            if not isinstance(state.weights, (list, np.ndarray)):
-                raise StatePreparationError(f"The inputted self.weights cannot be of type {type(state.weights)}, expected type list or type np.ndarray")
+            
             if not np.isrealobj(state.weights):
                 raise StatePreparationError(f"self.weights must be made up of real numbers as it is the probabilities of specific states")
             if not np.isclose(np.sum(state.weights), 1.0, atol=1e-4):
                 raise StatePreparationError(f"The sum of the probabilities must equal 1, not {np.sum(state.weights)}")
-            state.weights = np.array(state.weights, dtype=np.float64)
+            
         if state.state is not None:
-            if not isinstance(state.state, (list, np.ndarray)):
-                raise StatePreparationError(f"The inputted self.state cannot be of type {type(state.state)}, expected type list or type np.ndarray")
-            state.state = np.array(state.state, dtype=np.complex128)
-            if len(state.state.shape) != 1:
-                raise StatePreparationError(f"The inputted self.state must be 1D not {state.state.shape}")
             sum_check = np.dot(state.state , np.conj(state.state))
             if not np.isclose(sum_check, 1.0, atol=1e-4):
                 raise StatePreparationError(f"The absolute square of the elements of the state must sum to 1, not to {sum_check}")

@@ -26,7 +26,7 @@ class Circuit:
     def __init__(self, **kwargs):
         self.qubit_num = kwargs.get("q", 1)
         self.bit_num = kwargs.get("b", 1)
-        self.verbose = kwargs.get("verbose", False)
+        self.verbose = kwargs.get("verbose", True)
         circuit_validation(self)
         self.gates = []
         self.depth = 0
@@ -39,6 +39,8 @@ class Circuit:
 
     
     def init_circuit(self) -> tuple[Qubit, Bit]:
+        if self.verbose:
+            print(f"Initialising circuit with {self.qubit_num} qubits and {self.bit_num} bits")
         return Qubit.q0(n=self.qubit_num), Bit(self.bit_num)
     
     def config_noise(self, **kwargs):
@@ -135,11 +137,9 @@ class Circuit:
         epsilon = Qubit(rho=epsilon_rho, skip_validation=True)
         self.state.skip_val = True
         for k in kraus_ops:
-            print(k)
             k_applied = k @ self.state
             epsilon += k_applied
         kwargs = {"rho": epsilon.rho, "skip_validation": False, "name": f"{channel} channel applied to {old_name}", "index": old_index}
-        print(epsilon.rho)
         self.state = Qubit(**kwargs)
         return self.state
     
@@ -154,6 +154,8 @@ class Circuit:
         return f"{self.state}\n{self.prob_distribution}"
     
     def __getitem__(self, index):
+        if self.verbose:
+            print(f"Retreiving the {index} qubit")
         return self.state[index]
     
     def add_gate(self, gate, qubit=None):
@@ -165,14 +167,20 @@ class Circuit:
             if gate.n != 1:
                 raise QuantumCircuitError(f"Can only apply single qubit gates to a single qubit")
             enlarged_gate = Gate.Identity(n=qubit) % gate % Gate.Identity(n=self.qubit_num - qubit - 1)
+            if self.verbose:
+                print(f"Adding {gate.name} to qubit {qubit}")
             self.gates.append(enlarged_gate)
         else:
+            if self.verbose:
+                print(f"Adding {gate.name} of size {self.gate.n} x {self.gate.n} to the circuit")
             self.gates.append(gate)
         
     def compute_final_gate(self):
         final_gate = Gate.Identity(n=self.qubit_num)
         for gate in reversed(self.gates):         #goes backwards through the list and applies them
             final_gate = final_gate @ gate
+        if self.verbose:
+            print(f"Computing the final gate of depth {self.depth}")
         return final_gate
 
     def apply_gates(self):
@@ -181,31 +189,48 @@ class Circuit:
             self.state.set_display_mode("both")
         self.depth += len(self.gates)
         self.gates = []
+        if self.verbose:
+            print(f"Applying gate of depth {self.depth} to the quantum state")
         return self.state
 
     def list_probs(self, qubit=None, povm=None):
         self.prob_distribution = Measure(self.state if qubit is None else self.state[qubit]).list_probs(povm)
+        if self.verbose:
+            print(f"Listing the probabilities: {self.prob_distribution}")
         return self.prob_distribution
 
     def measure_state(self, qubit=None, povm=None):
         self.depth += 1
         if qubit is not None:
-            self.state[qubit] = Measure(self.state[qubit]).measure_state(povm)
+            measurement = Measure(self.state[qubit]).measure_state(povm)
+            self.state[qubit] = measurement
             self.collapsed_qubits.append(qubit)
+            if self.verbose:
+                measurement.set_display_mode("density")
+                print(f"Measured the state {measurement} of qubit {qubit}")
             return self.state
         else:
-            self.state = Measure(state=self.state).measure_state(povm)
+            measurement = Measure(state=self.state).measure_state(povm)
+            self.state = measurement
             self.collapsed = True
+            if self.verbose:
+                print(f"Measured the state {measurement} of the whole system")
             return self.state
         
     def get_info(self):
         return QuantInfo.state_info(self.state)
 
     def purity(self, qubit=None):
-        return QuantInfo.purity(self.state[qubit]) if qubit else QuantInfo.purity(self.state)
+        purity = QuantInfo.purity(self.state[qubit]) if qubit else QuantInfo.purity(self.state)
+        if self.verbose:
+            print(f"Purity of the qubit {qubit} is {purity}") if qubit else print(f"Purity of the state is {purity}")
+        return purity
     
     def linear_entropy(self, qubit=None):
-        return QuantInfo.linear_entropy(self.state[qubit]) if qubit else QuantInfo.linear_entropy(self.state)
+        linear_entropy = QuantInfo.linear_entropy(self.state[qubit]) if qubit else QuantInfo.linear_entropy(self.state)
+        if self.verbose:
+            print(f"Linear Entropy of the qubit {qubit} is {linear_entropy}") if qubit else print(f"Linear Entropy of the state is {linear_entropy}")
+        return linear_entropy
     
     def vn_entropy(self, qubit=None):
         return QuantInfo.vn_entropy(self.state[qubit]) if qubit else QuantInfo.vn_entropy(self.state)
@@ -223,7 +248,6 @@ class Circuit:
         print(f"Collapsed Qubits: {self.collapsed_qubits}")
         print(f"")
         print(f"\nCircuit State Debug Information:")
-        print("-" * (linewid/2))
+        print("-" * (int(linewid/2)))
         self.state.debug(title=False)
-
         print("-" * linewid)

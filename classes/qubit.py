@@ -89,6 +89,10 @@ class Qubit:                                           #creates the qubit class
             else:
                 self.rho = self.build_pure_rho()
 
+    def __repr__(self):
+        return self.__str__()
+
+
     def __str__(self) -> str:
         rho_str = np.array2string(self.rho, precision=p_prec, separator=', ', suppress_small=True)
         if self.state_type == "pure":
