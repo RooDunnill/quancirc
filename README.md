@@ -3,6 +3,12 @@ quantum information techniques and applications. The goal of this project is to 
 how quantum computers (atleast the ones we strive for, ie have all the gates) run, but also to create various other programs within, such as running
 algorithms efficiently on the circuit, and also to create quantum cryptography protocols such as BB84 or QCF.
 
+
+Installation Process:
+first from outside the program, run pip install -e quancirc
+then to run any of the scripts use:
+python -m quancirc.src.scripts."script_name"
+
 Here is some overall information, I try to docstring all functions, but this will give a little more indepth information on each class and also my thought process:
 Bit class:
 Qubit class:
