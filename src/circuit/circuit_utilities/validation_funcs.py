@@ -56,7 +56,7 @@ def gate_validation(gate):
     if not isinstance(gate.matrix, (list, np.ndarray)):
         raise GateError(f"The gate cannot be of type: {type(gate.matrix)}, expected type list or np.ndarray")
     gate.matrix = np.array(gate.matrix, dtype=np.complex128)
-    if gate.skip_val:
+    if not gate.skip_val:
         if np.size(gate.matrix) != 1:
             if gate.matrix.shape[0] != gate.matrix.shape[1]:
                 raise GateError(f"All gates must be of a square shape. This gate has shape {gate.matrix.shape[0]} x {gate.matrix.shape[1]}")

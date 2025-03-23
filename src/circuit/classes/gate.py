@@ -11,9 +11,10 @@ def combine_gate_attr(self: "Gate", other: "Gate", op = "+") -> list:
         kwargs = {}
         if hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
             kwargs["name"] = f"{self.name} {op} {other.name}"
-        if isinstance(self, Gate) and isinstance(other, Gate):
-            if self.skip_val or other.skip_val:
-                kwargs["skip_validation"] = True
+        if hasattr(self, "skip_val") and self.skip_val == True:
+            kwargs["skip_validation"] = True
+        elif hasattr(other, "skip_val") and other.skip_val == True: 
+            kwargs["skip_validation"] = True
         return kwargs
 
 class Gate:

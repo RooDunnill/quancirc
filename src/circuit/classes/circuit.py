@@ -107,7 +107,7 @@ class Circuit:
         self.state[qubit] = qubit_state
         return self.state
 
-    def apply_local_channel_to_qubit(self, channel, prob):
+    def apply_local_channel_to_state(self, channel, prob):
         for i in range(self.qubit_num):
             self.apply_channel_to_qubit(i, channel, prob)
         return self.state

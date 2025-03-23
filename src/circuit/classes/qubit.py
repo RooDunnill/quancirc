@@ -18,8 +18,6 @@ def combine_qubit_attr(self, other, op: str = None):
             else:
                 kwargs["name"] = f"{self.name}"
         if isinstance(self, Qubit) and isinstance(other, Qubit):
-            if self.skip_val or other.skip_val:
-                kwargs["skip_validation"] = True
             if isinstance(self.index, int) != isinstance(other.index, int):
                 if isinstance(self.index, int):
                     kwargs["index"] = self.index
@@ -33,11 +31,12 @@ def combine_qubit_attr(self, other, op: str = None):
                 else:
                     kwargs["display_mode"] = "vector"
         elif isinstance(other, Qubit):
-            if other.skip_val:
-                kwargs["skip_validation"] = True
             if hasattr(other, "index"):
                 kwargs["index"] = other.index
-        
+        if hasattr(self, "skip_val") and self.skip_val == True:
+            kwargs["skip_validation"] = True
+        elif hasattr(other, "skip_val") and other.skip_val == True: 
+            kwargs["skip_validation"] = True
         return kwargs
 
 

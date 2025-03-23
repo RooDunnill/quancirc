@@ -141,7 +141,7 @@ print(noisy_circuit.state)
 
 
 noisy_local = Circuit(q=2)
-noisy_local.apply_local_channel_to_qubit("X", 0.5)
+noisy_local.apply_local_channel_to_state("X", 0.5)
 noisy_local.state.set_display_mode("both")
 noisy_local.debug()
 print(noisy_local.state.skip_val)
