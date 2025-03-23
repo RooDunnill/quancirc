@@ -9,7 +9,7 @@ setup(
     include_package_data=True,
     entry_points={
         "console_scripts": [
-            "quancirc_run=quancirc.src.scripts.quancirc_run:main", 
+            "quancirc_run=quancirc.src.scripts.quancirc_run:main",  # Calls "main()" inside "quancirc_run.py"
             "quancirc_checks=quancirc.src.scripts.quancirc_checks:main"
         ]}
 )

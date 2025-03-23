@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from ..circuit.classes import *
-print("testtttt")
+
 partial_test = q0 % q1 % q1 % q0
 pt = partial_test.partial_trace(3, 0)
 pt2 = partial_test.partial_trace(0, 3)
