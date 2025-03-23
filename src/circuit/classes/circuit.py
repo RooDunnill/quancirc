@@ -12,6 +12,7 @@ from ..circuit_utilities.validation_funcs import circuit_validation, kraus_valid
         
 class Circuit:
     def __init__(self, **kwargs):
+        object.__setattr__(self, 'class_type', 'circuit')
         self.qubit_num = kwargs.get("q", 1)
         self.bit_num = kwargs.get("b", 1)
         self.verbose = kwargs.get("verbose", True)

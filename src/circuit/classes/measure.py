@@ -10,7 +10,7 @@ from ..circuit_utilities.validation_funcs import measure_validation
 
 class Measure:
     def __init__(self, state, **kwargs):
-        self.class_type = "measure"
+        object.__setattr__(self, 'class_type', 'measure')
         self.state = state
         measure_validation(self)
         

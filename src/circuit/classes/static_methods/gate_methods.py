@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def identity_gate(cls, **kwargs):    
     """The identity matrix, used mostly to represent empty wires in the circuit
     Args:

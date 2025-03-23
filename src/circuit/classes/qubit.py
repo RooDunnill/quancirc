@@ -42,10 +42,12 @@ def combine_qubit_attr(self, other, op: str = None):
 
 
 class Qubit:                                           #creates the qubit class
+    all_immutable_attr = ["class_type"]
+    immutable_attr = ["state", "dim", "length", "n", "rho", "name", "state_type", "immutable"]
     """The class to define and initialise Qubits and Quantum States"""
     def __init__(self, **kwargs) -> None:
+        object.__setattr__(self, 'class_type', 'qubit')
         self.skip_val = kwargs.get("skip_validation", False)
-        self.class_type = "qubit"
         self.name: str = kwargs.get("name", None)
         self.display_mode = kwargs.get("display_mode", "vector")
         self.weights: list = kwargs.get("weights", None)
@@ -63,6 +65,7 @@ class Qubit:                                           #creates the qubit class
         self.dim = len(self.rho)
         self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))
+        self.is_initialising = False
 
     def return_state_type(self) -> None:
         """Checks that state type and corrects if needed, returns type None"""
@@ -118,6 +121,14 @@ class Qubit:                                           #creates the qubit class
         elif self.state_type == "non unitary":
             state_str = np.array2string(self.build_state_from_rho(), precision=p_prec, separator=', ', suppress_small=True)
             return f"Non Quantum State Density Matrix:\n{rho_str}"
+        
+
+    def __setattr__(self, name, value):
+        if getattr(self, "immutable", False) and name in self.immutable_attr:
+            raise AttributeError(f"Cannot modify immutable object: {name}")
+        if name in self.all_immutable_attr:
+            raise AttributeError(f"Cannot modify immutable object: {name}")
+        super().__setattr__(name, value)
 
     
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
@@ -403,9 +414,15 @@ class Qubit:                                           #creates the qubit class
         return qmi_state(cls)
     
 q0 = Qubit.q0()
+q0.immutable = True
 q1 = Qubit.q1()
+q1.immutable = True
 qp = Qubit.qp()
+qp.immutable = True
 qm = Qubit.qm()
+qm.immutable = True
 qpi = Qubit.qpi()
+qpi.immutable = True
 qmi = Qubit.qmi()
+qmi.immutable = True
 

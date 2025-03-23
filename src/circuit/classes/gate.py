@@ -17,9 +17,11 @@ def combine_gate_attr(self: "Gate", other: "Gate", op = "+") -> list:
         return kwargs
 
 class Gate:
+    all_immutable_attr = ["class_type"]
+    immutable_attr = ["name", "matrix", "lenght", "n", "dim", "immutable"]
     def __init__(self, **kwargs):
+        object.__setattr__(self, 'class_type', 'gate')
         self.skip_val = kwargs.get("skip_validation", False)
-        self.class_type = "gate"
         self.name = kwargs.get("name", "Quantum Gate")
         self.matrix = kwargs.get("matrix", None)
         gate_validation(self)
@@ -33,7 +35,9 @@ class Gate:
         return f"{self.name}\n{matrix_str}"
       
     def __setattr__(self, name, value):
-        if getattr(self, "immutable", False):
+        if getattr(self, "immutable", False) and name in self.immutable_attr:
+            raise AttributeError(f"Cannot modify immutable object: {name}")
+        if name in self.all_immutable_attr:
             raise AttributeError(f"Cannot modify immutable object: {name}")
         super().__setattr__(name, value)
 
