@@ -256,6 +256,7 @@ class Qubit:                                           #creates the qubit class
             new_state = rho_A % new_state % rho_B 
             if new_state.dim == self.dim:
                 self.rho = new_state.rho
+
             else:
                 raise QuantumStateError(f"The new rho needs to be the same dimension as the old rho, not {self.dim} and {new_state.dim}")
         else:
@@ -287,16 +288,13 @@ class Qubit:                                           #creates the qubit class
         new_rho = np.zeros((reduced_dim, reduced_dim),dtype=np.complex128)
         traced_out_dim_range = np.arange(traced_out_dim)
         if trace_out_system == "B":
-                for k in range(reduced_dim):
-                    for i in range(reduced_dim):           #the shapes of tracing A and B look quite different but follow a diagonalesc pattern
-                        new_rho[i, k] = np.sum(rho[traced_out_dim_range+i*traced_out_dim, traced_out_dim_range+k*traced_out_dim])
+            rho_reshaped = rho.reshape(reduced_dim, traced_out_dim, reduced_dim, traced_out_dim)
+            new_rho = np.einsum('ijkl->ik', rho_reshaped)
         elif trace_out_system == "A":
-            for k in range(reduced_dim):
-                for i in range(reduced_dim):
-                    new_rho[i, k] = np.sum(rho[reduced_dim*traced_out_dim_range+i, reduced_dim *traced_out_dim_range+k])
+            rho_reshaped = rho.reshape(traced_out_dim, reduced_dim, traced_out_dim, reduced_dim)
+            new_rho = np.einsum('ijkl->jl', rho_reshaped)
         kwargs = {"rho": new_rho}
         kwargs.update(copy_qubit_attr(self))
-
         print(new_rho)
         return Qubit(**kwargs)
  
