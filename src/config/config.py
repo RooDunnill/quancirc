@@ -10,7 +10,6 @@ set_printoptions(precision=p_prec, suppress=True, floatmode="fixed")
 set_printoptions(linewidth=linewid)
 
 def startup_printout():
-    print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
     print("#" * linewid)
     print(f"Welcome to Quancirc, a quantum simulator I have been working on over the last few months")
     print(f"")

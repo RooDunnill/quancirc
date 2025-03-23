@@ -2,8 +2,8 @@
 from ..circuit.classes import *
 
 partial_test = q0 % q1 % q1 % q0
-pt = partial_test.partial_trace(3, 0)
-pt2 = partial_test.partial_trace(0, 3)
+pt = partial_test.partial_trace("B", 3)
+pt2 = partial_test.partial_trace("A", 3)
 print(pt)
 print(pt2)
 
@@ -30,7 +30,6 @@ print(f"\n\n\n\n\n\n")
 set_test = q1 % q1 % q1
 set_test.debug()
 set_test[0] = Hadamard @ q0
-print(set_test)
 set_test.debug()
 print(Qubit.q0(n=2))
 fwht_state = Qubit.q0(n=4)
@@ -168,19 +167,3 @@ QuantInfo.two_state_info(qub_0, qub_p)
 print(Gate.Rotation_X(np.pi))
 print(Gate.Rotation_Y(np.pi))
 print(Gate.Rotation_Z(np.pi))
-
-parital_qub = q1 % q0 % q1 
-parital_qub.set_display_mode("density")
-new_qub = parital_qub.partial_trace(1,1)
-print(new_qub)
-print("X" * 10)
-new_qub = parital_qub.partial_trace(2,0)
-print(new_qub)
-print("X" * 10)
-new_qub = parital_qub.partial_trace(0,2)
-print(new_qub)
-print(parital_qub.decompose_state(0))
-print(parital_qub.isolate_qubit(0))
-qub1, qub2, qub3 = parital_qub.decompose_state(2)
-print(qub1 % qub2 % qub3)
-print(Hadamard % Hadamard)
