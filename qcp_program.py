@@ -3,7 +3,7 @@ start = time.time()
 from random import choices, randint                                            #used for measuring
 import matplotlib.pyplot as plt
 from scipy.linalg import sqrtm, logm
-from utilities import *
+from config import *
 
 
 class Timer:

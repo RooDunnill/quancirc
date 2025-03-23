@@ -1,0 +1,3 @@
+[console_scripts]
+quancirc_checks = quancirc.src.scripts.quancirc_checks:main
+quancirc_run = quancirc.src.scripts.quancirc_run:main

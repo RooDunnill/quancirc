@@ -2,7 +2,7 @@ import numpy as np
 from ..circuit_utilities.qc_errors import GateError
 from .static_methods.gate_methods import *
 from .qubit import combine_qubit_attr
-from quancirc.utilities.config import *
+from quancirc.src.config import *
 from ..circuit_utilities.validation_funcs import gate_validation
 
 
