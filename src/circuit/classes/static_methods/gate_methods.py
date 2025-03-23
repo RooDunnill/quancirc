@@ -12,6 +12,21 @@ def identity_gate(cls, **kwargs):
         dim = int(2**n)
         new_mat = np.eye(dim, dtype=np.complex128)
         return cls(name="Identity Gate", matrix=new_mat)
+    
+def rotation_x_gate(cls, theta):
+    """Rotates a qubit around the x axis"""
+    rotation_x = [[np.cos(theta/2),np.complex128(0-1j)*np.sin(theta/2)],[np.complex128(0-1j)*np.sin(theta/2),np.cos(theta/2)]]
+    return cls(name="Rotation X", matrix=rotation_x)
+
+def rotation_y_gate(cls, theta):
+    """Rotates a qubit around the x axis"""
+    rotation_y = [[np.cos(theta/2),-np.sin(theta/2)],[np.sin(theta/2),np.cos(theta/2)]]
+    return cls(name="Rotation Y", matrix=rotation_y)
+
+def rotation_z_gate(cls, theta):
+    """Rotates a qubit around the x axis"""
+    rotation_z = [[np.exp(np.complex128(0-1j)*(theta/2)),0],[0,np.exp(np.complex128(0+1j)*(theta/2))]]
+    return cls(name="Rotation Z", matrix=rotation_z)
 
 def pauli_x_gate(cls):
     """The X Gate, which can flip the Qubits in the X or computational basis"""

@@ -136,6 +136,22 @@ class Gate:
         return gate
     
     @classmethod
+    def Rotation_X(cls, theta):
+        gate = rotation_x_gate(cls, theta)
+        return gate
+    
+    @classmethod
+    def Rotation_Y(cls, theta):
+        gate = rotation_y_gate(cls, theta)
+        return gate
+    
+    @classmethod
+    def Rotation_Z(cls, theta):
+        gate = rotation_z_gate(cls, theta)
+        return gate
+    
+    
+    @classmethod
     def X_Gate(cls):
         gate = pauli_x_gate(cls)
         return gate

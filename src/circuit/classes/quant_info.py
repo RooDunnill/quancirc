@@ -123,7 +123,6 @@ class QuantInfo:
             lower = 1 - np.sqrt(fidelity)
             upper = np.sqrt(1 - fidelity)
         return lower, upper
-
     
     @staticmethod
     def quantum_conditional_entropy(state_1: Qubit, state_2: Qubit) -> float:    #rho is the one that goes first in S(A|B)
