@@ -244,11 +244,12 @@ class Qubit:                                           #creates the qubit class
             get_qubit = self.isolate_qubit(index)
             if get_qubit is None:
                 raise QuantumStateError(f"Could not isolate qubit {index}, invalid index input")
+            get_qubit.index = index
             return get_qubit
         raise QuantumStateError(f"Index cannot be of type {type(index)}, expected type int or slice")
     
     def __setitem__(self: "Qubit", index: int, new_state: "Qubit") -> None:
-        """Sets a single Qubit to the inputted Qubit, then tensors the state back into the multistate, returns None type"""
+        """Sets a sinlge Qubit to the inputted Qubit, then tensors the state back into the multistate, returns None type"""
         if not isinstance(self.rho, np.ndarray):
             raise QuantumStateError(f"self.rho cannot be of type {type(self.rho)}, must be of type np.ndarray")
         rho_A, replaced_qubit, rho_B = self.decompose_state(index)
@@ -305,30 +306,6 @@ class Qubit:                                           #creates the qubit class
         kwargs = {"rho": new_rho}
         kwargs.update(copy_qubit_attr(self))
         return Qubit(**kwargs)
-    
-    def partial_trace_gen(self, size_a, size_c, **kwargs):
-        rho = kwargs.get("rho", self.rho)
-        if not isinstance(rho, (np.ndarray, list)):
-            raise QuantumStateError(f"rho cannot be of type {type(rho)}, expected type np.ndarray or type list")
-        dim_a = int(2**size_a)
-        dim_c = int(2**size_c)
-        rho_dim = len(rho)
-        dim_b = int(rho_dim/(dim_a*dim_c))
-        if size_c == 0:
-            rho_reshape = rho.reshape(dim_a, dim_b, dim_a, dim_b)
-            print(rho_reshape.shape)
-            new_rho = np.einsum("abcd->bd", rho_reshape)
-        elif size_a == 0:
-            rho_reshape = rho.reshape(dim_b, dim_c, dim_b, dim_c)
-            print(rho_reshape.shape)
-            new_rho = np.einsum("abcd->ac", rho_reshape)
-        else:
-            rho_reshape = rho.reshape(dim_a, dim_b, dim_c, dim_a, dim_b, dim_c)
-            new_rho = np.einsum("abcdef->be", rho_reshape)
-        kwargs = {"rho": new_rho}
-        kwargs.update(copy_qubit_attr(self))
-        return Qubit(**kwargs)
-
 
     def isolate_qubit(self, qubit_index: int) -> "Qubit":
         """Used primarily in __getitem__ to return a single Qubit from a multiqubit state, returns a Qubit object"""
