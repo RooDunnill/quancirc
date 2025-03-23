@@ -4,7 +4,7 @@ from .qubit import Qubit
 from .gate import X_Gate, Y_Gate, Z_Gate
 from scipy.linalg import sqrtm, logm
 import matplotlib.pyplot as plt
-from quancirc.src.config import *
+from ..circuit_config import *
 
 class QuantInfo:
     @staticmethod
