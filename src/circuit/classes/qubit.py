@@ -244,6 +244,7 @@ class Qubit:                                           #creates the qubit class
             get_qubit = self.isolate_qubit(index)
             if get_qubit is None:
                 raise QuantumStateError(f"Could not isolate qubit {index}, invalid index input")
+            get_qubit.index = index
             return get_qubit
         raise QuantumStateError(f"Index cannot be of type {type(index)}, expected type int or slice")
     
@@ -281,6 +282,13 @@ class Qubit:                                           #creates the qubit class
         rho_dim = len(rho)
         rho_n = int(np.log2(rho_dim))
         if trace_out_state_size == rho_n:
+            return Qubit()
+        traced_out_dim: int = 2**trace_out_state_size
+        reduced_dim = int(rho_dim / traced_out_dim)
+        new_rho = np.zeros((reduced_dim, reduced_dim),dtype=np.complex128)
+        rho_dim = len(rho)
+        rho_n = int(np.log2(rho_dim))
+        if trace_out_state_size == rho_n:
             kwargs.update(copy_qubit_attr(self))
             return Qubit(**kwargs)
         traced_out_dim: int = 2**trace_out_state_size
@@ -288,16 +296,16 @@ class Qubit:                                           #creates the qubit class
         new_rho = np.zeros((reduced_dim, reduced_dim),dtype=np.complex128)
         traced_out_dim_range = np.arange(traced_out_dim)
         if trace_out_system == "B":
-            rho_reshaped = rho.reshape(reduced_dim, traced_out_dim, reduced_dim, traced_out_dim)
-            new_rho = np.einsum('ijkl->ik', rho_reshaped)
+                for k in range(reduced_dim):
+                    for i in range(reduced_dim):           #the shapes of tracing A and B look quite different but follow a diagonalesc pattern
+                        new_rho[i, k] = np.sum(rho[traced_out_dim_range+i*traced_out_dim, traced_out_dim_range+k*traced_out_dim])
         elif trace_out_system == "A":
-            rho_reshaped = rho.reshape(traced_out_dim, reduced_dim, traced_out_dim, reduced_dim)
-            new_rho = np.einsum('ijkl->jl', rho_reshaped)
+            for k in range(reduced_dim):
+                for i in range(reduced_dim):
+                    new_rho[i, k] = np.sum(rho[reduced_dim*traced_out_dim_range+i, reduced_dim *traced_out_dim_range+k])
         kwargs = {"rho": new_rho}
         kwargs.update(copy_qubit_attr(self))
-        print(new_rho)
         return Qubit(**kwargs)
- 
 
     def isolate_qubit(self, qubit_index: int) -> "Qubit":
         """Used primarily in __getitem__ to return a single Qubit from a multiqubit state, returns a Qubit object"""
