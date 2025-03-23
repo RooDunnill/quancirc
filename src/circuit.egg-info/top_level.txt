@@ -1,3 +1,0 @@
-circuit
-config
-scripts
