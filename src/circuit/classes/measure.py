@@ -1,5 +1,5 @@
 import numpy as np
-from ..circuit_utilities.qc_errors import MeasureError
+from ..circuit_utilities.circuit_errors import MeasureError
 from random import choices, randint
 from .qubit import *
 from ..circuit_utilities.validation_funcs import measure_validation

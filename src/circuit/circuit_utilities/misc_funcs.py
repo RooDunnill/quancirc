@@ -1,5 +1,5 @@
 import numpy as np
-from .qc_errors import QC_error
+from .circuit_errors import QC_error
 
 def binary_entropy(prob: float) -> float:
     """Used to calculate the binary entropy of two probabilities"""

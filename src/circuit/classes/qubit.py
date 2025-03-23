@@ -1,5 +1,5 @@
 import numpy as np
-from ..circuit_utilities.qc_errors import QuantumStateError, StatePreparationError
+from ..circuit_utilities.circuit_errors import QuantumStateError, StatePreparationError
 from .static_methods.qubit_methods import *
 from ..circuit_config import *
 from ..circuit_utilities.validation_funcs import qubit_validation, rho_validation

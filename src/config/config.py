@@ -1,7 +1,3 @@
-from pathlib import Path
-import sys
-
-sys.path.append(str(Path(__file__).parent))
 from numpy import set_printoptions
 import atexit
 import time

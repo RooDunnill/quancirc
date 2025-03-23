@@ -1,5 +1,5 @@
 import numpy as np
-from ..circuit_utilities.qc_errors import *
+from .circuit_errors import *
 
 def qubit_validation(state) -> None:
     """Checks if a density matrix is valid in __init__, returns type None"""

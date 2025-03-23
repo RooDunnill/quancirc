@@ -1,4 +1,4 @@
-from .qc_errors import *
+from .circuit_errors import *
 from .layout_funcs import *
 from .misc_funcs import *
 from .validation_funcs import *

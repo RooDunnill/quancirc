@@ -1,5 +1,5 @@
 import numpy as np
-from ..circuit_utilities.qc_errors import GateError
+from ..circuit_utilities.circuit_errors import GateError
 from .static_methods.gate_methods import *
 from .qubit import combine_qubit_attr
 from ..circuit_config import *

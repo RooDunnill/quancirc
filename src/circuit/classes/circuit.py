@@ -4,7 +4,7 @@ from .bit import *
 from .gate import *
 from .quant_info import *
 from .measure import *
-from ..circuit_utilities.qc_errors import QuantumCircuitError
+from ..circuit_utilities.circuit_errors import QuantumCircuitError
 from ..circuit_utilities.validation_funcs import circuit_validation, kraus_validation
 
 
