@@ -46,7 +46,7 @@ def rho_validation(state):
                 raise StatePreparationError(f"Density matrix is not positive semi-definite. "
                                     f"Negative eigenvalues found at indices {negative_indices}")
             if not np.isclose(np.trace(state.rho), 1.0):
-                raise StatePreparationError(f"Density matrix must have a trace of 1, not of trace {np.trace(state.rho)}")
+                raise StatePreparationError(f"Density matrix must have a trace of 1, not of trace {np.trace(state.rho)}: rho: {state.rho}")
 
 def gate_validation(gate):
     if not isinstance(gate.name, str):
