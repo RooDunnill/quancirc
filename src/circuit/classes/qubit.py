@@ -39,6 +39,17 @@ def combine_qubit_attr(self, other, op: str = None):
             kwargs["skip_validation"] = True
         return kwargs
 
+def copy_qubit_attr(self):
+    kwargs = {}
+    if hasattr(self, "name"):
+        kwargs["name"] = self.name
+    if hasattr(self, "display_mode"):
+        kwargs["display_mode"] = self.display_mode
+    if hasattr(self, "skip_val") and self.skip_val == True:
+        kwargs["skip_validation"] = True
+    if hasattr(self, "index"):
+        kwargs["index"] = self.index
+    return kwargs
 
 class Qubit:                                           #creates the qubit class
     all_immutable_attr = ["class_type"]
@@ -47,7 +58,6 @@ class Qubit:                                           #creates the qubit class
     def __init__(self, **kwargs) -> None:
         object.__setattr__(self, 'class_type', 'qubit')
         self.skip_val = kwargs.get("skip_validation", False)
-        self.name: str = kwargs.get("name", None)
         self.display_mode = kwargs.get("display_mode", "vector")
         self.weights: list = kwargs.get("weights", None)
         self.name: str = kwargs.get("name","|Quantum State>")
@@ -274,21 +284,20 @@ class Qubit:                                           #creates the qubit class
             return Qubit()
         traced_out_dim: int = 2**trace_out_state_size
         reduced_dim = int(rho_dim / traced_out_dim)
-        new_mat = np.zeros((reduced_dim, reduced_dim),dtype=np.complex128)
+        new_rho = np.zeros((reduced_dim, reduced_dim),dtype=np.complex128)
         traced_out_dim_range = np.arange(traced_out_dim)
-        if isinstance(rho, np.ndarray):
-            kwargs = vars(self).copy()
-            if trace_out_system == "B":
-                for k in range(reduced_dim):
-                    for i in range(reduced_dim):           #the shapes of tracing A and B look quite different but follow a diagonalesc pattern
-                        new_mat[i, k] = np.sum(rho[traced_out_dim_range+i*traced_out_dim, traced_out_dim_range+k*traced_out_dim])
-                return Qubit(rho=new_mat)
-            elif trace_out_system == "A":
-                for k in range(reduced_dim):
-                    for i in range(reduced_dim):
-                        new_mat[i, k] = np.sum(rho[reduced_dim*traced_out_dim_range+i, reduced_dim *traced_out_dim_range+k])
-                return Qubit(rho=new_mat)
-        raise QuantumStateError(f"self.rho cannot be of type {type(self.rho)}, expected type np.ndarray")
+        if trace_out_system == "B":
+            for k in range(reduced_dim):
+                for i in range(reduced_dim):           #the shapes of tracing A and B look quite different but follow a diagonalesc pattern
+                    new_rho[i, k] = np.sum(rho[traced_out_dim_range+i*traced_out_dim, traced_out_dim_range+k*traced_out_dim])
+        elif trace_out_system == "A":
+            for k in range(reduced_dim):
+                for i in range(reduced_dim):
+                    new_rho[i, k] = np.sum(rho[reduced_dim*traced_out_dim_range+i, reduced_dim *traced_out_dim_range+k])
+        kwargs = {"rho": new_rho}
+        kwargs.update(copy_qubit_attr(self))
+        return Qubit(**kwargs)
+ 
 
     def isolate_qubit(self, qubit_index: int) -> "Qubit":
         """Used primarily in __getitem__ to return a single Qubit from a multiqubit state, returns a Qubit object"""

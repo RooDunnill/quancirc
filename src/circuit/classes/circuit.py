@@ -6,7 +6,7 @@ from .quant_info import *
 from .measure import *
 from ..circuit_utilities.circuit_errors import QuantumCircuitError
 from ..circuit_utilities.validation_funcs import circuit_validation, kraus_validation
-
+from ..circuit_utilities.layout_funcs import format_ket_notation
 
 
         
@@ -134,48 +134,27 @@ class Circuit:
     
     def __getitem__(self, index):
         if self.verbose:
-            print(f"Retreiving the {index} qubit")
+            print(f"Retreiving qubit {index}")
         return self.state[index]
     
-    def add_gate(self, gate, qubit=None):
+    def add_gate(self, gate, qubit=None) -> None:
         if self.collapsed:
             raise QuantumCircuitError(f"This state has already been measured and so no further gates can be applied")
         if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
             if qubit in self.collapsed_qubits:
                 raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
-            if gate.n != 1:
-                raise QuantumCircuitError(f"Can only apply single qubit gates to a single qubit")
-            enlarged_gate = Gate.Identity(n=qubit) % gate % Gate.Identity(n=self.qubit_num - qubit - 1)
+            self.state[qubit] = gate @ self.state[qubit]
             if self.verbose:
-                print(f"Adding {gate.name} to qubit {qubit}")
-            self.gates.append(enlarged_gate)
-        else:
-            if self.verbose:
-                print(f"Adding {gate.name} of size {self.gate.n} x {self.gate.n} to the circuit")
-            self.gates.append(gate)
-        
-    def compute_final_gate(self):
-        final_gate = Gate.Identity(n=self.qubit_num)
-        for gate in reversed(self.gates):         #goes backwards through the list and applies them
-            final_gate = final_gate @ gate
-        if self.verbose:
-            print(f"Computing the final gate of depth {self.depth}")
-        return final_gate
-
-    def apply_gates(self):
-        for gate in self.gates:
+                print(f"Applying {gate.name} to qubit {qubit}")
+        elif qubit is None:
             self.state = gate @ self.state
-            self.state.set_display_mode("both")
-        self.depth += len(self.gates)
-        self.gates = []
-        if self.verbose:
-            print(f"Applying gate of depth {self.depth} to the quantum state")
-        return self.state
+            if self.verbose:
+                print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the circuit")
 
     def list_probs(self, qubit=None, povm=None):
         self.prob_distribution = Measure(self.state if qubit is None else self.state[qubit]).list_probs(povm)
         if self.verbose:
-            print(f"Listing the probabilities: {self.prob_distribution}")
+            print(f"Listing the probabilities:\n{format_ket_notation(self.prob_distribution)}")
         return self.prob_distribution
 
     def measure_state(self, qubit=None, povm=None):

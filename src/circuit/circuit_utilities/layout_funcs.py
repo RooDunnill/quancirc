@@ -1,4 +1,5 @@
 import numpy as np
+from ..circuit_config import *
 
 def top_probs(prob_list: np.ndarray, **kwargs) -> np.ndarray:             #sorts through the probability distribution and finds the top n probabilities corresponding to the length n or the oracle values
         """Computes the top n probabilities of a list of probabilities"""
@@ -23,7 +24,7 @@ def format_ket_notation(list_probs: np.ndarray, **kwargs) -> str:
     """Used for printing out as it gives each state and the ket associated with it"""
     list_type = kwargs.get("type", "all")
     num_bits = kwargs.get("num_bits", int(np.ceil(np.log2(len(list_probs)))))    #this is to flush out the ket notation to give the correct number of bits back
-    prec = kwargs.get("precision", 3)
+    prec = kwargs.get("precision", p_prec)
     if list_type == "topn":
         print_out = f""
         for ket_val, prob_val in zip(list_probs[:,0],list_probs[:,1]):       #iterates through every prob value
