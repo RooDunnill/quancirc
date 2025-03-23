@@ -45,6 +45,8 @@ class QuantInfo:
         print("-" * int(linewid/2))
         print(f"Fidelity: {QuantInfo.fidelity(state_1, state_2):.{p_prec}f}")
         print(f"Trace Distance: {QuantInfo.trace_distance(state_1, state_2):.{p_prec}f}")
+        lower, upper = QuantInfo.trace_distance_bound(state_1, state_2)
+        print(f"Trace Distance Bound: {lower:.{p_prec}f} =< Trace Distance =< {upper:.{p_prec}f}")
         print(f"Quantum Conditional Entropy: {QuantInfo.quantum_conditional_entropy(state_1, state_2):.{p_prec}f}")
         print(f"Quantum Mutual Information: {QuantInfo.quantum_mutual_info(state_1, state_2):.{p_prec}f}")
         print(f"Quantum Relative Entropy: {QuantInfo.quantum_relative_entropy(state_1, state_2):.{p_prec}f}")
@@ -107,8 +109,21 @@ class QuantInfo:
         dim_range = np.arange(state_1.dim)
         trace_dist = np.sum(0.5 * np.abs(diff_state.rho[dim_range, dim_range]))
         return trace_dist
-      
     
+    @staticmethod
+    def trace_distance_bound(state_1:Qubit, state_2: Qubit) -> tuple[float, float]:
+        fidelity = QuantInfo.fidelity(state_1, state_2)
+        if np.isclose(fidelity, 1.0, atol=1e-4):
+            lower = 0.0
+            upper = 0.0
+        elif np.isclose(fidelity, 0.0, atol=1e-4):
+            lower = 1.0
+            upper = 1.0
+        else:
+            lower = 1 - np.sqrt(fidelity)
+            upper = np.sqrt(1 - fidelity)
+        return lower, upper
+
     
     @staticmethod
     def quantum_conditional_entropy(state_1: Qubit, state_2: Qubit) -> float:    #rho is the one that goes first in S(A|B)
