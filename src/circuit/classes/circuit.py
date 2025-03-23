@@ -102,9 +102,10 @@ class Circuit:
             k_applied = k @ qubit_state
             epsilon += k_applied
         kwargs = {"rho": epsilon.rho, "skip_validation": False, "name": f"{channel} channel applied to {old_name}", "index": old_index}
-        print(epsilon.rho)
         qubit_state = Qubit(**kwargs)
         self.state[qubit] = qubit_state
+        qubit_state.set_state_type()
+        self.state.state_type = qubit_state.state_type
         return self.state
 
     def apply_local_channel_to_state(self, channel, prob):

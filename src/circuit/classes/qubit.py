@@ -59,22 +59,21 @@ class Qubit:                                           #creates the qubit class
         qubit_validation(self)
         self.rho_init()
         rho_validation(self)
-        self.return_state_type()
+        self.set_state_type()
 
         self.dim = len(self.rho)
         self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))
-        self.is_initialising = False
 
-    def return_state_type(self) -> None:
+    def set_state_type(self) -> None:
         """Checks that state type and corrects if needed, returns type None"""
-        purity = np.trace(np.dot(self.rho, self.rho))
-        if np.isclose(purity, 1.0, atol=1e-4):
+        purity = np.trace(np.dot(self.rho, self.rho)).real
+        if self.skip_val:
+            self.state_type = "non unitary"
+        elif np.isclose(purity, 1.0, atol=1e-4):
             self.state_type = "pure"
         elif purity < 1:
             self.state_type = "mixed"
-        elif self.skip_val:
-            self.state_type = "non unitary"
         else:
             raise StatePreparationError(f"The purity of a state must be between 0 and 1, purity: {purity}")
             
@@ -96,9 +95,12 @@ class Qubit:                                           #creates the qubit class
 
 
     def __str__(self) -> str:
+        state_print = self.build_state_from_rho()
         rho_str = np.array2string(self.rho, precision=p_prec, separator=', ', suppress_small=True)
         if self.state_type == "pure":
-            state_str = np.array2string(self.build_state_from_rho(), precision=p_prec, separator=', ', suppress_small=True)
+            if isinstance(state_print, tuple):
+                raise StatePreparationError(f"The state vector of a pure state cannot be a tuple")
+            state_str = np.array2string(state_print, precision=p_prec, separator=', ', suppress_small=True)
             if self.display_mode == "vector":
                 return f"Pure Quantum State Vector:\n{state_str}"
             elif self.display_mode == "density":
@@ -107,7 +109,10 @@ class Qubit:                                           #creates the qubit class
                 return f"Pure Quantum State Vector:\n{state_str}\n\nDensity Matrix:\n{rho_str}"
 
         elif self.state_type == "mixed":
-            weights, state = self.build_state_from_rho()
+            if isinstance(state_print, np.ndarray):
+                raise StatePreparationError(f"The state vector of a mixed state cannot be a sinlge np.ndarray")
+            weights = state_print[0]
+            state = state_print[1]
             weights_str = np.array2string(weights, precision=p_prec, separator=', ', suppress_small=True)
             state_str = np.array2string(state, precision=p_prec, separator=', ', suppress_small=True)
             if self.display_mode == "vector":
@@ -118,7 +123,6 @@ class Qubit:                                           #creates the qubit class
                 return f"Mixed Quantum State Vector:\nWeights:\n{weights_str}\n\nStates:\n{state_str}\n\nDensity Matrix:\n{rho_str}"
             
         elif self.state_type == "non unitary":
-            state_str = np.array2string(self.build_state_from_rho(), precision=p_prec, separator=', ', suppress_small=True)
             return f"Non Quantum State Density Matrix:\n{rho_str}"
         
 
@@ -352,6 +356,8 @@ class Qubit:                                           #creates the qubit class
     def build_state_from_rho(self) -> np.ndarray:
         """Builds a state vector from the given rho matrix, primarily for printing purposes, returns type np.ndarray"""
         probs, states = np.linalg.eigh(self.rho)
+        probs = np.array(probs, dtype=np.float64)
+        states = np.array(states, dtype=np.complex128)
         max_eigenvalue = np.argmax(np.isclose(probs, 1.0))
         if np.any(probs) > 1.0:
             raise QuantumStateError(f"You cannot have a probability over 1, the probabilities {probs} have been computed incorrectly")
@@ -362,7 +368,6 @@ class Qubit:                                           #creates the qubit class
                 state_vector /= norm
                 return state_vector
             raise QuantumStateError(f"The norm cannot be 0")
-        self.state_type = "mixed"
         return probs, states
     
     def debug(self, title=True) -> None:

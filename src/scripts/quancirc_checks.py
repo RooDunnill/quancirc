@@ -130,6 +130,11 @@ print(test.index)
 test2 = test % q0
 print(test2.index)
 
+q0.skip_val = True
+test_qub = q0 * 2
+print(test_qub)
+print(test_qub.skip_val)
+
 noisy_circuit = Circuit(q=2)
 noisy_circuit.apply_channel_to_qubit(0, "X", 0.5)
 noisy_circuit.state.set_display_mode("both")
