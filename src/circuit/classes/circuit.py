@@ -143,7 +143,9 @@ class Circuit:
         if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
             if qubit in self.collapsed_qubits:
                 raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
-            self.state[qubit] = gate @ self.state[qubit]
+            
+            gate = Gate.Identity(n=qubit) % gate % Gate.Identity(n=self.state.n - qubit - 1)
+            self.state = gate @ self.state
             if self.verbose:
                 print(f"Applying {gate.name} to qubit {qubit}")
         elif qubit is None:

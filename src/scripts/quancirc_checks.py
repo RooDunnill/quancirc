@@ -2,8 +2,8 @@
 from ..circuit.classes import *
 
 partial_test = q0 % q1 % q1 % q0
-pt = partial_test.partial_trace("B", 3)
-pt2 = partial_test.partial_trace("A", 3)
+pt = partial_test.partial_trace(0, 3)
+pt2 = partial_test.partial_trace(3, 0)
 print(pt)
 print(pt2)
 
@@ -167,9 +167,15 @@ QuantInfo.two_state_info(qub_0, qub_p)
 print(Gate.Rotation_X(np.pi))
 print(Gate.Rotation_Y(np.pi))
 print(Gate.Rotation_Z(np.pi))
-test_circuit = Circuit(q=10)
-for i in range(10):
-    test_circuit.add_gate(Hadamard, i)
-test_circuit.list_probs()
+
 print(Hadamard @ qp)
 print(X_Gate @ q0)
+test_qub = Qubit(state=[[1,0],[0,1]], weights=[0.5,0.5])
+test_qub.set_display_mode("density")
+test_qub.debug()
+print(test_qub)
+
+test_qub2 = test_qub % q0
+print(test_qub2)
+print(test_qub2.partial_trace(1,0))
+print(test_qub2.partial_trace(0,1))
