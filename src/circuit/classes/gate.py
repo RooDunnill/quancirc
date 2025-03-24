@@ -100,7 +100,8 @@ class Gate:
             kwargs.update(combine_gate_attr(self, other, op = "@"))
             return Gate(**kwargs)
         elif other.class_type == "qubit":
-            new_rho = np.dot(np.dot(self.matrix, other.rho), np.conj(self.matrix.T))
+            new_rho = np.einsum("ij, jk, kl -> il", self.matrix, other.rho, np.conj(self.matrix.T), optimize=True)
+            #new_rho = np.dot(np.dot(self.matrix, other.rho), np.conj(self.matrix.T))
             new_rho = np.round(new_rho, decimals=10)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "@"))

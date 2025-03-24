@@ -159,7 +159,8 @@ class Qubit:                                           #creates the qubit class
         if isinstance(other, Qubit):
             raise QuantumStateError(f"Cannot matrix multiply (double) two Quantum states together")
         elif other.class_type == "gate":
-            new_rho = np.dot(np.dot(other.matrix, self.rho), np.conj(other.matrix.T))
+            new_rho = np.einsum("ij, jk, kl -> il", other.matrix, self.rho, np.conj(other.matrix.T), optimize=True)
+            #new_rho = np.dot(np.dot(other.matrix, self.rho), np.conj(other.matrix.T))
             new_rho = np.round(new_rho, decimals=10)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "*"))
@@ -257,11 +258,10 @@ class Qubit:                                           #creates the qubit class
             new_state = rho_A % new_state % rho_B 
             if new_state.dim == self.dim:
                 self.rho = new_state.rho
-
             else:
                 raise QuantumStateError(f"The new rho needs to be the same dimension as the old rho, not {self.dim} and {new_state.dim}")
         else:
-            raise QuantumStateError(f"The dimensions of the new qubit must be the same as the dimensions of the old qubit")
+            raise QuantumStateError(f"The dimensions of the new qubit must be the same as the dimensions of the old qubit, not {replaced_qubit.dim} and {new_state.dim}")
 
     def partial_trace(self, trace_out_system: str, trace_out_state_size: int, **kwargs) -> "Qubit":
         """Computes the partial trace of a state, can apply a trace from either 'side' and can trace out an arbitrary amount of qubits
@@ -306,6 +306,66 @@ class Qubit:                                           #creates the qubit class
         kwargs = {"rho": new_rho}
         kwargs.update(copy_qubit_attr(self))
         return Qubit(**kwargs)
+
+    def partial_trace_gen(self, trace_out_system: str, trace_out_state_size: int, **kwargs) -> "Qubit":
+        """Computes the partial trace of a state, can apply a trace from either 'side' and can trace out an arbitrary amount of qubits
+        Args:
+            self: The density instance
+            **kwargs
+            trace_out_system:str : Chooses between A and B which to trace out, defaults to B
+            state_size:int : Chooses the number of Qubits in the trace out state, defaults to 1 Qubit
+        Returns:self.rho_a if trace_out_system = B
+                self.rho_b if trace_out_system = A"""
+        rho = kwargs.get("rho", self.rho)
+        if not isinstance(rho, (np.ndarray, list)):
+            raise QuantumStateError(f"rho cannot be of type {type(rho)}, expected type np.ndarray or type list")
+        if trace_out_system not in ["A", "B"]:
+            raise QuantumStateError(f"trace_out_system must be either str: 'A' or 'B', cannot be {trace_out_system}")
+        if not isinstance(trace_out_state_size, int):
+            raise QuantumStateError(f"trace_out_state_size cannot be of type {type(trace_out_state_size)}, expected type int")
+        rho_dim = len(rho)
+        rho_n = int(np.log2(rho_dim))
+        if trace_out_state_size == rho_n:
+            return Qubit()
+        traced_out_dim: int = 2**trace_out_state_size
+        reduced_dim = int(rho_dim / traced_out_dim)
+        new_rho = np.zeros((reduced_dim, reduced_dim),dtype=np.complex128)
+        rho_dim = len(rho)
+        rho_n = int(np.log2(rho_dim))
+        if trace_out_state_size == rho_n:
+            kwargs.update(copy_qubit_attr(self))
+            return Qubit(**kwargs)
+        traced_out_dim: int = 2**trace_out_state_size
+        reduced_dim = int(rho_dim / traced_out_dim)
+        new_rho = np.zeros((reduced_dim, reduced_dim),dtype=np.complex128)
+        traced_out_dim_range = np.arange(traced_out_dim)
+        if trace_out_system == "A":
+                new_rho = np.trace(rho.reshape(traced_out_dim, reduced_dim, traced_out_dim, reduced_dim), axis1=0, axis2=2)
+        elif trace_out_system == "B":
+            new_rho = np.trace(rho.reshape(reduced_dim, traced_out_dim, reduced_dim, traced_out_dim), axis1=1, axis2=3)
+        kwargs = {"rho": new_rho}
+        kwargs.update(copy_qubit_attr(self))
+        return Qubit(**kwargs)
+    
+    def partial_trace_gen_gen(self, size_a, size_c, **kwargs):
+        rho = kwargs.get("rho", self.rho)
+        if not isinstance(rho, (np.ndarray, list)):
+            raise QuantumStateError(f"rho cannot be of type {type(rho)}, expected type np.ndarray or type list")
+        dim_a = int(2**size_a)
+        dim_c = int(2**size_c)
+        rho_dim = len(rho)
+        dim_b = int(rho_dim/(dim_a*dim_c))
+        if size_c == 0:
+            new_rho = np.trace(rho.reshape(dim_a, dim_b, dim_a, dim_b), axis1=0, axis2=2)
+        elif size_a == 0:
+            new_rho = np.trace(rho.reshape(dim_b, dim_c, dim_b, dim_c), axis1=1, axis2=3)
+        else:
+            new_rho = np.trace(rho.reshape(dim_a, dim_b * dim_c, dim_a, dim_b * dim_c), axis1=0, axis2=2)
+            new_rho = np.trace(new_rho.reshape(dim_b, dim_c, dim_b, dim_c), axis1=1, axis2=3)
+        kwargs = {"rho": new_rho}
+        kwargs.update(copy_qubit_attr(self))
+        return Qubit(**kwargs)
+
 
     def isolate_qubit(self, qubit_index: int) -> "Qubit":
         """Used primarily in __getitem__ to return a single Qubit from a multiqubit state, returns a Qubit object"""
