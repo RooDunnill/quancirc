@@ -55,7 +55,7 @@ class Qubit:                                           #creates the qubit class
     all_immutable_attr = ["class_type"]
     immutable_attr = ["state", "dim", "length", "n", "rho", "name", "state_type", "immutable"]
     """The class to define and initialise Qubits and Quantum States"""
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         object.__setattr__(self, 'class_type', 'qubit')
         self.skip_val = kwargs.get("skip_validation", False)
         self.display_mode = kwargs.get("display_mode", "vector")
@@ -95,7 +95,7 @@ class Qubit:                                           #creates the qubit class
             self.skip_val = True
 
         if self.rho is None:
-            if self.weights:
+            if self.weights is not None:
                 self.rho = self.build_mixed_rho()
             else:
                 self.rho = self.build_pure_rho()
@@ -418,15 +418,15 @@ class Qubit:                                           #creates the qubit class
     def build_pure_rho(self) -> np.ndarray:
         """Builds a pure rho matrix, primarily in initiation of Qubit object, returns type np.ndarray"""
         if isinstance(self.state, np.ndarray):
-            return np.outer(np.conj(self.state), self.state)
+            return np.einsum("i,j", np.conj(self.state), self.state, optimize=True)
         raise StatePreparationError(f"self.state cannot be of type {type(self.state)}, expected np.ndarray")
     
     def build_mixed_rho(self) -> np.ndarray:
         """Builds a mixed rho matrix, primarily in initiation of Qubit object, returns type np.ndarray"""
         if self.weights is not None:
-            mixed_rho = np.zeros(len(self.state[0])**2, dtype=np.complex128)
+            mixed_rho = np.zeros((len(self.state[0]),len(self.state[0])), dtype=np.complex128)
             for i in range(len(self.weights)):
-                mixed_rho += self.weights[i] * np.outer(np.conj(self.state[i]), self.state[i])
+                mixed_rho += self.weights[i] * np.einsum("j,k->jk", np.conj(self.state[i]), self.state[i], optimize=True)
             return mixed_rho
         raise StatePreparationError(f"For a mixed rho to be made, you must provide weights in kwargs")
         

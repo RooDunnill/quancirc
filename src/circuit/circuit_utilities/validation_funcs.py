@@ -7,7 +7,7 @@ def qubit_validation(state) -> None:
         if not isinstance(state.state, (list, np.ndarray)):
             raise StatePreparationError(f"The inputted self.state cannot be of type {type(state.state)}, expected type list or type np.ndarray")
         state.state = np.array(state.state, dtype=np.complex128)
-        if len(state.state.shape) != 1:
+        if len(state.state.shape) != 1 and state.weights is None:
             raise StatePreparationError(f"The inputted self.state must be 1D not {state.state.shape}")
     if state.weights is not None:
         if not isinstance(state.weights, (list, np.ndarray)):
@@ -21,13 +21,14 @@ def qubit_validation(state) -> None:
         if not isinstance(state.display_mode, str):
             raise StatePreparationError(f"The inputted self.display_mode cannot be of type {type(state.display_mode)}, expected type str")
         if state.weights is not None:
-            
             if not np.isrealobj(state.weights):
                 raise StatePreparationError(f"self.weights must be made up of real numbers as it is the probabilities of specific states")
+            if len(state.state) != len(state.weights):
+                raise StatePreparationError(f"The amount of imputted vectors must be the same as the number of inputted weights")
             if not np.isclose(np.sum(state.weights), 1.0, atol=1e-4):
                 raise StatePreparationError(f"The sum of the probabilities must equal 1, not {np.sum(state.weights)}")
             
-        if state.state is not None:
+        if state.state is not None and state.weights is None:
             sum_check = np.dot(state.state , np.conj(state.state))
             if not np.isclose(sum_check, 1.0, atol=1e-4):
                 raise StatePreparationError(f"The absolute square of the elements of the state must sum to 1, not to {sum_check}")
