@@ -179,3 +179,7 @@ test_qub2 = test_qub % q0
 print(test_qub2)
 print(test_qub2.partial_trace(1,0))
 print(test_qub2.partial_trace(0,1))
+test_circuit = Circuit(q=8)
+for i in range(8):
+    test_circuit.add_gate(Hadamard, i)
+test_circuit.list_probs()

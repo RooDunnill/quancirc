@@ -14,9 +14,6 @@ class Measure:
         self.state = state
         measure_validation(self)
         
-        
-   
-
     def list_probs(self, povm: np.ndarray=None) -> np.ndarray:
         if isinstance(self.state, Qubit):
             if povm:

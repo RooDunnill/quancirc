@@ -65,7 +65,6 @@ class Qubit:                                           #creates the qubit class
         self.rho: list = kwargs.get("rho", None)
         self.state_type = None
         self.index = kwargs.get("index", None)
-
         qubit_validation(self)
         self.rho_init()
         rho_validation(self)
@@ -86,14 +85,12 @@ class Qubit:                                           #creates the qubit class
             self.state_type = "mixed"
         else:
             raise StatePreparationError(f"The purity of a state must be between 0 and 1, purity: {purity}")
-            
 
     def rho_init(self) -> None:
         """Builds and checks the rho attribute during __init__, returns type None"""
         if self.rho is None and self.state is None:
             self.rho = np.eye(1)
             self.skip_val = True
-
         if self.rho is None:
             if self.weights is not None:
                 self.rho = self.build_mixed_rho()
@@ -102,7 +99,6 @@ class Qubit:                                           #creates the qubit class
 
     def __repr__(self):
         return self.__str__()
-
 
     def __str__(self) -> str:
         state_print = self.build_state_from_rho()
@@ -135,7 +131,6 @@ class Qubit:                                           #creates the qubit class
         elif self.state_type == "non unitary":
             return f"Non Quantum State Density Matrix:\n{rho_str}"
         
-
     def __setattr__(self, name, value):
         if getattr(self, "immutable", False) and name in self.immutable_attr:
             raise AttributeError(f"Cannot modify immutable object: {name}")
@@ -143,7 +138,6 @@ class Qubit:                                           #creates the qubit class
             raise AttributeError(f"Cannot modify immutable object: {name}")
         super().__setattr__(name, value)
 
-    
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
         if isinstance(other, Qubit):
@@ -255,7 +249,7 @@ class Qubit:                                           #creates the qubit class
             raise QuantumStateError(f"self.rho cannot be of type {type(self.rho)}, must be of type np.ndarray")
         rho_A, replaced_qubit, rho_B = self.decompose_state(index)
         if replaced_qubit.dim == new_state.dim:
-            new_state = rho_A % new_state % rho_B 
+            new_state = rho_A % new_state % rho_B
             if new_state.dim == self.dim:
                 self.rho = new_state.rho
             else:

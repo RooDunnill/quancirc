@@ -27,7 +27,6 @@ def qubit_validation(state) -> None:
                 raise StatePreparationError(f"The amount of imputted vectors must be the same as the number of inputted weights")
             if not np.isclose(np.sum(state.weights), 1.0, atol=1e-4):
                 raise StatePreparationError(f"The sum of the probabilities must equal 1, not {np.sum(state.weights)}")
-            
         if state.state is not None and state.weights is None:
             sum_check = np.dot(state.state , np.conj(state.state))
             if not np.isclose(sum_check, 1.0, atol=1e-4):
@@ -79,7 +78,6 @@ def circuit_validation(circuit):
 
 def kraus_validation(kraus_operators: list | tuple | np.ndarray):
     if isinstance(kraus_operators, (list, tuple, np.ndarray)):
-
         kraus_dim = len(kraus_operators[0].matrix)
         kraus_sum = np.zeros((kraus_dim, kraus_dim), dtype=np.complex128)
         for i in kraus_operators:

@@ -156,7 +156,6 @@ class Gate:
         gate = rotation_z_gate(cls, theta)
         return gate
     
-    
     @classmethod
     def X_Gate(cls):
         gate = pauli_x_gate(cls)

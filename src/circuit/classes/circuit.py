@@ -7,12 +7,13 @@ from .measure import *
 from ..circuit_utilities.circuit_errors import QuantumCircuitError
 from ..circuit_utilities.validation_funcs import circuit_validation, kraus_validation
 from ..circuit_utilities.layout_funcs import format_ket_notation
-
+from .circuit_special_gates import *
 
         
 class Circuit:
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'circuit')
+        self.computation_mode = kwargs.get("comp_mode", "density")
         self.qubit_num = kwargs.get("q", 1)
         self.bit_num = kwargs.get("b", 1)
         self.verbose = kwargs.get("verbose", True)
@@ -30,7 +31,7 @@ class Circuit:
     def init_circuit(self) -> tuple[Qubit, Bit]:
         if self.verbose:
             print(f"Initialising circuit with {self.qubit_num} qubits and {self.bit_num} bits")
-        return Qubit.q0(n=self.qubit_num), Bit(self.bit_num)
+        return Qubit.q0(n=self.qubit_num, comp_mode=self.computation_mode), Bit(self.bit_num)
     
     def config_noise(self, **kwargs):
         self.noisy = kwargs.get("noise", False)
@@ -138,20 +139,28 @@ class Circuit:
         return self.state[index]
     
     def add_gate(self, gate, qubit=None) -> None:
+        gate_name = gate.name
         if self.collapsed:
             raise QuantumCircuitError(f"This state has already been measured and so no further gates can be applied")
-        if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
-            if qubit in self.collapsed_qubits:
-                raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
-            
-            gate = Gate.Identity(n=qubit) % gate % Gate.Identity(n=self.state.n - qubit - 1)
-            self.state = gate @ self.state
+        if gate is Hadamard and self.state.state_type == "pure" and qubit is None:
+            self.state.state = self.state.build_state_from_rho()
+            self.state = vector_fwht(self.state)
             if self.verbose:
-                print(f"Applying {gate.name} to qubit {qubit}")
-        elif qubit is None:
-            self.state = gate @ self.state
-            if self.verbose:
-                print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the circuit")
+                print(f"Applying {gate} to the state")
+            self.state.rho = self.state.build_pure_rho()
+        else:
+            if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
+                if qubit in self.collapsed_qubits:
+                    raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
+                gate = Gate.Identity(n=qubit) % gate % Gate.Identity(n=self.state.n - qubit - 1)
+                gate.name = f"{gate_name}{qubit}"
+                self.state = gate @ self.state
+                if self.verbose:
+                    print(f"Applying {gate.name} to qubit {qubit}")
+            elif qubit is None:
+                self.state = gate @ self.state
+                if self.verbose:
+                    print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the circuit")
 
     def list_probs(self, qubit=None, povm=None):
         self.prob_distribution = Measure(self.state if qubit is None else self.state[qubit]).list_probs(povm)
