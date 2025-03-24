@@ -1,4 +1,6 @@
 import numpy as np
+import scipy as sp
+from scipy import sparse
 from ..circuit_utilities.circuit_errors import QuantumStateError, StatePreparationError
 from .static_methods.qubit_methods import *
 from ..circuit_config import *
@@ -58,7 +60,8 @@ class Qubit:                                           #creates the qubit class
     def __init__(self, *args, **kwargs) -> None:
         object.__setattr__(self, 'class_type', 'qubit')
         self.skip_val = kwargs.get("skip_validation", False)
-        self.display_mode = kwargs.get("display_mode", "vector")
+        self.matrix_type = kwargs.get("matrix_type", "dense")
+        self.display_mode = kwargs.get("display_mode", "density")
         self.weights: list = kwargs.get("weights", None)
         self.name: str = kwargs.get("name","|Quantum State>")
         self.state: list = kwargs.get("state", None)
@@ -69,7 +72,6 @@ class Qubit:                                           #creates the qubit class
         self.rho_init()
         rho_validation(self)
         self.set_state_type()
-
         self.dim = len(self.rho)
         self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))
@@ -153,8 +155,7 @@ class Qubit:                                           #creates the qubit class
         if isinstance(other, Qubit):
             raise QuantumStateError(f"Cannot matrix multiply (double) two Quantum states together")
         elif other.class_type == "gate":
-            new_rho = np.einsum("ij, jk, kl -> il", other.matrix, self.rho, np.conj(other.matrix.T), optimize=True)
-            #new_rho = np.dot(np.dot(other.matrix, self.rho), np.conj(other.matrix.T))
+            new_rho = np.einsum("ij, jk, lk -> il", other.matrix, self.rho, np.conj(other.matrix), optimize=True)   #swapped indice order for the transpose
             new_rho = np.round(new_rho, decimals=10)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "*"))

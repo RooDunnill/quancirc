@@ -12,5 +12,7 @@ fwht_test.state.set_display_mode("density")
 print(fwht_test.state)
 
 
+print(Gate.Identity(n=6) % Gate.Identity(n=6))
+
 
 
