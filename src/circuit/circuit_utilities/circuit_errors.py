@@ -13,6 +13,12 @@ class QuantumStateError(QC_error):
         self.message = message
         super().__init__(self.message)
 
+class LWQuantumStateError(QC_error):
+    """Error related to qubits and their operations"""
+    def __init__(self, message="Invalid lightweight qubit operation or state"):
+        self.message = message
+        super().__init__(self.message)
+
 class BitError(QC_error):
     """Error related to bits and their operations"""
     def __init__(self, message="Invalid bit operation or state"):
@@ -40,6 +46,12 @@ class MeasureError(QC_error):
 class StatePreparationError(QC_error):
     """Error related to quantum state preparation."""
     def __init__(self, message="Invalid State Preparation Operation"):
+        self.message = message
+        super().__init__(self.message)
+
+class LWStatePreparationError(QC_error):
+    """Error related to quantum state preparation."""
+    def __init__(self, message="Invalid Lightweight State Preparation Operation"):
         self.message = message
         super().__init__(self.message)
 

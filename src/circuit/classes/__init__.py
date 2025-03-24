@@ -1,4 +1,5 @@
 from .qubit import *   #do not depend on any other modules
+from .qubit_lw import *
 from .gate import *
 from .bit import *
 from .quant_info import *
