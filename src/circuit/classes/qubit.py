@@ -106,12 +106,12 @@ class Qubit:                                           #creates the qubit class
         return self.__str__()
 
     def __str__(self) -> str:
-        state_print = dense_mat(self.build_state_from_rho())
+        state_print = self.build_state_from_rho()
         rho_str = np.array2string(dense_mat(self.rho), precision=p_prec, separator=', ', suppress_small=True)
         if self.state_type == "pure":
             if isinstance(state_print, tuple):
                 raise StatePreparationError(f"The state vector of a pure state cannot be a tuple")
-            state_str = np.array2string(state_print, precision=p_prec, separator=', ', suppress_small=True)
+            state_str = np.array2string(dense_mat(state_print), precision=p_prec, separator=', ', suppress_small=True)
             if self.display_mode == "vector":
                 return f"Pure Quantum State Vector:\n{state_str}"
             elif self.display_mode == "density":
@@ -122,8 +122,8 @@ class Qubit:                                           #creates the qubit class
         elif self.state_type == "mixed":
             if isinstance(state_print, np.ndarray):
                 raise StatePreparationError(f"The state vector of a mixed state cannot be a sinlge np.ndarray")
-            weights = state_print[0]
-            state = state_print[1]
+            weights = dense_mat(state_print[0])
+            state = dense_mat(state_print[1])
             weights_str = np.array2string(weights, precision=p_prec, separator=', ', suppress_small=True)
             state_str = np.array2string(state, precision=p_prec, separator=', ', suppress_small=True)
             if self.display_mode == "vector":
@@ -277,6 +277,7 @@ class Qubit:                                           #creates the qubit class
             raise QuantumStateError(f"rho cannot be of type {type(rho)}, expected type sp.spmatrix or type np.ndarray or type list")
         if not isinstance(size_a, int) and not isinstance(size_c, int):
             raise QuantumStateError(f"size_a and size_c cannot be of types: {type(size_a)} and {type(size_c)}, expected types int and int")
+        rho = dense_mat(rho)
         dim_a = int(2**size_a)
         dim_c = int(2**size_c)
         rho_dim = len(rho)

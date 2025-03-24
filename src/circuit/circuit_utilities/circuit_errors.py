@@ -53,3 +53,7 @@ class QuantInfoError(QC_error):
         self.message = message
         super().__init__(self.message)
 
+class SparseMatrixError(QC_error):
+    def __init__(self, message="Invalid Sparse Matrix Operation"):
+        self.message = message
+        super().__init__(self.message)

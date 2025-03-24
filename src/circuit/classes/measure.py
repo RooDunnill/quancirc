@@ -15,19 +15,29 @@ class Measure:
         measure_validation(self)
         
     def list_probs(self, povm: np.ndarray=None) -> np.ndarray:
+        rho = dense_mat(self.state.rho)
         if isinstance(self.state, Qubit):
             if povm:
-                if isinstance(povm, (np.ndarray, list)):
-                    probs = np.array([np.real(np.trace(P @ self.state.rho)) for P in povm], dtype=np.float64)
+                if sparse.issparse(povm):
+                    probs = np.array([np.real(np.trace(P.dot(rho))) for P in povm], dtype=np.float64)
+                    return probs
+                elif isinstance(povm, (np.ndarray, list)):
+                    probs = np.array([np.real(np.trace(P @ rho)) for P in povm], dtype=np.float64)
                     return probs
                 raise MeasureError(f"Inputted povm cannot be of type {type(povm)}, expected np.ndarray")
             if not povm:
-                if isinstance(self.state.rho, np.ndarray):
-                    probs = np.diagonal(self.state.rho).real
+                if sparse.issparse(rho):
+                    probs = sparse.diags(rho).real
+                    probs = dense_mat(probs)
                     if np.isclose(np.sum(probs), 1.0, atol=1e-5):
                         return probs
                     raise MeasureError(f"The sum of the probabilities adds up to {np.sum(probs)}, however it must sum to 1 to be valid, probs: {probs}")
-                raise MeasureError(f"Inputted state cannot have a state.rho of type  {type(self.state.rho)}, expected np.ndarray")
+                elif isinstance(rho, np.ndarray):
+                    probs = np.diagonal(rho).real
+                    if np.isclose(np.sum(probs), 1.0, atol=1e-5):
+                        return probs
+                    raise MeasureError(f"The sum of the probabilities adds up to {np.sum(probs)}, however it must sum to 1 to be valid, probs: {probs}")
+                raise MeasureError(f"Inputted state cannot have a state.rho of type  {type(rho)}, expected np.ndarray")
         raise MeasureError(f"Inputted state cannot be of type {type(self.state)}, expected Qubit class")
        
     def measure_state(self, povm: np.ndarray = None) -> Qubit:
