@@ -1,17 +1,18 @@
 from ..circuit.classes import *
 
 
-
-
-test_qub = q0 % qm
-
-print((Hadamard % Hadamard) @ test_qub)
-print(Gate.Identity(n=1) % Gate.Identity(n=1))
-print(Identity % Identity)
-test_circuit = Circuit(q=2)
-test_circuit.add_gate(Identity, qubit=0)
-test_circuit.add_gate(Hadamard, qubit=1)
-
+qubs = 6
+test_circuit = Circuit(q=qubs)
+for i in range(qubs):
+    test_circuit.add_gate(Hadamard, i)
+    print(type(test_circuit.state.rho))
 test_circuit.list_probs()
-test_circuit.measure_state()
-print(test_circuit)
+
+qub_partial = qm % qm % qm % qp
+print(qub_partial.partial_trace(1,0))
+print(qub_partial.partial_trace(1,1))
+print(qub_partial.partial_trace(1,2))
+print(qub_partial.partial_trace(3,0))
+print(qub_partial.partial_trace(0,3))
+print(qub_partial.partial_trace(2,1))
+print(qub_partial.partial_trace(0,1))
