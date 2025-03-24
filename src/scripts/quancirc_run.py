@@ -5,14 +5,7 @@ from ..circuit.classes import *
 
 
 
-fwht_test =Circuit(q=8)
-fwht_test.add_gate(Hadamard)
-fwht_test.list_probs()
-fwht_test.state.set_display_mode("density")
-print(fwht_test.state)
+sparse_test = q0 % q0
+print(type(sparse_test.rho))
 
-
-print(Gate.Identity(n=6) % Gate.Identity(n=6))
-
-
-
+print(sparse_test)

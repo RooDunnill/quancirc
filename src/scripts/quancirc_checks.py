@@ -189,3 +189,11 @@ test_qub.partial_trace(2,2)
 test_qub.partial_trace(1,3)
 print(test_qub.partial_trace(0,1))
 print(test_qub.partial_trace(0,4))
+fwht_test =Circuit(q=8)
+fwht_test.add_gate(Hadamard)
+fwht_test.list_probs()
+fwht_test.state.set_display_mode("density")
+print(fwht_test.state)
+
+
+print(Gate.Identity(n=4) % Gate.Identity(n=4))

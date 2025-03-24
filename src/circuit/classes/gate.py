@@ -4,7 +4,7 @@ from .static_methods.gate_methods import *
 from .qubit import combine_qubit_attr
 from ..circuit_config import *
 from ..circuit_utilities.validation_funcs import gate_validation
-
+from ..circuit_utilities.sparse_funcs import *
 
 def combine_gate_attr(self: "Gate", other: "Gate", op = "+") -> list:
         """Allows the returned objects to still return name too"""
@@ -64,9 +64,13 @@ class Gate:
             return self.matrix[row, col]
 
     def __mod__(self, other) -> "Gate":            #tensor product
+        mat_1 = convert_to_sparse(self.matrix)
+        mat_2 = convert_to_sparse(other.matrix)
         if isinstance(other, Gate):
-            new_matrix = np.kron(self.matrix, other.matrix)
-            new_matrix = np.round(new_matrix, decimals=10)
+            if sparse.issparse(mat_1) and sparse.issparse(mat_2):
+                new_matrix = sparse.kron(mat_1, mat_2)
+            else:
+                new_matrix = np.kron(self.matrix, other.matrix)
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "%"))
             return Gate(**kwargs)
@@ -93,22 +97,31 @@ class Gate:
         raise GateError(f"The variable with which you are multiplying the Gate by cannot be of type {type(other)}, expected type int or type float")
         
     def __matmul__(self, other) -> "Gate":
+        mat_1 = convert_to_sparse(self.matrix)
         if isinstance(other, Gate):
-            new_matrix = np.dot(self.matrix, other.matrix)
-            new_matrix = np.round(new_matrix, decimals=10)
+            mat_2 = convert_to_sparse(other.matrix)
+            if sparse.issparse(mat_1) and sparse.issparse(mat_2):
+                new_rho = mat_1.dot(mat_2)
+            else:
+                new_matrix = np.dot(mat_1, mat_2)
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "@"))
             return Gate(**kwargs)
         elif other.class_type == "qubit":
-            new_rho = np.einsum("ij, jk, kl -> il", self.matrix, other.rho, np.conj(self.matrix.T), optimize=True)
-            #new_rho = np.dot(np.dot(self.matrix, other.rho), np.conj(self.matrix.T))
-            new_rho = np.round(new_rho, decimals=10)
+            rho_2 = convert_to_sparse(other.rho)
+            if sparse.issparse(mat_1) and sparse.issparse(rho_2):
+                new_rho = mat_1.dot(rho_2)
+            else:
+                new_rho = np.dot(np.dot(mat_1, rho_2), np.conj(mat_1.T))
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "@"))
             return other.__class__(**kwargs)
-        elif isinstance(other, np.ndarray):
-            new_matrix = np.dot(self.matrix, other)
-            new_matrix = np.round(new_matrix, decimals=10)
+        elif isinstance(other, (sparse.sparray, np.ndarray)):
+            mat_2 = other
+            if sparse.issparse(mat_1) and sparse.issparse(mat_2):
+                new_matrix = mat_1.dot(mat_2)
+            else:
+                new_matrix = np.dot(mat_1, mat_2)
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "@"))
             return Gate(**kwargs)

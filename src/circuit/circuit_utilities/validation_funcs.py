@@ -1,6 +1,7 @@
 import numpy as np
+from scipy import sparse
 from .circuit_errors import *
-
+from .sparse_funcs import *
 def qubit_validation(state) -> None:
     """Checks if a density matrix is valid in __init__, returns type None"""
     if state.state is not None:
@@ -33,20 +34,25 @@ def qubit_validation(state) -> None:
                 raise StatePreparationError(f"The absolute square of the elements of the state must sum to 1, not to {sum_check}")
             
 def rho_validation(state):
-    if not isinstance(state.rho, (list, np.ndarray)):
+    if isinstance(state.rho, (list, np.ndarray)):
+        state.rho = np.array(state.rho, dtype=np.complex128)
+    elif isinstance(state.rho, sparse.spmatrix):
+        state.rho = sparse.csr_matrix(state.rho, dtype=np.complex128)
+    else:
         raise StatePreparationError(f"The inputted self.rho cannot be of type {type(state.rho)}, expected type list or type np.ndarray")
-    state.rho = np.array(state.rho, dtype=np.complex128)
+        
     if not state.skip_val:
-        if not np.allclose(state.rho, state.rho.conj().T):  
-            raise StatePreparationError(f"Density matrix is not Hermitian: {state.rho}")
-        if not np.array_equal(state.rho, np.array([1])):
-            eigenvalues = np.linalg.eigvalsh(state.rho)
+        test_rho = dense_mat(state.rho)
+        if not np.allclose(test_rho, (test_rho.conj()).T):  
+            raise StatePreparationError(f"Density matrix is not Hermitian: {test_rho}")
+        if not np.array_equal(test_rho, np.array([1])):
+            eigenvalues = np.linalg.eigvalsh(test_rho)
             if np.any(eigenvalues < -1e-4):
                 negative_indices = np.where(eigenvalues < 0)[0]
                 raise StatePreparationError(f"Density matrix is not positive semi-definite. "
                                     f"Negative eigenvalues found at indices {negative_indices}")
-            if not np.isclose(np.trace(state.rho), 1.0):
-                raise StatePreparationError(f"Density matrix must have a trace of 1, not of trace {np.trace(state.rho)}")
+            if not np.isclose(np.trace(test_rho), 1.0):
+                raise StatePreparationError(f"Density matrix must have a trace of 1, not of trace {np.trace(test_rho)}")
 
 def gate_validation(gate):
     if not isinstance(gate.name, str):

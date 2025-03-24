@@ -1,6 +1,8 @@
 import numpy as np
 import scipy as sp
 from scipy import sparse
+from scipy.sparse.linalg import eigsh
+from ..circuit_utilities.sparse_funcs import *
 from ..circuit_utilities.circuit_errors import QuantumStateError, StatePreparationError
 from .static_methods.qubit_methods import *
 from ..circuit_config import *
@@ -72,13 +74,14 @@ class Qubit:                                           #creates the qubit class
         self.rho_init()
         rho_validation(self)
         self.set_state_type()
-        self.dim = len(self.rho)
+        self.dim = len(dense_mat(self.rho))
         self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))
 
     def set_state_type(self) -> None:
         """Checks that state type and corrects if needed, returns type None"""
-        purity = np.trace(np.dot(self.rho, self.rho)).real
+        purity_rho = dense_mat(self.rho)
+        purity = np.trace(np.dot(purity_rho, purity_rho)).real
         if self.skip_val:
             self.state_type = "non unitary"
         elif np.isclose(purity, 1.0, atol=1e-4):
@@ -103,8 +106,8 @@ class Qubit:                                           #creates the qubit class
         return self.__str__()
 
     def __str__(self) -> str:
-        state_print = self.build_state_from_rho()
-        rho_str = np.array2string(self.rho, precision=p_prec, separator=', ', suppress_small=True)
+        state_print = dense_mat(self.build_state_from_rho())
+        rho_str = np.array2string(dense_mat(self.rho), precision=p_prec, separator=', ', suppress_small=True)
         if self.state_type == "pure":
             if isinstance(state_print, tuple):
                 raise StatePreparationError(f"The state vector of a pure state cannot be a tuple")
@@ -143,8 +146,13 @@ class Qubit:                                           #creates the qubit class
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
         if isinstance(other, Qubit):
-            new_rho = np.kron(self.rho, other.rho)
-            new_rho = np.round(new_rho, decimals=10)
+            rho_1 = convert_to_sparse(self.rho)
+            rho_2 = convert_to_sparse(other.rho)
+            if sparse.issparse(rho_1) and sparse.issparse(rho_2):
+                new_rho = sparse.kron(rho_1, rho_2)
+            else:
+                new_rho = np.kron(rho_1, rho_2)
+            new_rho = convert_to_sparse(new_rho)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "%"))
             return Qubit(**kwargs)
@@ -155,8 +163,13 @@ class Qubit:                                           #creates the qubit class
         if isinstance(other, Qubit):
             raise QuantumStateError(f"Cannot matrix multiply (double) two Quantum states together")
         elif other.class_type == "gate":
-            new_rho = np.einsum("ij, jk, lk -> il", other.matrix, self.rho, np.conj(other.matrix), optimize=True)   #swapped indice order for the transpose
-            new_rho = np.round(new_rho, decimals=10)
+            rho_1 = convert_to_sparse(self.rho)
+            rho_2 = convert_to_sparse(other.rho)
+            if sparse.issparse(rho_1) and sparse.issparse(rho_2):
+                new_rho = rho_1.dot(rho_2)   #swapped indice order for the transpose
+            else:
+                new_rho = np.dot(rho_1, rho_2)
+            new_rho = convert_to_sparse(new_rho)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "*"))
             return Qubit(**kwargs)
@@ -246,8 +259,8 @@ class Qubit:                                           #creates the qubit class
     
     def __setitem__(self: "Qubit", index: int, new_state: "Qubit") -> None:
         """Sets a sinlge Qubit to the inputted Qubit, then tensors the state back into the multistate, returns None type"""
-        if not isinstance(self.rho, np.ndarray):
-            raise QuantumStateError(f"self.rho cannot be of type {type(self.rho)}, must be of type np.ndarray")
+        if not isinstance(self.rho, (sparse.spmatrix, np.ndarray)):
+            raise QuantumStateError(f"self.rho cannot be of type {type(self.rho)}, must be of type sp.spmatrix or type np.ndarray")
         rho_A, replaced_qubit, rho_B = self.decompose_state(index)
         if replaced_qubit.dim == new_state.dim:
             new_state = rho_A % new_state % rho_B
@@ -260,8 +273,8 @@ class Qubit:                                           #creates the qubit class
 
     def partial_trace(self, size_a, size_c, **kwargs):
         rho = kwargs.get("rho", self.rho)
-        if not isinstance(rho, (np.ndarray, list)):
-            raise QuantumStateError(f"rho cannot be of type {type(rho)}, expected type np.ndarray or type list")
+        if not isinstance(rho, (sparse.spmatrix, np.ndarray, list)):
+            raise QuantumStateError(f"rho cannot be of type {type(rho)}, expected type sp.spmatrix or type np.ndarray or type list")
         if not isinstance(size_a, int) and not isinstance(size_c, int):
             raise QuantumStateError(f"size_a and size_c cannot be of types: {type(size_a)} and {type(size_c)}, expected types int and int")
         dim_a = int(2**size_a)
@@ -338,15 +351,23 @@ class Qubit:                                           #creates the qubit class
         
     def build_state_from_rho(self) -> np.ndarray:
         """Builds a state vector from the given rho matrix, primarily for printing purposes, returns type np.ndarray"""
-        probs, states = np.linalg.eigh(self.rho)
-        probs = np.array(probs, dtype=np.float64)
-        states = np.array(states, dtype=np.complex128)
+        if sparse.issparse(self.rho):
+            N = self.rho.shape[0]
+            k = max(1, N - 2)
+            probs, states = eigsh(self.rho, k=k, which="LM")
+            probs = sparse.csr_matrix(probs, dtype=np.float64)
+            states = sparse.csr_matrix(states, dtype=np.complex128)
+        else:
+            probs, states = np.linalg.eigh(self.rho)
+            probs = np.array(probs, dtype=np.float64)
+            states = np.array(states, dtype=np.complex128)
+        probs = dense_mat(probs)
         max_eigenvalue = np.argmax(np.isclose(probs, 1.0))
         if np.any(probs) > 1.0:
             raise QuantumStateError(f"You cannot have a probability over 1, the probabilities {probs} have been computed incorrectly")
         if np.any(np.isclose(probs, 1.0)):
             state_vector = states[:, max_eigenvalue]
-            norm = np.linalg.norm(state_vector)
+            norm =  sparse.linalg.norm(state_vector) if sparse.issparse(state_vector) else np.linalg.norm(state_vector)
             if norm != 0:
                 state_vector /= norm
                 return state_vector
