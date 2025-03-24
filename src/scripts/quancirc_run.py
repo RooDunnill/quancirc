@@ -15,3 +15,4 @@ print(test_qub)
 test_qub2 = test_qub % q0
 print(test_qub2)
 print(test_qub2.partial_trace_gen_gen(1,0))
+print(test_qub2.partial_trace_gen_gen(0,1))
