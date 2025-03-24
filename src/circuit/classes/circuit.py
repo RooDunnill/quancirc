@@ -8,6 +8,7 @@ from ..circuit_utilities.circuit_errors import QuantumCircuitError
 from ..circuit_utilities.validation_funcs import circuit_validation, kraus_validation
 from ..circuit_utilities.layout_funcs import format_ket_notation
 from .circuit_special_gates import *
+from scipy.sparse import eye_array
 
         
 class Circuit:
@@ -142,6 +143,10 @@ class Circuit:
         gate_name = gate.name
         if self.collapsed:
             raise QuantumCircuitError(f"This state has already been measured and so no further gates can be applied")
+        if gate is Identity:
+            if self.verbose:
+                print(f"Applying {gate.name} to qubit {qubit}")
+            return
         if gate is Hadamard and self.state.state_type == "pure" and qubit is None:
             self.state.state = self.state.build_state_from_rho()
             self.state = vector_fwht(self.state)
@@ -152,7 +157,9 @@ class Circuit:
             if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
                 if qubit in self.collapsed_qubits:
                     raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
-                gate = Gate.Identity(n=qubit) % gate % Gate.Identity(n=self.state.n - qubit - 1)
+                self.state.rho = sparse_mat(self.state.rho)
+                gate_action = Gate(matrix=sparse_mat(gate.matrix))
+                gate = Gate.Identity(n=qubit, type="sparse") % gate_action % Gate.Identity(n=self.state.n - qubit - 1, type="sparse")
                 gate.name = f"{gate_name}{qubit}"
                 self.state = gate @ self.state
                 if self.verbose:

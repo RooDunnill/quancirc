@@ -5,15 +5,23 @@ from .sparse_funcs import *
 def qubit_validation(state) -> None:
     """Checks if a density matrix is valid in __init__, returns type None"""
     if state.state is not None:
-        if not isinstance(state.state, (list, np.ndarray)):
+        if isinstance(state.state, (list, np.ndarray)):
+            state.state = np.array(state.state, dtype=np.complex128)
+        elif sparse.issparse(state.state):
+            state.state = sparse.csr_matrix(state.state, dtype=np.complex128)
+        else:
             raise StatePreparationError(f"The inputted self.state cannot be of type {type(state.state)}, expected type list or type np.ndarray")
-        state.state = np.array(state.state, dtype=np.complex128)
+        
         if len(state.state.shape) != 1 and state.weights is None:
             raise StatePreparationError(f"The inputted self.state must be 1D not {state.state.shape}")
     if state.weights is not None:
-        if not isinstance(state.weights, (list, np.ndarray)):
+        if isinstance(state.weights, (list, np.ndarray)):
+            state.weights = np.array(state.weights, dtype=np.float64)
+        elif sparse.issparse(state.weights):
+            state.state = sparse.csr_matrix(state.weights, dtype=np.complex128)
+        else:
             raise StatePreparationError(f"The inputted self.weights cannot be of type {type(state.weights)}, expected type list or type np.ndarray")
-        state.weights = np.array(state.weights, dtype=np.float64)
+        
     if not state.skip_val:
         if not isinstance(state.skip_val, bool):
             raise StatePreparationError(f"The inputted self.skip_val cannot be of type {type(state.skip_val)}, expected type bool")
@@ -34,10 +42,10 @@ def qubit_validation(state) -> None:
                 raise StatePreparationError(f"The absolute square of the elements of the state must sum to 1, not to {sum_check}")
             
 def rho_validation(state):
-    if isinstance(state.rho, (list, np.ndarray)):
-        state.rho = np.array(state.rho, dtype=np.complex128)
-    elif isinstance(state.rho, sparse.spmatrix):
+    if sparse.issparse(state.rho) or isinstance(state.rho[0], sparse.spmatrix):
         state.rho = sparse.csr_matrix(state.rho, dtype=np.complex128)
+    elif isinstance(state.rho, (list, np.ndarray)):
+        state.rho = np.array(dense_mat(state.rho), dtype=np.complex128)
     else:
         raise StatePreparationError(f"The inputted self.rho cannot be of type {type(state.rho)}, expected type list or type np.ndarray")
         
@@ -59,13 +67,24 @@ def gate_validation(gate):
             raise GateError(f"self.name cannot be of type: {type(gate.name)}, expected type str")
     if gate.matrix is None:
         raise GateError(f"Gates can only be initialised if they are provided with a matrix")
-    if not isinstance(gate.matrix, (list, np.ndarray)):
+    if sparse.issparse(gate.matrix) or isinstance(gate.matrix[0], sparse.spmatrix):
+        gate.matrix = sparse.csr_matrix(gate.matrix, dtype=np.complex128)
+    elif isinstance(gate.matrix, (list, np.ndarray)):
+        gate.matrix = np.array(gate.matrix, dtype=np.complex128)
+    else:
         raise GateError(f"The gate cannot be of type: {type(gate.matrix)}, expected type list or np.ndarray")
-    gate.matrix = np.array(gate.matrix, dtype=np.complex128)
+    
     if not gate.skip_val:
         if np.size(gate.matrix) != 1:
             if gate.matrix.shape[0] != gate.matrix.shape[1]:
                 raise GateError(f"All gates must be of a square shape. This gate has shape {gate.matrix.shape[0]} x {gate.matrix.shape[1]}")
+        if sparse.issparse(gate.matrix):
+            gate_adjoint = gate.matrix.T
+            gate_check = gate_adjoint.dot(gate.matrix)
+            diag_elements = gate_check.diagonal()  
+            if not np.all(np.isclose(diag_elements, 1.0, atol=1e-3)):
+                raise GateError(f"This gate is not unitary {gate.matrix}")
+        else:
             gate_check = np.dot(np.conj(gate.matrix.T), gate.matrix)
             if not np.all(np.isclose(np.diag(gate_check),1.0, atol=1e-3)):
                 raise GateError(f"This gate is not unitary {gate.matrix}")

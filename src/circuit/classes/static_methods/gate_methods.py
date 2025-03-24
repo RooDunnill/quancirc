@@ -1,5 +1,6 @@
 import numpy as np
-
+from scipy.sparse import eye_array
+from ...circuit_utilities.circuit_errors import GateError
 def identity_gate(cls, **kwargs):    
     """The identity matrix, used mostly to represent empty wires in the circuit
     Args:
@@ -7,9 +8,15 @@ def identity_gate(cls, **kwargs):
     Returns:
         Gate, the identity gate with either custom qubits or for a single Qubit"""
     n = kwargs.get("n", 1)
+    mat_type = kwargs.get("type", "dense")
     if isinstance(n, int):
         dim = int(2**n)
-        new_mat = np.eye(dim, dtype=np.complex128)
+        if mat_type == "dense":
+            new_mat = np.eye(dim, dtype=np.complex128)
+        elif mat_type == "sparse":
+            new_mat = eye_array(dim, dtype=np.complex128)
+        else:
+            raise GateError(f"mat_type cannot be {mat_type}, expected either 'sparse' or 'dense'")
         return cls(name="Identity Gate", matrix=new_mat)
     
 def rotation_x_gate(cls, theta):

@@ -151,8 +151,9 @@ class Qubit:                                           #creates the qubit class
             if sparse.issparse(rho_1) and sparse.issparse(rho_2):
                 new_rho = sparse.kron(rho_1, rho_2)
             else:
+                rho_1 = self.rho
+                rho_2 = other.rho
                 new_rho = np.kron(rho_1, rho_2)
-            new_rho = convert_to_sparse(new_rho)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "%"))
             return Qubit(**kwargs)
@@ -169,7 +170,6 @@ class Qubit:                                           #creates the qubit class
                 new_rho = rho_1.dot(rho_2)   #swapped indice order for the transpose
             else:
                 new_rho = np.dot(rho_1, rho_2)
-            new_rho = convert_to_sparse(new_rho)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "*"))
             return Qubit(**kwargs)

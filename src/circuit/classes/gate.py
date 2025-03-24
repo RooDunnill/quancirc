@@ -26,13 +26,13 @@ class Gate:
         self.name = kwargs.get("name", "Quantum Gate")
         self.matrix = kwargs.get("matrix", None)
         gate_validation(self)
-        self.dim: int = len(self.matrix)
+        self.dim: int = self.matrix.shape[0]
         self.length = self.dim ** 2
         self.n: int =  int(np.log2(self.dim))
         self.immutable = False
         
     def __str__(self) -> str:
-        matrix_str = np.array2string(self.matrix, precision=p_prec, separator=', ', suppress_small=True)
+        matrix_str = np.array2string(dense_mat(self.matrix), precision=p_prec, separator=', ', suppress_small=True)
         return f"{self.name}\n{matrix_str}"
       
     def __setattr__(self, name, value):
@@ -43,8 +43,15 @@ class Gate:
         super().__setattr__(name, value)
 
     def __and__(self, other) -> "Gate":
+        mat_1 = convert_to_sparse(self.matrix)
+        mat_2 = convert_to_sparse(other.matrix)
         if isinstance(other, Gate):
-            new_matrix = np.block([[self.matrix, np.zeros_like(other.matrix)], [np.zeros_like(self.matrix), other.matrix]])
+            if sparse.issparse(mat_1) and sparse.issparse(mat_2):
+                new_matrix = sparse.bmat([[mat_1, sparse.csr_matrix(mat_1.shape)], [sparse.csr_matrix(mat_2.shape), mat_2.matrix]])
+            else:
+                mat_1 = dense_mat(self.matrix)
+                mat_2 = dense_mat(other.matrix)
+                new_matrix = np.block([[mat_1, np.zeros_like(mat_2)], [np.zeros_like(mat_1), mat_2]])
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "&"))
             return Gate(**kwargs)
@@ -70,6 +77,8 @@ class Gate:
             if sparse.issparse(mat_1) and sparse.issparse(mat_2):
                 new_matrix = sparse.kron(mat_1, mat_2)
             else:
+                mat_1 = dense_mat(self.matrix)
+                mat_2 = dense_mat(other.matrix)
                 new_matrix = np.kron(self.matrix, other.matrix)
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "%"))
@@ -103,6 +112,8 @@ class Gate:
             if sparse.issparse(mat_1) and sparse.issparse(mat_2):
                 new_rho = mat_1.dot(mat_2)
             else:
+                mat_1 = dense_mat(self.matrix)
+                mat_2 = dense_mat(other.matrix)
                 new_matrix = np.dot(mat_1, mat_2)
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "@"))
@@ -110,8 +121,11 @@ class Gate:
         elif other.class_type == "qubit":
             rho_2 = convert_to_sparse(other.rho)
             if sparse.issparse(mat_1) and sparse.issparse(rho_2):
-                new_rho = mat_1.dot(rho_2)
+                temp_rho = mat_1.dot(rho_2)
+                new_rho = temp_rho.dot(mat_1.T)
             else:
+                mat_1 = dense_mat(self.matrix)
+                rho_2 = dense_mat(other.rho)
                 new_rho = np.dot(np.dot(mat_1, rho_2), np.conj(mat_1.T))
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "@"))
@@ -121,6 +135,8 @@ class Gate:
             if sparse.issparse(mat_1) and sparse.issparse(mat_2):
                 new_matrix = mat_1.dot(mat_2)
             else:
+                mat_1 = dense_mat(self.matrix)
+                mat_2 = dense_mat(other)
                 new_matrix = np.dot(mat_1, mat_2)
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "@"))

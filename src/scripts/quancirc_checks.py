@@ -29,6 +29,8 @@ print(partial_test.decompose_state(2))
 print(f"\n\n\n\n\n\n")
 set_test = q1 % q1 % q1
 set_test.debug()
+print(set_test)
+print(type(set_test.rho))
 set_test[0] = Hadamard @ q0
 set_test.debug()
 print(Qubit.q0(n=2))
@@ -197,3 +199,14 @@ print(fwht_test.state)
 
 
 print(Gate.Identity(n=4) % Gate.Identity(n=4))
+sparse_test = q0 % q0
+print(type(sparse_test.rho))
+
+print(sparse_test)
+print(Hadamard @ q1)
+print(Hadamard % Hadamard)
+print(Hadamard % Hadamard % Hadamard)
+print(q0 % q0 % q0)
+print(Hadamard @ q0)
+print(Hadamard @ Hadamard @ Hadamard)
+print((Hadamard % Identity) @ (q0 % q0))

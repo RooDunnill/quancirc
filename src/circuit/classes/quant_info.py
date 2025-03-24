@@ -3,6 +3,8 @@ from ..circuit_utilities import QuantInfoError
 from .qubit import Qubit
 from .gate import X_Gate, Y_Gate, Z_Gate
 from scipy.linalg import sqrtm, logm
+from scipy import sparse
+from scipy.sparse.linalg import eigsh
 import matplotlib.pyplot as plt
 from ..circuit_config import *
 
@@ -56,7 +58,7 @@ class QuantInfo:
 
     @staticmethod
     def purity(state: Qubit) -> float:      #a measure of mixedness
-        return np.trace(np.dot(state.rho, state.rho)).real
+        return np.einsum('ij,ji', state.rho, state.rho).real     #dot product then trace over
     
     @staticmethod    #an approximation of von neumann
     def linear_entropy(state: Qubit) -> float:
@@ -65,7 +67,9 @@ class QuantInfo:
     @staticmethod
     def vn_entropy(state: Qubit) -> float:
         if isinstance(state, Qubit):
-            eigenvalues, eigenvectors = np.linalg.eig(state.rho)
+            N = state.rho.shape[0]
+            k = max(1, N - 2)
+            eigenvalues, eigenvectors =  eigsh(state.rho, k=k, which="LM") if sparse.issparse(state.rho) else np.linalg.eig(state.rho)
             entropy = 0
             for ev in eigenvalues:
                 if ev > 0:    #prevents ev=0 which would create an infinity from the log2
