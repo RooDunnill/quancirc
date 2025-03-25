@@ -195,6 +195,9 @@ class Circuit:
         
     def get_info(self):
         return QuantInfo.state_info(self.state)
+    
+    def print_state(self):
+        print(self.state)
 
     def purity(self, qubit=None):
         purity = QuantInfo.purity(self.state[qubit]) if qubit else QuantInfo.purity(self.state)

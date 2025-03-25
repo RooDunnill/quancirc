@@ -2,9 +2,13 @@ from ..circuit.classes.lightweight_circuit import circuit_lw
 
 
 
-class Grover:
-    
 
+
+def grover_search(oracle_values, **kwargs):
+    n_cap = kwargs.get("n_cap", 12)
+    n = kwargs.get("n", None)
+    iterations = kwargs.get("iterations", None)
+    verbose = kwargs.get("verbose", False)
 
 
 
