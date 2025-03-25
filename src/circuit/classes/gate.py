@@ -133,7 +133,9 @@ class Gate:
         elif other.class_type == "qubit_lw":
             vec_2 = convert_to_sparse(other.state)
             if sparse.issparse(mat_1) and sparse.issparse(vec_2):
+        
                 new_vec = mat_1.dot(vec_2)
+          
             else:
                 mat_1 = dense_mat(self.matrix)
                 vec_2 = dense_mat(other.state)

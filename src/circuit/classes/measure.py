@@ -40,7 +40,7 @@ class Measure:
                 raise MeasureError(f"Inputted state cannot have a state.rho of type  {type(rho)}, expected np.ndarray")
         raise MeasureError(f"Inputted state cannot be of type {type(self.state)}, expected Qubit class")
        
-    def measure_state(self, povm: np.ndarray = None) -> Qubit:
+    def measure_state(self, povm: np.ndarray = None) -> Qubit:         #NEEDS TO CARRY OVER ATTRIBUTES TODOOOOOOOOOOOOOOOOOOOOO
         probs = self.list_probs(povm)
         measurement = choices(range(len(probs)), weights=probs)[0]
         if povm:

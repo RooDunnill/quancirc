@@ -37,6 +37,12 @@ class QuantumCircuitError(QC_error):
         self.message = message
         super().__init__(self.message)
 
+class LWQuantumCircuitError(QC_error):
+    """Error related to the quantum circuit and their operations"""
+    def __init__(self, message="Invalid lightweight circuit operation"):
+        self.message = message
+        super().__init__(self.message)
+
 class MeasureError(QC_error):
     """Error related to quantum measurements."""
     def __init__(self, message="Measurement operation failed"):

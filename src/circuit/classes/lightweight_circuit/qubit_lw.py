@@ -1,8 +1,8 @@
 import numpy as np
-from .qubit import *
-from ..circuit_utilities.circuit_errors import *
-from ..circuit_utilities.validation_funcs import lw_qubit_validation
-from .static_methods.qubit_methods import *
+from ..qubit import *
+from ...circuit_utilities.circuit_errors import *
+from ...circuit_utilities.validation_funcs import lw_qubit_validation
+from ..static_methods.qubit_methods import *
 
 
 
@@ -19,7 +19,7 @@ class Qubit_LW(Qubit):
         self.state_type = None
         self.index = kwargs.get("index", None)
         lw_qubit_validation(self)
-        self.dim = self.state.shape
+        self.dim = self.state.shape[0]
         self.n = int(np.log2(self.dim))
 
     def __repr__(self):
@@ -38,8 +38,8 @@ class Qubit_LW(Qubit):
             if sparse.issparse(vec_1) and sparse.issparse(vec_2):
                 new_vec = sparse.kron(vec_1, vec_2)
             else:
-                vec_1 = self.rho
-                vec_2 = other.rho
+                vec_1 = self.state
+                vec_2 = other.state
                 new_vec = np.kron(vec_1, vec_2)
             kwargs = {"state": new_vec}
             kwargs.update(combine_qubit_attr(self, other, op = "%"))

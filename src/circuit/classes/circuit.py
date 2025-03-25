@@ -28,11 +28,11 @@ class Circuit:
         self.collapsed = False
         self.state, self.bits = self.init_circuit()
 
-    
+
     def init_circuit(self) -> tuple[Qubit, Bit]:
         if self.verbose:
             print(f"Initialising circuit with {self.qubit_num} qubits and {self.bit_num} bits")
-        return Qubit.q0(n=self.qubit_num, comp_mode=self.computation_mode), Bit(self.bit_num)
+        return Qubit.q0(n=self.qubit_num), Bit(self.bit_num)
     
     def config_noise(self, **kwargs):
         self.noisy = kwargs.get("noise", False)
