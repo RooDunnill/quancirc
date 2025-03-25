@@ -75,3 +75,8 @@ class SparseMatrixError(QC_error):
     def __init__(self, message="Invalid Sparse Matrix Operation"):
         self.message = message
         super().__init__(self.message)
+
+class QubitArrayError(QC_error):
+    def __init__(self, message="Invalid Qubit Array Operation"):
+        self.message = message
+        super().__init__(self.message)

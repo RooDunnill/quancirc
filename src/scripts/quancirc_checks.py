@@ -254,3 +254,6 @@ lw_circuit.list_probs()
 test = q0_lw % q0_lw
 print(test)
 print(type(test.rho))
+grover_search(16, n=16, verbose=False)
+test = grover_search(16, verbose=False)
+print(test)
