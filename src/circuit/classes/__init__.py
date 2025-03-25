@@ -5,3 +5,4 @@ from .quant_info import *
 from .measure import *   #do or will depend on other modules
 from .circuit import *
 from .qubit_array import *
+from ..circuit_config import *

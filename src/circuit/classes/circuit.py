@@ -56,7 +56,7 @@ class Circuit:
     
     def __getattr__(self, name):
         if name not in self.__dir__():
-            raise QuantumCircuitError(f"{type(self.__name__)} object cannot be used currently")
+            raise QuantumCircuitError(f"function cannot be used currently")
             
     def __str__(self):
         return f"{self.state}\n{self.prob_distribution}"
