@@ -4,6 +4,7 @@ from .bit import *
 from .gate import *
 from .quant_info import *
 from .measure import *
+from .qubit_array import *
 from ..circuit_utilities.circuit_errors import QuantumCircuitError
 from ..circuit_utilities.validation_funcs import circuit_validation, kraus_validation
 from ..circuit_utilities.layout_funcs import format_ket_notation
@@ -27,10 +28,13 @@ class Circuit:
         self.collapsed_qubits = []
         self.collapsed = False
         self.state, self.bits = self.init_circuit()
+        self.qubit_array = None
 
 
     def init_circuit(self) -> tuple[Qubit, Bit]:
         if self.verbose:
+            print("\n")
+            print("=" * linewid)
             print(f"Initialising circuit with {self.qubit_num} qubits and {self.bit_num} bits")
         return Qubit.q0(n=self.qubit_num), Bit(self.bit_num)
     
@@ -39,6 +43,123 @@ class Circuit:
         self.noise_type = kwargs.get("noise_type", None)
         self.channel = kwargs.get("channel", None)
 
+
+    
+            
+    def __str__(self):
+        return f"{self.state}\n{self.prob_distribution}"
+    
+    def __getitem__(self, index):
+        if index < len(self.qubit_array):
+            if self.verbose:
+                print(f"Retreiving qubit {index} from the qubit array")
+            return self.qubit_array[index]
+        else:
+            raise QuantumCircuitError(f"Cannot get a qubit from index {index}, when the array length is {len(self.qubit_array)}")
+        
+    def __setitem__(self, index, qub):
+        if index < len(self.qubit_array):
+            if isinstance(qub, Qubit):
+                self.qubit_array[index] = qub
+            else:
+                raise QuantumCircuitError(f"The inputted value cannot be of type {type(qub)}, expected type Qubit")
+        else:
+            raise QuantumCircuitError(f"Cannot asign a qubit to index {index}, when the array length is {len(self.qubit_array)}")
+    
+    def upload_qubit_array(self, qubit_arr: QubitArray) -> None:
+        if len(self.qubit_array) == 0:
+            self.qubit_array = qubit_arr.qubit_array
+        else:
+            raise QuantumCircuitError(f"Please download current qubit array before uploading the new qubit array, {qubit_arr.name}")
+        
+    def download_qubit_array(self) -> QubitArray:
+        if len(self.qubit_array) != 0:
+            qubit_array = QubitArray(array=self.qubit_array)
+            return qubit_array
+        else:
+            raise QuantumCircuitError(f"There is no qubit array to download currently in the circuit")
+
+
+    def add_gate(self, gate, qubit=None) -> None:
+        gate_name = gate.name
+        if self.collapsed:
+            raise QuantumCircuitError(f"This state has already been measured and so no further gates can be applied")
+        if gate is Identity:
+            if self.verbose:
+                print(f"Applying {gate.name} to qubit {qubit}")
+            return
+        if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
+            if qubit in self.collapsed_qubits:
+                raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
+            self.state.rho = sparse_mat(self.state.rho)
+            gate_action = Gate(matrix=sparse_mat(gate.matrix))
+            gate = Gate.Identity(n=qubit, type="sparse") % gate_action % Gate.Identity(n=self.state.n - qubit - 1, type="sparse")
+            gate.name = f"{gate_name}{qubit}"
+            self.state = gate @ self.state
+            if self.verbose:
+                print(f"Applying {gate.name} to qubit {qubit}")
+        elif qubit is None:
+            self.state = gate @ self.state
+            if self.verbose:
+                print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the circuit")
+
+    def list_probs(self, qubit=None, povm=None):
+        self.prob_distribution = Measure(self.state if qubit is None else self.state[qubit]).list_probs(povm)
+        if self.verbose:
+            print(f"Listing the probabilities:\n{format_ket_notation(self.prob_distribution)}")
+        return self.prob_distribution
+
+    def measure_state(self, qubit=None, povm=None):
+        self.depth += 1
+        if qubit is not None:
+            measurement = Measure(self.state[qubit]).measure_state(povm)
+            self.state[qubit] = measurement
+            self.collapsed_qubits.append(qubit)
+            if self.verbose:
+                measurement.set_display_mode("density")
+                print(f"Measured the state {measurement} of qubit {qubit}")
+            return self.state
+        else:
+            measurement = Measure(state=self.state).measure_state(povm)
+            self.state = measurement
+            self.collapsed = True
+            if self.verbose:
+                print(f"Measured the state {measurement} of the whole system")
+            return self.state
+        
+    def get_info(self):
+        return QuantInfo.state_info(self.state)
+    
+    def print_state(self, qubit=None):
+        if qubit:
+            print(self.state[qubit])
+        else:
+            print(self.state)
+
+    def return_state(self, qubit=None):
+        if qubit:
+            return self.state[qubit]
+        else:
+            return self.state
+
+    def purity(self, qubit=None):
+        purity = QuantInfo.purity(self.state[qubit]) if qubit else QuantInfo.purity(self.state)
+        if self.verbose:
+            print(f"Purity of the qubit {qubit} is {purity}") if qubit else print(f"Purity of the state is {purity}")
+        return purity
+    
+    def linear_entropy(self, qubit=None):
+        linear_entropy = QuantInfo.linear_entropy(self.state[qubit]) if qubit else QuantInfo.linear_entropy(self.state)
+        if self.verbose:
+            print(f"Linear Entropy of the qubit {qubit} is {linear_entropy}") if qubit else print(f"Linear Entropy of the state is {linear_entropy}")
+        return linear_entropy
+    
+    def vn_entropy(self, qubit=None):
+        return QuantInfo.vn_entropy(self.state[qubit]) if qubit else QuantInfo.vn_entropy(self.state)
+    
+    def shannon_entropy(self, qubit=None):
+        return QuantInfo.shannon_entropy(self.state[qubit]) if qubit else QuantInfo.shannon_entropy(self.state)
+    
 
     def kraus_generator(self, channel, prob):
         K0 = Gate.Identity(n = self.state.n)
@@ -130,94 +251,6 @@ class Circuit:
         kwargs = {"rho": epsilon.rho, "skip_validation": False, "name": f"{channel} channel applied to {old_name}", "index": old_index}
         self.state = Qubit(**kwargs)
         return self.state
-            
-    def __str__(self):
-        return f"{self.state}\n{self.prob_distribution}"
-    
-    def __getitem__(self, index):
-        if self.verbose:
-            print(f"Retreiving qubit {index}")
-        return self.state[index]
-    
-    def add_gate(self, gate, qubit=None) -> None:
-        gate_name = gate.name
-        if self.collapsed:
-            raise QuantumCircuitError(f"This state has already been measured and so no further gates can be applied")
-        if gate is Identity:
-            if self.verbose:
-                print(f"Applying {gate.name} to qubit {qubit}")
-            return
-        if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
-            if qubit in self.collapsed_qubits:
-                raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
-            self.state.rho = sparse_mat(self.state.rho)
-            gate_action = Gate(matrix=sparse_mat(gate.matrix))
-            gate = Gate.Identity(n=qubit, type="sparse") % gate_action % Gate.Identity(n=self.state.n - qubit - 1, type="sparse")
-            gate.name = f"{gate_name}{qubit}"
-            self.state = gate @ self.state
-            if self.verbose:
-                print(f"Applying {gate.name} to qubit {qubit}")
-        elif qubit is None:
-            self.state = gate @ self.state
-            if self.verbose:
-                print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the circuit")
-
-    def list_probs(self, qubit=None, povm=None):
-        self.prob_distribution = Measure(self.state if qubit is None else self.state[qubit]).list_probs(povm)
-        if self.verbose:
-            print(f"Listing the probabilities:\n{format_ket_notation(self.prob_distribution)}")
-        return self.prob_distribution
-
-    def measure_state(self, qubit=None, povm=None):
-        self.depth += 1
-        if qubit is not None:
-            measurement = Measure(self.state[qubit]).measure_state(povm)
-            self.state[qubit] = measurement
-            self.collapsed_qubits.append(qubit)
-            if self.verbose:
-                measurement.set_display_mode("density")
-                print(f"Measured the state {measurement} of qubit {qubit}")
-            return self.state
-        else:
-            measurement = Measure(state=self.state).measure_state(povm)
-            self.state = measurement
-            self.collapsed = True
-            if self.verbose:
-                print(f"Measured the state {measurement} of the whole system")
-            return self.state
-        
-    def get_info(self):
-        return QuantInfo.state_info(self.state)
-    
-    def print_state(self, qubit=None):
-        if qubit:
-            print(self.state[qubit])
-        else:
-            print(self.state)
-
-    def return_state(self, qubit=None):
-        if qubit:
-            return self.state[qubit]
-        else:
-            return self.state
-
-    def purity(self, qubit=None):
-        purity = QuantInfo.purity(self.state[qubit]) if qubit else QuantInfo.purity(self.state)
-        if self.verbose:
-            print(f"Purity of the qubit {qubit} is {purity}") if qubit else print(f"Purity of the state is {purity}")
-        return purity
-    
-    def linear_entropy(self, qubit=None):
-        linear_entropy = QuantInfo.linear_entropy(self.state[qubit]) if qubit else QuantInfo.linear_entropy(self.state)
-        if self.verbose:
-            print(f"Linear Entropy of the qubit {qubit} is {linear_entropy}") if qubit else print(f"Linear Entropy of the state is {linear_entropy}")
-        return linear_entropy
-    
-    def vn_entropy(self, qubit=None):
-        return QuantInfo.vn_entropy(self.state[qubit]) if qubit else QuantInfo.vn_entropy(self.state)
-    
-    def shannon_entropy(self, qubit=None):
-        return QuantInfo.shannon_entropy(self.state[qubit]) if qubit else QuantInfo.shannon_entropy(self.state)
 
     def debug(self, title=True):
         print("-" * linewid)

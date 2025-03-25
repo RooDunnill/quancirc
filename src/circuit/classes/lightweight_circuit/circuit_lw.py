@@ -26,6 +26,8 @@ class Circuit_LW:
 
     def init_circuit(self) -> tuple[Qubit, Bit]:
         if self.verbose:
+            print("\n")
+            print("=" * linewid)
             print(f"Initialising circuit with {self.qubit_num} qubits and {self.bit_num} bits")
         return Qubit_LW.q0(n=self.qubit_num), Bit(self.bit_num)
     
