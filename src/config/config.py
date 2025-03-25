@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 start = time.time() 
 p_prec: int = 3
 linewid: int = 150
-sparse_threshold = 0.9
+sparse_matrix_threshold = 0.9
+sparse_array_threshold = 0.9
 set_printoptions(precision=p_prec, suppress=True, floatmode="fixed")
 set_printoptions(linewidth=linewid)
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from ..circuit.classes import *
+from ..circuit.classes.lightweight_circuit import *
 
 partial_test = q0 % q1 % q1 % q0
 pt = partial_test.partial_trace(0, 3)

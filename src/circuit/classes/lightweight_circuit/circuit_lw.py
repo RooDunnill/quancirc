@@ -46,7 +46,7 @@ class Circuit_LW:
             if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
                 if qubit in self.collapsed_qubits:
                     raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
-                self.state.state = sparse_mat(self.state.state)    #this is changing the shape i believe FIXXXXXXXXXXXXXXXX
+                self.state.state = sparse_array(self.state.state)    #this is changing the shape i believe FIXXXXXXXXXXXXXXXX
                 gate_action = Gate(matrix=sparse_mat(gate.matrix))
                 gate = Gate.Identity(n=qubit, type="sparse") % gate_action % Gate.Identity(n=self.state.n - qubit - 1, type="sparse")
                 gate.name = f"{gate_name}{qubit}"
@@ -59,12 +59,13 @@ class Circuit_LW:
                     print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the circuit")
 
     def list_probs(self, qubit=None):
+        print(type(self.state.state), self.state.state.shape)
         if qubit is None:
             if sparse.issparse(self.state.state):
                 self.prob_distribution = self.state.state.multiply(self.state.state.conjugate())
             else:
-                self.prob_distribution = np.einsum("i,i->i", self.state.state, np.conj(self.state.state))
-            self.prob_distribution = dense_mat(self.prob_distribution).flatten().real
+                self.prob_distribution = np.einsum("i,i->i", self.state.state.ravel(), np.conj(self.state.state.ravel()))
+            self.prob_distribution = dense_mat(self.prob_distribution).ravel().real
         if self.verbose:
             print(f"Listing the probabilities:\n{format_ket_notation(self.prob_distribution)}")
         return self.prob_distribution
