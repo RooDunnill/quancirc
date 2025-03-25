@@ -30,7 +30,7 @@ class Circuit_LW:
         return Qubit_LW.q0(n=self.qubit_num), Bit(self.bit_num)
     
 
-    def add_gate(self, gate, qubit=None) -> None:
+    def add_gate(self, gate, qubit=None, **kwargs) -> None:
         gate_name = gate.name
         if self.collapsed:
             raise QuantumCircuitError(f"This state has already been measured and so no further gates can be applied")
@@ -38,10 +38,13 @@ class Circuit_LW:
             if self.verbose:
                 print(f"Applying {gate.name} to qubit {qubit}")
             return
-        if gate is Hadamard and qubit is None:
+        fwht = kwargs.get("fwht", False)
+        if gate is not Hadamard and fwht == True:
+            raise LWQuantumCircuitError(f"fwht can only be used when the gate is Hadamard")
+        if gate is Hadamard and qubit is None and fwht == True:
             self.state = vector_fwht(self.state)
             if self.verbose:
-                print(f"Applying {gate} to the state")
+                print(f"Applying Fast Walsh Hadamard Transform to the state")
         else:
             if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
                 if qubit in self.collapsed_qubits:
@@ -59,7 +62,6 @@ class Circuit_LW:
                     print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the circuit")
 
     def list_probs(self, qubit=None):
-        print(type(self.state.state), self.state.state.shape)
         if qubit is None:
             if sparse.issparse(self.state.state):
                 self.prob_distribution = self.state.state.multiply(self.state.state.conjugate())
@@ -75,7 +77,7 @@ class Circuit_LW:
         if qubit is None:
             probs = self.list_probs()
             measurement = choices(range(len(probs)), weights=probs)[0]
-            post_measurement_vector = np.zeros((self.state.dim,1), dtype=np.complex128)
+            post_measurement_vector = np.zeros((self.state.dim), dtype=np.complex128)
             post_measurement_vector[measurement] = 1
             kwargs = {"state": post_measurement_vector}
             kwargs.update(copy_qubit_attr(self))

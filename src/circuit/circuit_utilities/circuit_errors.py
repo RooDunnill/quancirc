@@ -1,4 +1,4 @@
-class QC_error(Exception):                 #a custom error class to raise custom errors from qc_dat
+class QC_error(Exception):                 #a custom error class to raise custom errors
     """Creates my own custom errors defined in qc_dat."""
     def __init__(self, message):
         self.message = message
@@ -14,7 +14,7 @@ class QuantumStateError(QC_error):
         super().__init__(self.message)
 
 class LWQuantumStateError(QC_error):
-    """Error related to qubits and their operations"""
+    """Error related to lightweight qubits and their operations"""
     def __init__(self, message="Invalid lightweight qubit operation or state"):
         self.message = message
         super().__init__(self.message)
@@ -38,7 +38,7 @@ class QuantumCircuitError(QC_error):
         super().__init__(self.message)
 
 class LWQuantumCircuitError(QC_error):
-    """Error related to the quantum circuit and their operations"""
+    """Error related to the lightweight quantum circuit and their operations"""
     def __init__(self, message="Invalid lightweight circuit operation"):
         self.message = message
         super().__init__(self.message)
@@ -56,7 +56,7 @@ class StatePreparationError(QC_error):
         super().__init__(self.message)
 
 class LWStatePreparationError(QC_error):
-    """Error related to quantum state preparation."""
+    """Error related to lightweight quantum state preparation."""
     def __init__(self, message="Invalid Lightweight State Preparation Operation"):
         self.message = message
         super().__init__(self.message)
