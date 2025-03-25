@@ -2,14 +2,14 @@ import numpy as np
 from .qubit import *
 from .quant_info import QuantInfo
 from ..circuit_utilities.circuit_errors import QubitArrayError
+from ..circuit_utilities.validation_funcs import qubit_array_validation
 
 class QubitArray:
     def __init__(self, **kwargs):
         self.name = kwargs.get("name", "Quantum Array")
-        self.length
-        self.qubit_struct = qubit_structure()
         self.qubit_array = []
-
+        self.length = len(self)
+        qubit_array_validation(self)
 
     def __len__(self):
         return len(self.qubit_array)
@@ -22,6 +22,7 @@ class QubitArray:
             self.qubit_array[index] = qub
         else:
             raise QubitArrayError(f"The inputted value cannot be of type {type(qub)}, expected type Qubit")
+        
     def set_array_length(self, length: int, delete=False):
         if length == len(self):
             return
@@ -42,10 +43,11 @@ class QubitArray:
 
     def pull_qubit(self, index):
         pulled_qubit = self.qubit_array.pop(index)
-        self.qubit_array += [None]
         return pulled_qubit
     
     def qubit_info(self, index):
+        if len(self.qubit_array[index].state) == 2:
+            return QuantInfo.qubit_info(self.qubit_array[index])
         return QuantInfo.state_info(self.qubit_array[index])
     
     def qubit_sizes(self):
@@ -55,8 +57,10 @@ class QubitArray:
         return size_list
     
     def pop_first_qubit(self):
-        self.qubit_array += [None]
         return self.qubit_array.pop(0)
+    
+    def validate_array(self):
+        qubit_array_validation(self)
 
 
     

@@ -15,6 +15,7 @@ def startup_printout():
     print("#" * linewid)
     print(f"Welcome to Quancirc, a quantum simulator I have been working on over the last few months")
     print(f"By Roo Dunnill")
+    print("\n")
 
 def prog_end():    #made it to make the code at the end of the program a little neater
     """Runs at the end of the program to call the timer and plot only at the end"""

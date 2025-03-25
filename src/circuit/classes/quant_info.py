@@ -9,6 +9,17 @@ import matplotlib.pyplot as plt
 from ..circuit_config import *
 
 class QuantInfo:
+
+    @staticmethod
+    def qubit_info(qub: Qubit, title=True) -> str:
+        print("-" * linewid)
+        print(f"Qubit {qub.name} OVERVIEW") if qub.name else print(f"Qubit Overview")
+        print(f"Purity of qubit: {QuantInfo.purity(qub):.{p_prec}f}")
+        print(f"Linear Entropy of qubit: {QuantInfo.linear_entropy(qub):.{p_prec}f}")
+        print(f"Von Neumann entropy of qubit: {QuantInfo.vn_entropy(qub):.{p_prec}f}")
+        print(f"Shannon Entropy of qubit: {QuantInfo.shannon_entropy(qub):.{p_prec}f}")
+        print("-" * linewid)
+
     @staticmethod
     def state_info(state: Qubit, title=True) -> str:
         if title:

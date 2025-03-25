@@ -2,6 +2,7 @@ import numpy as np
 from scipy import sparse
 from .circuit_errors import *
 from .sparse_funcs import *
+
 def qubit_validation(state) -> None:
     """Checks if a density matrix is valid in __init__, returns type None"""
     if state.state is not None:
@@ -55,7 +56,14 @@ def lw_qubit_validation(state) -> None:
         if not isinstance(state.display_mode, str):
             raise StatePreparationError(f"The inputted self.display_mode cannot be of type {type(state.display_mode)}, expected type str")
         
-
+def qubit_array_validation(array) -> None:
+    if not isinstance(array.name, str):
+        raise QubitArrayError(f"self.name cannot be of type {type(array.name)}, expected type str")
+    if not isinstance(array.qubit_array, list):
+        raise QubitArrayError(f"self.qubit_array cannot be of type {type(array.qubit_array)}, expected type list")
+    if len(array) > 0:
+        if not all(type(i) == type(array.qubit_array[0]) for i in array.qubit_array) or not array.qubit_array[0].class_type == "qubit":
+            raise QubitArrayError(f"Every element in the arrat must be of type Qubit")
     
 def rho_validation(state):
     if sparse.issparse(state.rho) or isinstance(state.rho[0], sparse.spmatrix):
