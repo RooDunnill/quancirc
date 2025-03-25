@@ -45,6 +45,29 @@ class Qubit_LW(Qubit):
             kwargs.update(combine_qubit_attr(self, other, op = "%"))
             return Qubit(**kwargs)
         raise LWQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+    """
+    def partial_trace(self, size_a, size_c, **kwargs):
+        state = kwargs.get("state", self.state)
+        if not isinstance(state, (sparse.spmatrix, np.ndarray, list)):
+            raise QuantumStateError(f"rho cannot be of type {type(rho)}, expected type sp.spmatrix or type np.ndarray or type list")
+        if not isinstance(size_a, int) and not isinstance(size_c, int):
+            raise QuantumStateError(f"size_a and size_c cannot be of types: {type(size_a)} and {type(size_c)}, expected types int and int")
+        rho = dense_mat(rho)
+        dim_a = int(2**size_a)
+        dim_c = int(2**size_c)
+        rho_dim = len(rho)
+        dim_b = int(rho_dim/(dim_a*dim_c))
+        if size_c == 0:
+            new_rho = np.trace(rho.reshape(dim_a, dim_b, dim_a, dim_b), axis1=0, axis2=2)
+        elif size_a == 0:
+            new_rho = np.trace(rho.reshape(dim_b, dim_c, dim_b, dim_c), axis1=1, axis2=3)
+        else:
+            new_rho = np.trace(rho.reshape(dim_a, dim_b * dim_c, dim_a, dim_b * dim_c), axis1=0, axis2=2)
+            new_rho = np.trace(new_rho.reshape(dim_b, dim_c, dim_b, dim_c), axis1=1, axis2=3)
+        kwargs = {"rho": new_rho}
+        kwargs.update(copy_qubit_attr(self))
+        return Qubit(**kwargs)
+    """
     
 
     
