@@ -60,7 +60,7 @@ class QuantInfo:
     def purity(state: Qubit) -> float:      #a measure of mixedness
         return np.einsum('ij,ji', state.rho, state.rho).real     #dot product then trace over
     
-    @staticmethod    #an approximation of von neumann
+    @staticmethod                           #an approximation of von neumann
     def linear_entropy(state: Qubit) -> float:
         return 1 - QuantInfo.purity(state).real
     
@@ -129,12 +129,12 @@ class QuantInfo:
         return lower, upper
     
     @staticmethod
-    def quantum_conditional_entropy(state_1: Qubit, state_2: Qubit) -> float:    #rho is the one that goes first in S(A|B)
+    def quantum_conditional_entropy(state_1: Qubit, state_2: Qubit) -> float:    #S(A|B)
         cond_ent = QuantInfo.vn_entropy(state_1) - QuantInfo.vn_entropy(state_2)
         return cond_ent
     
     @staticmethod
-    def quantum_mutual_info(state_1, state_2) -> float:                   #S(A:B)
+    def quantum_mutual_info(state_1, state_2) -> float:                               #S(A:B)
         if isinstance(state_1, Qubit) and isinstance(state_2, Qubit):
             mut_info = QuantInfo.vn_entropy(state_1) + QuantInfo.vn_entropy(state_2) - QuantInfo.vn_entropy(state_1 % state_2)
             return mut_info
@@ -171,7 +171,7 @@ class QuantInfo:
         raise QuantInfoError(f"Can only visualise single qubit states in a Bloch Sphere repr")
 
     @staticmethod
-    def bloch_plotter(qubit: Qubit) -> None:
+    def bloch_plotter(qubit: Qubit) -> None:                   #only for a single qubit
         """A bloch plotter that can plot a single Qubit on the bloch sphere with Matplotlib"""
         plot_counter = 0
         x, y, z = QuantInfo.bloch_vector(qubit)

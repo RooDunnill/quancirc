@@ -1,14 +1,33 @@
-from ..circuit.classes.lightweight_circuit import circuit_lw
+from ..circuit.classes.lightweight_circuit.circuit_lw import *
+__all__ = ["grover_search"]
 
 
 
-
+def init_states() -> tuple[Qubit_LW, Gate]:
+        """Creates the Quantum state and the Hadamard gates needed for the algorithm"""
+        qub = Qubit_LW.q0(n=n) #initialises the Qubit state |0*n>
+        print(f"Initialising state {qub.name}")
+        if mode == "fast":               #this is the faster variant of Grovers utilising the FWHT
+            print(f"Using FWHT to compute {n} x {n} Hadamard gate application")
+            had = FWHT()                #"creates the had for the FWHT, even thought the FWHT isnt a physical gate"
+            return qub, had
+        else:
+            n_had = Hadamard                   
+            print(f"Initialising {n} x {n} Hdamard")
+            for i in range(self.n-1):    #creates the qubit and also the tensored hadamard for the given qubit size
+                n_had **= Hadamard              #if not fast then tensors up a hadamard to the correct size
+                print(f"\r{i+2} x {i+2} Hadamard created", end="")    #allows to clear line without writing a custom print function in print_array
+            print(f"\r",end="")
+            print_array(f"\rHadamard and Quantum State created, time to create was: {timer.elapsed()[0]:.4f}")
+            return qub,n_had
 
 def grover_search(oracle_values, **kwargs):
     n_cap = kwargs.get("n_cap", 12)
     n = kwargs.get("n", None)
     iterations = kwargs.get("iterations", None)
     verbose = kwargs.get("verbose", False)
+    mode = kwargs.get("mode", "fast")
+    
 
 
 

@@ -20,6 +20,7 @@ def prog_end():    #made it to make the code at the end of the program a little 
     """Runs at the end of the program to call the timer and plot only at the end"""
     stop = time.time()
     interval: float = stop - start
+    print("#" * linewid)
     print(f"Program ran for {interval:.3f} seconds")
     plt.show()                             #makes sure to plot graphs after the function
 atexit.register(prog_end)
