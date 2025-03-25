@@ -6,6 +6,10 @@ from ..circuit_config import *
 from ..circuit_utilities.validation_funcs import gate_validation
 from ..circuit_utilities.sparse_funcs import *
 
+
+__all__ = ["Gate", "X_Gate", "Y_Gate", "Z_Gate", "Hadamard", "Identity", "CNot", "CNot_flip",
+           "S_Gate", "T_Gate", "Swap"]
+
 def combine_gate_attr(self: "Gate", other: "Gate", op = "+") -> list:
         """Allows the returned objects to still return name too"""
         kwargs = {}

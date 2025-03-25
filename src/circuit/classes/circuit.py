@@ -5,12 +5,12 @@ from .gate import *
 from .quant_info import *
 from .measure import *
 from .qubit_array import *
-from ..circuit_utilities.circuit_errors import QuantumCircuitError
-from ..circuit_utilities.validation_funcs import circuit_validation, kraus_validation
-from ..circuit_utilities.layout_funcs import format_ket_notation
 from .circuit_special_gates import *
+from ..circuit_utilities import *
+from ..circuit_config import *
 from scipy.sparse import eye_array
 
+__all__ = ["Circuit"]
         
 class Circuit:
     def __init__(self, **kwargs):
@@ -44,7 +44,19 @@ class Circuit:
         self.channel = kwargs.get("channel", None)
 
 
+    def __dir__(self):
+        methods = ["upload_qubit_array", "apply_gate", "list_probs", "measure_state", 
+                   "get_info", "print_states", "return_states", "purity", "linear_entropy", "vn_entropy",
+                   "shannon_entropy", "apply_channel_to_qubit", "apply_local_channel_to_qubit", "debug"]
+        if self.qubit_array:
+            methods.extend(["download_qubit_array", "apply_gate_on_array", "get_array_info"])
+            methods.remove(["apply_gate", "list_probs", "measure_state","apply_channel_to_qubit", "apply_local_channel_to_qubit",
+                            "return_state", "print_state", "purity", "linear_entropy", "vn_entropy", "shannon_entropy"])
+        return methods
     
+    def __getattr__(self, name):
+        if name not in self.__dir__():
+            raise QuantumCircuitError(f"{type(self.__name__)} object cannot be used currently")
             
     def __str__(self):
         return f"{self.state}\n{self.prob_distribution}"
@@ -67,20 +79,40 @@ class Circuit:
             raise QuantumCircuitError(f"Cannot asign a qubit to index {index}, when the array length is {len(self.qubit_array)}")
     
     def upload_qubit_array(self, qubit_arr: QubitArray) -> None:
-        if len(self.qubit_array) == 0:
+        if self.qubit_array is None:
+            print(f"Uploading qubit array...") if self.verbose else None
             self.qubit_array = qubit_arr.qubit_array
+            print(f"Upload Complete") if self.verbose else None
         else:
             raise QuantumCircuitError(f"Please download current qubit array before uploading the new qubit array, {qubit_arr.name}")
         
     def download_qubit_array(self) -> QubitArray:
         if len(self.qubit_array) != 0:
+            print(f"Downaloading qubit array...") if self.verbose else None
             qubit_array = QubitArray(array=self.qubit_array)
+            print(f"Download Complete") if self.verbose else None
             return qubit_array
         else:
             raise QuantumCircuitError(f"There is no qubit array to download currently in the circuit")
 
-
-    def add_gate(self, gate, qubit=None) -> None:
+    def apply_gate_on_array(self, gate, index, qubit=None):
+        gate_name = gate.name
+        if gate is Identity:
+            if self.verbose:
+                print(f"Applying {gate.name} to qubit {index}")
+            return
+        if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
+            gate = Gate.Identity(n=qubit, type="dense") % gate % Gate.Identity(n=self.state.n - qubit - 1, type="dense")
+            gate.name = f"{gate_name}{qubit}"
+            self.qubit_array[index][qubit] = gate @ self.qubit_array[index][qubit]
+            if self.verbose:
+                print(f"Applying {gate.name} to qubit number {index} on the qubit {qubit}")
+        elif qubit is None:
+            self.qubit_array[index] = gate @ self.qubit_array[index]
+            if self.verbose:
+                print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the qubit number {index} to the whole state")
+        
+    def apply_gate(self, gate, qubit=None) -> None:
         gate_name = gate.name
         if self.collapsed:
             raise QuantumCircuitError(f"This state has already been measured and so no further gates can be applied")
@@ -129,6 +161,11 @@ class Circuit:
         
     def get_info(self):
         return QuantInfo.state_info(self.state)
+    
+    def get_array_info(self):
+        for i in range(len(self.qubit_array)):
+            QuantInfo.qubit_info(self.qubit_array[i])
+
     
     def print_state(self, qubit=None):
         if qubit:

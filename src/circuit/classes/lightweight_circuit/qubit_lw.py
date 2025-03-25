@@ -3,8 +3,12 @@ from ..qubit import *
 from ...circuit_utilities.circuit_errors import *
 from ...circuit_utilities.validation_funcs import lw_qubit_validation
 from ..static_methods.qubit_methods import *
+from ...circuit_utilities.sparse_funcs import *
+from ...circuit_config import *
+from ..qubit import combine_qubit_attr
 
 
+__all__ = ["Qubit_LW", "q0_lw", "q1_lw", "qp_lw", "qm_lw", "qpi_lw", "qmi_lw"]
 
 class Qubit_LW(Qubit): 
     """A lightweight variant of the Qubit class, which utilises 1D arrays and sparse matrices to make a faster quantum state

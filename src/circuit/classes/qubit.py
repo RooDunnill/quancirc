@@ -9,6 +9,8 @@ from ..circuit_config import *
 from ..circuit_utilities.validation_funcs import qubit_validation, rho_validation
 
 
+__all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi"]
+
 def combine_qubit_attr(self, other, op: str = None):
         """Allows the returned objects to still return name and info too"""
         kwargs = {}

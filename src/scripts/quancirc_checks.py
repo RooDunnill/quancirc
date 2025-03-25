@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import numpy as np
 from ..circuit.classes import *
 from ..circuit.classes.lightweight_circuit import *
 from ..circuit_algorithms.grover_search import *
@@ -102,16 +103,16 @@ display_qub.set_display_mode("both")
 print(display_qub)
 pm_qub.debug()
 test_circuit = Circuit(q=2)
-test_circuit.add_gate(Identity, qubit=0)
-test_circuit.add_gate(Hadamard, qubit=1)
+test_circuit.apply_gate(Identity, qubit=0)
+test_circuit.apply_gate(Hadamard, qubit=1)
 
 test_circuit.list_probs()
 test_circuit.measure_state()
 print(test_circuit)
 
 test_circuit = Circuit(q=2)
-test_circuit.add_gate(Identity, qubit=0)
-test_circuit.add_gate(Hadamard, qubit=1)
+test_circuit.apply_gate(Identity, qubit=0)
+test_circuit.apply_gate(Hadamard, qubit=1)
 
 test_circuit.list_probs()
 test_circuit.measure_state(qubit=1)
@@ -185,7 +186,7 @@ print(test_qub2.partial_trace(1,0))
 print(test_qub2.partial_trace(0,1))
 test_circuit = Circuit(q=8)
 for i in range(8):
-    test_circuit.add_gate(Hadamard, i)
+    test_circuit.apply_gate(Hadamard, i)
 test_circuit.list_probs()
 
 test_qub = qm % qp % qp % qm %qm
@@ -218,8 +219,8 @@ print((Hadamard % Hadamard) @ test_qub)
 print(Gate.Identity(n=1) % Gate.Identity(n=1))
 print(Identity % Identity)
 test_circuit = Circuit(q=2)
-test_circuit.add_gate(Identity, qubit=0)
-test_circuit.add_gate(Hadamard, qubit=1)
+test_circuit.apply_gate(Identity, qubit=0)
+test_circuit.apply_gate(Hadamard, qubit=1)
 
 test_circuit.list_probs()
 test_circuit.measure_state()
@@ -227,7 +228,7 @@ print(test_circuit)
 qubs = 6
 test_circuit = Circuit(q=qubs)
 for i in range(qubs):
-    test_circuit.add_gate(Hadamard, i)
+    test_circuit.apply_gate(Hadamard, i)
     print(type(test_circuit.state.rho))
 test_circuit.list_probs()
 
@@ -247,10 +248,10 @@ print(Hadamard @ q0_lw)
 print(q0_lw)
 print(q0_lw % q0_lw)
 lw_circuit = Circuit_LW(q=4)
-lw_circuit.add_gate(Hadamard, qubit=1)
+lw_circuit.apply_gate(Hadamard, qubit=1)
 print(type(lw_circuit.state))
-lw_circuit.add_gate(Hadamard, qubit=2)
-lw_circuit.add_gate(Identity % Hadamard % Hadamard % Identity)
+lw_circuit.apply_gate(Hadamard, qubit=2)
+lw_circuit.apply_gate(Identity % Hadamard % Hadamard % Identity)
 lw_circuit.list_probs()
 test = q0_lw % q0_lw
 print(test)

@@ -8,7 +8,16 @@ from scipy.sparse.linalg import eigsh
 import matplotlib.pyplot as plt
 from ..circuit_config import *
 
+__all__ = ["QuantInfo"]
+
+
 class QuantInfo:
+
+    def __dir__(self):
+        methods = ["qubit_info", "state_info", "two_state_info", "purity", "linear_entropy", "vn_entropy", "shannon_entropy",
+           "quantum_discord", "fidelity", "trace_distance", "trace_distance_bound", "quantum_conditional_entropy",
+           "quantum_mutual_information", "quantum_relative_entropy", "bloch_vector", "bloch_plotter"]
+        return methods
 
     @staticmethod
     def qubit_info(qub: Qubit, title=True) -> str:
@@ -18,7 +27,10 @@ class QuantInfo:
         print(f"Linear Entropy of qubit: {QuantInfo.linear_entropy(qub):.{p_prec}f}")
         print(f"Von Neumann entropy of qubit: {QuantInfo.vn_entropy(qub):.{p_prec}f}")
         print(f"Shannon Entropy of qubit: {QuantInfo.shannon_entropy(qub):.{p_prec}f}")
+        if qub.dim < 5:
+            print(f"Rho matrix of qubit:\n{qub.rho}")
         print("-" * linewid)
+        print("\n")
 
     @staticmethod
     def state_info(state: Qubit, title=True) -> str:

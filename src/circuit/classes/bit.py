@@ -1,6 +1,9 @@
 import numpy as np
 from ..circuit_utilities.circuit_errors import BitError
 
+
+__all__ = ["Bit"]
+
 class Bit:
     def __init__(self, num_bits: int, val: bool=False, **kwargs):
         if isinstance(val, (bool, int)):

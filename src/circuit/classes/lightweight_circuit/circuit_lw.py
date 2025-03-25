@@ -4,11 +4,14 @@ from ..bit import *
 from ..gate import *
 from ..quant_info import *
 from ..measure import *
-from ...circuit_utilities.circuit_errors import LWQuantumCircuitError
-from ...circuit_utilities.validation_funcs import circuit_validation
-from ...circuit_utilities.layout_funcs import format_ket_notation
+from ...circuit_utilities import *
 from ..circuit_special_gates import *
 from scipy.sparse import eye_array
+from ..qubit import combine_qubit_attr
+from ...circuit_config import linewid
+
+
+__all__ = ["Circuit_LW"]
 
 class Circuit_LW:
     def __init__(self, **kwargs):
@@ -32,7 +35,7 @@ class Circuit_LW:
         return Qubit_LW.q0(n=self.qubit_num), Bit(self.bit_num)
     
 
-    def add_gate(self, gate, qubit=None, **kwargs) -> None:
+    def apply_gate(self, gate, qubit=None, **kwargs) -> None:
         gate_name = gate.name
         if self.collapsed:
             raise QuantumCircuitError(f"This state has already been measured and so no further gates can be applied")

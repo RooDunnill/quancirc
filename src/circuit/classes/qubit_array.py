@@ -4,6 +4,8 @@ from .quant_info import QuantInfo
 from ..circuit_utilities.circuit_errors import QubitArrayError
 from ..circuit_utilities.validation_funcs import qubit_array_validation
 
+__all__ = ["QubitArray"]
+
 class QubitArray:
     def __init__(self, **kwargs):
         self.name = kwargs.get("name", "Quantum Array")
