@@ -1,4 +1,4 @@
-class AlgorithmError(Exception):                 #a custom error class to raise custom errors from qc_dat
+class AlgorithmError(Exception):                 #a custom error class to raise custom errors
     """Creates my own custom errors defined in qc_dat."""
     def __init__(self, message):
         self.message = message

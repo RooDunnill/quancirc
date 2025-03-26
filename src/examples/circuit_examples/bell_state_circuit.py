@@ -1,4 +1,4 @@
-from ..circuit.classes import *
+from ...circuit.classes import *
 
 def main():
     print("\n")

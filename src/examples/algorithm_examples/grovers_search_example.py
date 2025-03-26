@@ -1,4 +1,4 @@
-from ..circuit_algorithms.grover_search import grover_search
+from ...circuit_algorithms.grover_search import grover_search
 
 
 def main():
