@@ -32,7 +32,7 @@ class Circuit_LW:
             print("\n")
             print("=" * linewid)
             print(f"Initialising circuit with {self.qubit_num} qubits and {self.bit_num} bits")
-        return Qubit_LW.q0(n=self.qubit_num), Bit(self.bit_num)
+        return Qubit_LW.q0(n=self.qubit_num), Bit("00000000")
     
 
     def apply_gate(self, gate, qubit=None, **kwargs) -> None:

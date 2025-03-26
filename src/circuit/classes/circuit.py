@@ -27,16 +27,25 @@ class Circuit:
         self.circuit_gate = None
         self.collapsed_qubits = []
         self.collapsed = False
+        self.circuit_mode = kwargs.get("mode", "circuit")
         self.state, self.bits = self.init_circuit()
         self.qubit_array = None
+        
 
 
     def init_circuit(self) -> tuple[Qubit, Bit]:
         if self.verbose:
-            print("\n")
-            print("=" * linewid)
-            print(f"Initialising circuit with {self.qubit_num} qubits and {self.bit_num} bits")
-        return Qubit.q0(n=self.qubit_num), Bit(self.bit_num)
+            if self.circuit_mode == "circuit":
+                print("\n")
+                print("=" * linewid)
+                print(f"Curcuit mode set to 'circuit', will now create the qubits and bits for the state")
+                print(f"Initialising circuit with {self.qubit_num} qubits and {self.bit_num} bits")
+                return Qubit.q0(n=self.qubit_num), Bit("00000000")
+            elif self.circuit_mode == "array":
+                print("\n")
+                print("=" * linewid)
+                print(f"Circuit mode set to 'array', will await array upload")
+                return 
     
     def config_noise(self, **kwargs):
         self.noisy = kwargs.get("noise", False)
@@ -79,6 +88,8 @@ class Circuit:
             raise QuantumCircuitError(f"Cannot asign a qubit to index {index}, when the array length is {len(self.qubit_array)}")
     
     def upload_qubit_array(self, qubit_arr: QubitArray) -> None:
+        if self.circuit_mode == "circuit":
+            print(f"Switching circuit mode to 'array'") if self.verbose else None
         if self.qubit_array is None:
             print(f"Uploading qubit array...") if self.verbose else None
             self.qubit_array = qubit_arr.qubit_array
@@ -94,6 +105,9 @@ class Circuit:
             return qubit_array
         else:
             raise QuantumCircuitError(f"There is no qubit array to download currently in the circuit")
+        
+    def upload_key(self, key):
+        pass
 
     def apply_gate_on_array(self, gate, index, qubit=None):
         gate_name = gate.name
@@ -140,6 +154,38 @@ class Circuit:
         if self.verbose:
             print(f"Listing the probabilities:\n{format_ket_notation(self.prob_distribution)}")
         return self.prob_distribution
+    
+    def measure_states_on_array(self, index, basis=None, povm=None):
+        if index == "all":
+            for i in range(len(self.qubit_array)):
+                if basis == "X":
+                    self.qubit_array[i].state = Measure(self.qubit_array[i]).measure_state()
+                elif basis == "Z":
+                    self.apply_gate_on_array(Hadamard, i)
+                    self.qubit_array[i].state = Measure(self.qubit_array[i]).measure_state()
+                    self.apply_gate_on_array(Hadamard, i)
+                elif basis == "Y":
+                    self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), i)
+                    self.qubit_array[i].state = Measure(self.qubit_array[i]).measure_state()
+                    self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), i)
+                elif povm:
+                    self.qubit_array[i].state = Measure(self.qubit_array[i]).measure_state(povm)
+        elif isinstance(index, int):
+            if basis == "X":
+                self.qubit_array[index].state = Measure(self.qubit_array[index]).measure_state()
+            elif basis == "Z":
+                self.apply_gate_on_array(Hadamard, index)
+                self.qubit_array[index].state = Measure(self.qubit_array[index]).measure_state()
+                self.apply_gate_on_array(Hadamard, index)
+            elif basis == "Y":
+                self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index)
+                self.qubit_array[index].state = Measure(self.qubit_array[index]).measure_state()
+                self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index)
+            elif povm:
+                self.qubit_array[index].state = Measure(self.qubit_array[index]).measure_state(povm)
+
+
+
 
     def measure_state(self, qubit=None, povm=None):
         self.depth += 1

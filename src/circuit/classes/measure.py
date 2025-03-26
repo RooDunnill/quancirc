@@ -46,10 +46,10 @@ class Measure:
         probs = self.list_probs(povm)
         measurement = choices(range(len(probs)), weights=probs)[0]
         if povm:
-                measurement_povm = povm[measurement]
-                post_measurement_density = np.dot(np.dot(measurement_povm, self.state.rho), np.conj(measurement_povm))
-                norm = np.trace(post_measurement_density)
-                return Qubit(rho=(post_measurement_density / norm), state_type=self.state.state_type)
+            measurement_povm = povm[measurement]
+            post_measurement_density = np.dot(np.dot(measurement_povm, self.state.rho), np.conj(measurement_povm))
+            norm = np.trace(post_measurement_density)
+            return Qubit(rho=(post_measurement_density / norm), state_type=self.state.state_type)
         else:
             post_measurement_vector = np.zeros((self.state.dim,1), dtype=np.complex128)
             post_measurement_vector[measurement] = 1
