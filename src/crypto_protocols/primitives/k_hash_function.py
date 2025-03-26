@@ -3,10 +3,10 @@ from time import perf_counter
 from random import randint
 import matplotlib.pyplot as plt
 from matplotlib.colors import PowerNorm
-from .crypto_utilities.crypto_errors import PrimitiveError
-from .r_key_gen import n_int_length_key
+from ..crypto_utilities.crypto_errors import PrimitiveError
+from .r_key_gen import n_length_int_key
 
-
+__all__ = ["Hash"]
 
 class Hash:
     plot_count = 0
@@ -89,9 +89,10 @@ class Hash:
             hash_value = 0
             poly_change = poly
             for i in self.parameters:
-                hash_value += i*(val**poly_change) % self.p
+                hash_value += i*(val**poly_change) % (self.p + i**2 + 1)
                 poly_change -= 1
-            hash_value = hash_value % self.p
+                hash_value = hash_value % self.p
+                return hash_value
             return hash_value
         if isinstance(vals, int) or isinstance(vals, float):
             hash_value = compute_hash(vals)

@@ -63,7 +63,9 @@ def qubit_array_validation(array) -> None:
         raise QubitArrayError(f"self.qubit_array cannot be of type {type(array.qubit_array)}, expected type list")
     if len(array) > 0:
         if not all(type(i) == type(array.qubit_array[0]) for i in array.qubit_array) or not array.qubit_array[0].class_type == "qubit":
-            raise QubitArrayError(f"Every element in the arrat must be of type Qubit")
+            raise QubitArrayError(f"Every element in the array must be of type Qubit")
+    else:
+        raise QubitArrayError(f"There must be atleast one qubit in the arry, not {len(array)} qubits")
     
 def rho_validation(state):
     if sparse.issparse(state.rho) or isinstance(state.rho[0], sparse.spmatrix):

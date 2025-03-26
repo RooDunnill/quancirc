@@ -1,30 +1,19 @@
 from ..circuit.classes import *
 from ..circuit.classes.lightweight_circuit import *
 from ..circuit_algorithms.grover_search import *
-from ..crypto_protocols.primitives import *
+from ..crypto_protocols import *
+from ..crypto_protocols import bb84
 
 
 
 
 
-bit_test = Bit("00001010")
-print(bit_test)
-bit_test_2 = Bit("01010101")
-xor_bits = bit_test ^ bit_test_2
-print(xor_bits)
-xor_bits[0] = 1
-print(xor_bits)
-print(xor_bits ^ bit_test)
-test = Gate.Hadamard
-qub = Qubit.q0()
-qub2 = Qubit(state=[1,0])
-print(qub.__dir__())
-print(dir(qub))
-print(qub2.__dir__())
-print(dir(qub2))
-test_gate = Gate(matrix=[[1,0],[0,1]])
-print(n_int_length_key(10))
-print(n_bit_length_key(10))
-print(n_int_length_key(100))
-print(n_bit_length_key(100))
-print(n_hex_length_key(1000))
+bb84_key = bb84.gen(100)
+encoded_qubits = bb84.enc(bb84_key)
+measured_encryption = bb84.measure(encoded_qubits)
+red_received_key, red_encoding_key = bb84.compare_basis(measured_encryption, bb84_key)
+len_reduced_received_key = len(red_received_key)
+half_len = int(len_reduced_received_key / 2)
+received_final_key = red_received_key[half_len:]
+print(received_final_key)
+print(red_encoding_key[1::2])

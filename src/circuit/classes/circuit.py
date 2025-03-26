@@ -15,7 +15,6 @@ __all__ = ["Circuit"]
 class Circuit:
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'circuit')
-        self.computation_mode = kwargs.get("comp_mode", "density")
         self.qubit_num = kwargs.get("q", 1)
         self.bit_num = kwargs.get("b", 1)
         self.verbose = kwargs.get("verbose", True)
@@ -30,8 +29,6 @@ class Circuit:
         self.circuit_mode = kwargs.get("mode", "circuit")
         self.state, self.bits = self.init_circuit()
         self.qubit_array = None
-        
-
 
     def init_circuit(self) -> tuple[Qubit, Bit]:
         if self.verbose:
@@ -40,12 +37,12 @@ class Circuit:
                 print("=" * linewid)
                 print(f"Curcuit mode set to 'circuit', will now create the qubits and bits for the state")
                 print(f"Initialising circuit with {self.qubit_num} qubits and {self.bit_num} bits")
-                return Qubit.q0(n=self.qubit_num), Bit("00000000")
+                return Qubit.q0(n=self.qubit_num), Bit("", verbose=self.verbose)
             elif self.circuit_mode == "array":
                 print("\n")
                 print("=" * linewid)
                 print(f"Circuit mode set to 'array', will await array upload")
-                return 
+                return Qubit.q0(n=1), Bit("", verbose=self.verbose)
     
     def config_noise(self, **kwargs):
         self.noisy = kwargs.get("noise", False)
@@ -96,33 +93,29 @@ class Circuit:
             print(f"Upload Complete") if self.verbose else None
         else:
             raise QuantumCircuitError(f"Please download current qubit array before uploading the new qubit array, {qubit_arr.name}")
-        
+
     def download_qubit_array(self) -> QubitArray:
         if len(self.qubit_array) != 0:
-            print(f"Downaloading qubit array...") if self.verbose else None
+            print(f"Downloading qubit array...") if self.verbose else None
             qubit_array = QubitArray(array=self.qubit_array)
             print(f"Download Complete") if self.verbose else None
             return qubit_array
         else:
             raise QuantumCircuitError(f"There is no qubit array to download currently in the circuit")
-        
 
-    def apply_gate_on_array(self, gate, index, qubit=None):
-        gate_name = gate.name
+    def return_bits(self):
+        print(type(self.bits))
+        print("test")
+        return self.bits
+
+    def apply_gate_on_array(self, gate: Gate, index, verbose=True):
         if gate is Identity:
-            if self.verbose:
+            if self.verbose and verbose:
                 print(f"Applying {gate.name} to qubit {index}")
             return
-        if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
-            gate = Gate.Identity(n=qubit, type="dense") % gate % Gate.Identity(n=self.state.n - qubit - 1, type="dense")
-            gate.name = f"{gate_name}{qubit}"
-            self.qubit_array[index][qubit] = gate @ self.qubit_array[index][qubit]
-            if self.verbose:
-                print(f"Applying {gate.name} to qubit number {index} on the qubit {qubit}")
-        elif qubit is None:
-            self.qubit_array[index] = gate @ self.qubit_array[index]
-            if self.verbose:
-                print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the qubit number {index} to the whole state")
+        self.qubit_array[index] = gate @ self.qubit_array[index]
+        if self.verbose and verbose:
+            print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the qubit number {index} to the whole state")
         
     def apply_gate(self, gate, qubit=None) -> None:
         gate_name = gate.name
@@ -132,7 +125,7 @@ class Circuit:
             if self.verbose:
                 print(f"Applying {gate.name} to qubit {qubit}")
             return
-        if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
+        if qubit is not None:       
             if qubit in self.collapsed_qubits:
                 raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
             self.state.rho = sparse_mat(self.state.rho)
@@ -157,33 +150,41 @@ class Circuit:
         if index == "all":
             for i in range(len(self.qubit_array)):
                 if basis == "X":
-                    self.qubit_array[i].state = Measure(self.qubit_array[i]).measure_state()
+                    print(f"Measuring all qubits in the X basis") if self.verbose else None
+                    self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
                 elif basis == "Z":
+                    print(f"Measuring all qubits in the Z basis") if self.verbose else None
                     self.apply_gate_on_array(Hadamard, i)
-                    self.qubit_array[i].state = Measure(self.qubit_array[i]).measure_state()
+                    self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
                     self.apply_gate_on_array(Hadamard, i)
                 elif basis == "Y":
+                    print(f"Measuring all qubits in the Y basis") if self.verbose else None
                     self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), i)
-                    self.qubit_array[i].state = Measure(self.qubit_array[i]).measure_state()
+                    self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
                     self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), i)
                 elif povm:
                     self.qubit_array[i].state = Measure(self.qubit_array[i]).measure_state(povm)
         elif isinstance(index, int):
             if basis == "X":
-                self.qubit_array[index].state = Measure(self.qubit_array[index]).measure_state()
+                print(f"Measuring qubit number {index} in the X basis") if self.verbose else None
+                self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state()
+                measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
             elif basis == "Z":
-                self.apply_gate_on_array(Hadamard, index)
-                self.qubit_array[index].state = Measure(self.qubit_array[index]).measure_state()
-                self.apply_gate_on_array(Hadamard, index)
+                print(f"Measuring qubit number {index} in the Z basis") if self.verbose else None
+                self.apply_gate_on_array(Hadamard, index, verbose=False)
+                self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state()
+                measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
+                self.apply_gate_on_array(Hadamard, index, verbose=False)
             elif basis == "Y":
-                self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index)
-                self.qubit_array[index].state = Measure(self.qubit_array[index]).measure_state()
-                self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index)
+                print(f"Measuring qubit number {index} in the Y basis") if self.verbose else None
+                self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index, verbose=False)
+                self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state()
+                measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
+                self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index, verbose=False)
             elif povm:
-                self.qubit_array[index].state = Measure(self.qubit_array[index]).measure_state(povm)
-
-
-
+                self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state(povm)
+            if measured_state:
+                self.bits.add_bits(str(bin(measured_state)[2:]))
 
     def measure_state(self, qubit=None, povm=None):
         self.depth += 1

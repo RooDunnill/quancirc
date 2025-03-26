@@ -9,6 +9,7 @@ class Bit:
         self.class_type = "bit"
         self.bit_string = [int(b) for b in string]
         self.name = kwargs.get("name", None)
+        self.verbose = kwargs.get("verbose", False)
 
 
     def __str__(self):
@@ -62,3 +63,7 @@ class Bit:
     
     def list_to_str(self):
         return ''.join(map(str, self.bit_string))
+    
+    def add_bits(self, bits):
+        bit_list = [int(bit) for bit in bits]
+        self.bit_string.append(bit_list)

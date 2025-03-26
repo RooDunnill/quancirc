@@ -3,7 +3,7 @@ from ...crypto_protocols.primitives.k_hash_function import *
 list_vals = np.array(range(10000))
 k = 2
 p = 3
-rand_key = n_int_length_key(24)
+rand_key = n_length_int_key(24)
 k_2_hash = Hash(k=k, key=rand_key, p=p)
 k_2_hash.analyse(k_2_hash.k_hash(list_vals))
 

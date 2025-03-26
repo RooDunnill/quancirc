@@ -7,9 +7,9 @@ from ..circuit_utilities.validation_funcs import qubit_array_validation
 __all__ = ["QubitArray"]
 
 class QubitArray:
-    def __init__(self, **kwargs):
+    def __init__(self, qubit_num = 1, **kwargs):
         self.name = kwargs.get("name", "Quantum Array")
-        self.qubit_array = kwargs.get("array", [])
+        self.qubit_array = kwargs.get("array", [q0] * qubit_num)
         self.length = len(self)
         qubit_array_validation(self)
 

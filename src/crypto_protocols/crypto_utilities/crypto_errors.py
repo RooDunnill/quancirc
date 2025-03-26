@@ -7,7 +7,11 @@ class CryptoError(Exception):                 #a custom error class to raise cus
         return f"{self.message}"
     
 class PrimitiveError(CryptoError):
-
     def __init__(self, message="Invalid Operation in a Cryptography Primitive"):
+        self.message = message
+        super().__init__(self.message)
+
+class BB84Error(CryptoError):
+    def __init__(self, message="Invalid Operation in BB84 protocol"):
         self.message = message
         super().__init__(self.message)
