@@ -106,8 +106,6 @@ class Circuit:
         else:
             raise QuantumCircuitError(f"There is no qubit array to download currently in the circuit")
         
-    def upload_key(self, key):
-        pass
 
     def apply_gate_on_array(self, gate, index, qubit=None):
         gate_name = gate.name

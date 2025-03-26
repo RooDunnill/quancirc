@@ -26,6 +26,14 @@ class Qubit_LW(Qubit):
         self.dim = self.state.shape[0]
         self.n = int(np.log2(self.dim))
 
+    @classmethod
+    def __dir__(cls):
+        return ["q0_lw", "q1_lw", "qp_lw", "qm_lw", "qpi_lw", "qmi_lw"]
+    
+    def __dir__(self):
+        return None
+
+
     def __repr__(self):
         return self.__str__()
     

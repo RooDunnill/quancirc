@@ -35,6 +35,14 @@ class Gate:
         self.n: int =  int(np.log2(self.dim))
         self.immutable = False
         
+    @classmethod
+    def __dir__(cls):
+        return ["C_Gate", "Identity", "Hadamard", "Rotation_X", "Rotation_Y", "Rotation_Z", "X_Gate", "Y_Gate", "Z_Gate", "P_Gate", "U_Gate", "Swap"]
+
+    def __dir__(self):
+        methods = [None]
+        return [func for func in methods if callable(getattr(self, func, None)) and not func.startswith("__")]
+
     def __str__(self) -> str:
         matrix_str = np.array2string(dense_mat(self.matrix), precision=p_prec, separator=', ', suppress_small=True)
         return f"{self.name}\n{matrix_str}"

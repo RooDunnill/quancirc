@@ -16,6 +16,9 @@ class Measure:
         self.state = state
         measure_validation(self)
         
+    def __dir__(cls):
+        return ["list_probs", "measure_state"]
+
     def list_probs(self, povm: np.ndarray=None) -> np.ndarray:
         rho = dense_mat(self.state.rho)
         if isinstance(self.state, Qubit):

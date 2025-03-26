@@ -13,7 +13,9 @@ __all__ = ["QuantInfo"]
 
 class QuantInfo:
 
-    def __dir__(self):
+
+    @classmethod
+    def __dir__(cls):
         methods = ["qubit_info", "state_info", "two_state_info", "purity", "linear_entropy", "vn_entropy", "shannon_entropy",
            "quantum_discord", "fidelity", "trace_distance", "trace_distance_bound", "quantum_conditional_entropy",
            "quantum_mutual_information", "quantum_relative_entropy", "bloch_vector", "bloch_plotter"]

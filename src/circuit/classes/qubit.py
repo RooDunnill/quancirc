@@ -80,6 +80,15 @@ class Qubit:                                           #creates the qubit class
         self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))
 
+
+    @classmethod
+    def __dir__(cls):
+        return ["q0", "q1", "qp", "qm", "qpi", "qmi"]
+
+    def __dir__(self):
+        methods = ["debug", "partial_trace", "isolate_qubit", "decompose_qubit", "set_display_mode", "norm"]
+        return [func for func in methods if callable(getattr(self, func, None)) and not func.startswith("__")]
+
     def set_state_type(self) -> None:
         """Checks that state type and corrects if needed, returns type None"""
         purity_rho = dense_mat(self.rho)
