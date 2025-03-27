@@ -1,15 +1,13 @@
-from ..circuit.classes import *
-from ..circuit.classes.lightweight_circuit import *
+import numpy as np
+import sympy as sympy
+from sympy import pprint
+from ..circuit import *
 from ..circuit_algorithms.grover_search import *
 from ..crypto_protocols import *
 from ..crypto_protocols import bb84
 from ..crypto_protocols import otp
-import numpy as np
-import sympy as sympy
-from sympy import pprint
-from ..circuit.classes.symbolic_classes.symb_quant_info import *
-from ..circuit.classes.symbolic_classes.symb_qubit import *
-from ..circuit.classes.symbolic_classes.symb_gate import *
+
+
 
 phi = sympy.symbols("phi", real=False)
 a, b, c = sympy.symbols("a b c", real=False)

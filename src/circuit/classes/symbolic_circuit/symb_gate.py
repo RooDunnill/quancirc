@@ -33,6 +33,10 @@ class SymbGate:
             kwargs = {"rho": new_rho}
             return other.__class__(**kwargs)
         raise SymbGateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected type SymbGate, SymbQubit")
+    
+    def subs(self, substitution: dict) -> "SymbGate":
+        self.matrix = self.matrix.subs(substitution)
+        return self
 
 
     

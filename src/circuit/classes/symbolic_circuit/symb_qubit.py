@@ -23,7 +23,9 @@ class SymbQubit:
     def __str__(self):
         return f"{self.name}:\n{self.rho}"
     
-
+    def subs(self, substitution: dict) -> "SymbQubit":
+        self.rho = self.rho.subs(substitution)
+        return self
 
     def __sub__(self: "SymbQubit", other: "SymbQubit") -> "SymbQubit":
         """Subtraction of two SymbQubit rho matrices, returns a SymbQubit object"""

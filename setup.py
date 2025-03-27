@@ -5,7 +5,7 @@ setup(
     version="0.1.1",
     package_dir={"": "src"}, 
     packages=find_packages(where="src"),  
-    install_requires=["numpy", "scipy"],
+    install_requires=["numpy", "scipy", "sympy", "matplotlib"],
     include_package_data=True,
     entry_points={
         "console_scripts": [
