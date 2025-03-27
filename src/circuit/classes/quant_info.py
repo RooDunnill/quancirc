@@ -135,13 +135,6 @@ class QuantInfo:
     @staticmethod
     def trace_distance(state_1: Qubit, state_2: Qubit) -> float:
         diff_state = state_1 - state_2
-        dim_range = np.arange(state_1.dim)
-        trace_dist = np.sum(0.5 * np.abs(diff_state.rho[dim_range, dim_range]))
-        return trace_dist
-    
-    @staticmethod
-    def trace_distance2(state_1: Qubit, state_2: Qubit) -> float:
-        diff_state = state_1 - state_2
         eigenvalues = np.linalg.eigvals(diff_state.rho)
         abs_eigenvalues = np.abs(eigenvalues)
         trace_dist = 0.5 * np.sum(abs_eigenvalues)

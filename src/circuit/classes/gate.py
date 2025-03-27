@@ -153,7 +153,6 @@ class Gate:
             kwargs = {"state":new_vec}
             kwargs.update(combine_qubit_attr(self, other, op = "@"))
             return other.__class__(**kwargs)
-
         elif isinstance(other, (sparse.sparray, np.ndarray)):
             mat_2 = other
             if sparse.issparse(mat_1) and sparse.issparse(mat_2):

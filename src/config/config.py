@@ -13,7 +13,12 @@ set_printoptions(linewidth=linewid)
 
 def startup_printout():
     print("#" * linewid)
-    print(f"Welcome to Quancirc, a quantum simulator I have been working on over the last few months")
+    print(f"Welcome to Quancirc, this program is mostly a collection of all of my current interests. Some of the highlights include:")
+    print(f"Quantum Circuit: Can simulate a quantum circuit with Clifford + T Gates")
+    print(f"Algorithm section, currently have a Grover's search algorithm that uses the simulator and utilises FWHT")
+    print(f"Cryptographic protocols such as BB84")
+    print(f"Currently working on symbolic qubits, to allow for symbolic calculations")
+    print(f"I hope you enjoy!")
     print(f"By Roo Dunnill")
     print("\n")
 

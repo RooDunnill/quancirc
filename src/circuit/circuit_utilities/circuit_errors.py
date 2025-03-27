@@ -15,7 +15,7 @@ class QuantumStateError(QC_error):
 
 class SymbQuantumStateError(QC_error):
     """Error related to symbolic qubits and their operations"""
-    def __init__(self, message="Invalid symbolic qubit operation or state"):
+    def __init__(self, message="Invalid symbolicqubit operation or state"):
         self.message = message
         super().__init__(self.message)
 
@@ -34,6 +34,12 @@ class BitError(QC_error):
 class GateError(QC_error):
     """Error related to quantum gates and their operations"""
     def __init__(self, message="Invalid gate operation"):
+        self.message = message
+        super().__init__(self.message)
+
+class SymbGateError(QC_error):
+    """Error related to symbolic quantum gates and their operations"""
+    def __init__(self, message="Invalid symbolic gate operation"):
         self.message = message
         super().__init__(self.message)
 

@@ -21,6 +21,13 @@ class SymbQuantInfo:
         return trace_distance.simplify()
     
     @staticmethod
+    def trace_distance_bound(state_1:SymbQubit, state_2: SymbQubit) -> tuple[float, float]:
+        fidelity = SymbQuantInfo.fidelity(state_1, state_2)
+        lower = 1 - fidelity**0.5
+        upper = (1 - fidelity)**0.5
+        return lower, upper
+    
+    @staticmethod
     def fidelity(state_1: SymbQubit, state_2: SymbQubit) -> float:
         if state_1 is None or state_2 is None:
             raise SymbQuantInfoError(f"Must provide two states of type Qubit")
