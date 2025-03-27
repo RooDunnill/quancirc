@@ -13,6 +13,12 @@ class QuantumStateError(QC_error):
         self.message = message
         super().__init__(self.message)
 
+class SymbQuantumStateError(QC_error):
+    """Error related to symbolic qubits and their operations"""
+    def __init__(self, message="Invalid symbolic qubit operation or state"):
+        self.message = message
+        super().__init__(self.message)
+
 class LWQuantumStateError(QC_error):
     """Error related to lightweight qubits and their operations"""
     def __init__(self, message="Invalid lightweight qubit operation or state"):
@@ -55,6 +61,12 @@ class StatePreparationError(QC_error):
         self.message = message
         super().__init__(self.message)
 
+class SymbStatePreparationError(QC_error):
+    """Error related to symbolic quantum state preparation."""
+    def __init__(self, message="Invalid Symbolic State Preparation Operation"):
+        self.message = message
+        super().__init__(self.message)
+
 class LWStatePreparationError(QC_error):
     """Error related to lightweight quantum state preparation."""
     def __init__(self, message="Invalid Lightweight State Preparation Operation"):
@@ -68,6 +80,11 @@ class PrintError(QC_error):
 
 class QuantInfoError(QC_error):
     def __init__(self, message="Invalid Quantum Information Operation"):
+        self.message = message
+        super().__init__(self.message)
+
+class SymbQuantInfoError(QC_error):
+    def __init__(self, message="Invalid Symbolic Quantum Information Operation"):
         self.message = message
         super().__init__(self.message)
 

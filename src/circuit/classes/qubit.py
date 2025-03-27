@@ -170,13 +170,11 @@ class Qubit:                                           #creates the qubit class
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
         
-    def __matmul__(self: "Qubit", other: "Qubit") -> "Qubit":      #gateT @ rho @ gate
+    def __matmul__(self: "Qubit", other: "Qubit") -> "Qubit":     
         """Matrix multiplication between two Qubit objects, returns a Qubit object"""
         if self.class_type == "qubit_lw":
             raise LWQuantumStateError(f"Lightweight States cannot be matrix multiplied with other quantum states")
         if isinstance(other, Qubit):
-            raise QuantumStateError(f"Cannot matrix multiply (double) two Quantum states together")
-        elif other.class_type == "gate":
             rho_1 = convert_to_sparse(self.rho)
             rho_2 = convert_to_sparse(other.rho)
             if sparse.issparse(rho_1) and sparse.issparse(rho_2):
@@ -184,7 +182,7 @@ class Qubit:                                           #creates the qubit class
             else:
                 new_rho = np.dot(rho_1, rho_2)
             kwargs = {"rho": new_rho}
-            kwargs.update(combine_qubit_attr(self, other, op = "*"))
+            kwargs.update(combine_qubit_attr(self, other, op = "@"))
             return Qubit(**kwargs)
         raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
     

@@ -288,3 +288,10 @@ print(qub2.__dir__())
 print(dir(qub2))
 test_gate = Gate(matrix=[[1,0],[0,1]])
 
+trace_state_1 = Qubit(state=[[1,0],[0,1]], weights=[0.5,0.5])
+QuantInfo.bloch_plotter(trace_state_1)
+print(QuantInfo.trace_distance(trace_state_1, Gate.Rotation_Y(np.pi/2) @ trace_state_1))
+print(QuantInfo.trace_distance2(trace_state_1, Gate.Rotation_Y(np.pi/2) @ trace_state_1))
+
+state_1 = Qubit(state=[1,0])
+QuantInfo.bloch_plotter(Gate.Rotation_Y(np.pi/2) @ state_1)

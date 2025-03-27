@@ -140,6 +140,14 @@ class QuantInfo:
         return trace_dist
     
     @staticmethod
+    def trace_distance2(state_1: Qubit, state_2: Qubit) -> float:
+        diff_state = state_1 - state_2
+        eigenvalues = np.linalg.eigvals(diff_state.rho)
+        abs_eigenvalues = np.abs(eigenvalues)
+        trace_dist = 0.5 * np.sum(abs_eigenvalues)
+        return trace_dist
+    
+    @staticmethod
     def trace_distance_bound(state_1:Qubit, state_2: Qubit) -> tuple[float, float]:
         fidelity = QuantInfo.fidelity(state_1, state_2)
         if np.isclose(fidelity, 1.0, atol=1e-4):
