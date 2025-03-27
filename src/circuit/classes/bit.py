@@ -66,4 +66,7 @@ class Bit:
     
     def add_bits(self, bits):
         bit_list = [int(bit) for bit in bits]
-        self.bit_string.append(bit_list)
+        self.bit_string.extend(bit_list)
+
+    def return_bits_as_str(self):
+        return ''.join(map(str, self.bit_string))

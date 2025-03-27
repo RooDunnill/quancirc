@@ -53,7 +53,7 @@ class Circuit:
     def __dir__(self):
         methods = ["upload_qubit_array", "apply_gate", "list_probs", "measure_state", 
                    "get_info", "print_states", "return_states", "purity", "linear_entropy", "vn_entropy",
-                   "shannon_entropy", "apply_channel_to_qubit", "apply_local_channel_to_qubit", "debug"]
+                   "shannon_entropy", "apply_channel_to_qubit", "apply_local_channel_to_qubit", "debug", "return_bits"]
         if self.qubit_array:
             methods.extend(["download_qubit_array", "apply_gate_on_array", "get_array_info"])
             methods.remove(["apply_gate", "list_probs", "measure_state","apply_channel_to_qubit", "apply_local_channel_to_qubit",
@@ -104,8 +104,6 @@ class Circuit:
             raise QuantumCircuitError(f"There is no qubit array to download currently in the circuit")
 
     def return_bits(self):
-        print(type(self.bits))
-        print("test")
         return self.bits
 
     def apply_gate_on_array(self, gate: Gate, index, verbose=True):
@@ -183,8 +181,8 @@ class Circuit:
                 self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index, verbose=False)
             elif povm:
                 self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state(povm)
-            if measured_state:
-                self.bits.add_bits(str(bin(measured_state)[2:]))
+            if measured_state is not None:
+                self.bits.add_bits(str(measured_state))
 
     def measure_state(self, qubit=None, povm=None):
         self.depth += 1
