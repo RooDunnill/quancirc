@@ -79,10 +79,43 @@ def measure_a(Qubit_array, verbose=True):
     basis_key_a = n_length_bit_key(len(Qubit_array))
     for i in range(len(Qubit_array)):
         if int(basis_key_a[i]) == 0:
-            bbm92_circ_a.measure_states_on_array(index=i, basis="Z")
+            bbm92_circ_a.measure_states_on_array(index=i, qubit=0, basis="Z")
         elif int(basis_key_a[i]) == 1:
-            bbm92_circ_a.measure_states_on_array(index=i, basis="X")
-    
+            bbm92_circ_a.measure_states_on_array(index=i, qubit=0, basis="X")
+        else:
+            raise BBM92Error(f"{basis_key_a[i]} is not a valid element of the basis key, can only be 0 or 1")
+    print(f"Returning bits off of the circuit") if verbose else None
+    measured_bits = bbm92_circ_a.return_bits()
+    print(f"Returning qubits") if verbose else None
+    measured_a_qubits = bbm92_circ_a.download_qubit_array()
+    return measured_a_qubits, ''.join(chain(*zip(basis_key_a, measured_bits.return_bits_as_str())))
+
+def measure_b(Qubit_array, verbose=True):
+    if not isinstance(Qubit_array, QubitArray):
+        raise BB84Error(f"Qubit array cannot be of type {type(Qubit_array)}, expected type QubitArray")
+    print(f"Starting the circuit in array mode") if verbose else None
+    bbm92_circ_b = Circuit(mode="array", verbose=verbose)
+    print(f"Uploading received qubit array to the circuit") if verbose else None
+    bbm92_circ_b.upload_qubit_array(Qubit_array)
+    print(f"Generating basis measurements") if verbose else None
+    basis_key_b = n_length_bit_key(len(Qubit_array))
+    for i in range(len(Qubit_array)):
+        if int(basis_key_b[i]) == 0:
+            bbm92_circ_b.measure_states_on_array(index=i, qubit=1, basis="Z")
+        elif int(basis_key_b[i]) == 1:
+            bbm92_circ_b.measure_states_on_array(index=i, qubit=1, basis="X")
+        else:
+            raise BBM92Error(f"{basis_key_b[i]} is not a valid element of the basis key, can only be 0 or 1")
+    print(f"Returning bits off of the circuit") if verbose else None
+    measured_bits = bbm92_circ_b.return_bits()
+    print(f"Returning qubits") if verbose else None
+    measured_a_qubits = bbm92_circ_b.download_qubit_array()
+    return measured_a_qubits, ''.join(chain(*zip(basis_key_b, measured_bits.return_bits_as_str())))
+
+
+
+
+
 def measure(Qubit_array, verbose=True):
     if not isinstance(Qubit_array, QubitArray):
         raise BB84Error(f"Qubit array cannot be of type {type(Qubit_array)}, expected type QubitArray")

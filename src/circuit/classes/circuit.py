@@ -151,52 +151,101 @@ class Circuit:
         return self.prob_distribution
     
     def measure_states_on_array(self, index, qubit=None, basis=None, povm=None):
-        if index == "all":
-            qubit_size = self.qubit_array[0].n
-            for i in range(len(self.qubit_array)):
+        if qubit is None:
+            if index == "all":
+                qubit_size = self.qubit_array[0].n
+                for i in range(len(self.qubit_array)):
+                    if basis == "Z":
+                        print(f"Measuring all qubits in the Z basis") if self.verbose else None
+                        self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
+                        measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
+                    elif basis == "X":
+                        print(f"Measuring all qubits in the X basis") if self.verbose else None
+                        self.apply_gate_on_array(Hadamard, i)
+                        self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
+                        measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
+                        self.apply_gate_on_array(Hadamard, i)
+                    elif basis == "Y":
+                        print(f"Measuring all qubits in the Y basis") if self.verbose else None
+                        self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), i)
+                        self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
+                        measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
+                        self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), i)
+                    else:
+                        self.qubit_array[i].state = Measure(self.qubit_array[i]).measure_state(povm)
+                        measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
+                    if measured_state is not None:
+                        self.bits.add_bits(str(measured_state))
+            elif isinstance(index, int):
                 if basis == "Z":
-                    print(f"Measuring all qubits in the Z basis") if self.verbose else None
-                    self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
+                    print(f"Measuring qubit number {index} in the Z basis") if self.verbose else None
+                    self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state()
                     measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
                 elif basis == "X":
-                    print(f"Measuring all qubits in the X basis") if self.verbose else None
-                    self.apply_gate_on_array(Hadamard, i)
-                    self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
+                    print(f"Measuring qubit number {index} in the X basis") if self.verbose else None
+                    self.apply_gate_on_array(Hadamard, index, verbose=False)
+                    self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state()
                     measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
-                    self.apply_gate_on_array(Hadamard, i)
+                    self.apply_gate_on_array(Hadamard, index, verbose=False)
                 elif basis == "Y":
-                    print(f"Measuring all qubits in the Y basis") if self.verbose else None
-                    self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), i)
-                    self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
+                    print(f"Measuring qubit number {index} in the Y basis") if self.verbose else None
+                    self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index, verbose=False)
+                    self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state()
                     measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
-                    self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), i)
+                    self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index, verbose=False)
                 else:
-                    self.qubit_array[i].state = Measure(self.qubit_array[i]).measure_state(povm)
+                    self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state(povm)
                     measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
                 if measured_state is not None:
                     self.bits.add_bits(str(measured_state))
-        elif isinstance(index, int):
-            if basis == "Z":
-                print(f"Measuring qubit number {index} in the Z basis") if self.verbose else None
-                self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state()
-                measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
-            elif basis == "X":
-                print(f"Measuring qubit number {index} in the X basis") if self.verbose else None
-                self.apply_gate_on_array(Hadamard, index, verbose=False)
-                self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state()
-                measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
-                self.apply_gate_on_array(Hadamard, index, verbose=False)
-            elif basis == "Y":
-                print(f"Measuring qubit number {index} in the Y basis") if self.verbose else None
-                self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index, verbose=False)
-                self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state()
-                measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
-                self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index, verbose=False)
-            else:
-                self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state(povm)
-                measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
-            if measured_state is not None:
-                self.bits.add_bits(str(measured_state))
+        elif qubit:
+            if index == "all":
+                qubit_size = self.qubit_array[0].n
+                for i in range(len(self.qubit_array)):
+                    if basis == "Z":
+                        print(f"Measuring all qubits in the Z basis") if self.verbose else None
+                        self.qubit_array[i][qubit] = Measure(self.qubit_array[i][qubit]).measure_state()
+                        measured_state = np.argmax(np.diag(self.qubit_array[index][qubit].rho))
+                    elif basis == "X":
+                        print(f"Measuring all qubits in the X basis") if self.verbose else None
+                        self.apply_gate_on_array(Hadamard, i, qubit=qubit)
+                        self.qubit_array[i][qubit] = Measure(self.qubit_array[i][qubit]).measure_state()
+                        measured_state = np.argmax(np.diag(self.qubit_array[index][qubit].rho))
+                        self.apply_gate_on_array(Hadamard, i, qubit=qubit)
+                    elif basis == "Y":
+                        print(f"Measuring all qubits in the Y basis") if self.verbose else None
+                        self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), i, qubit=qubit)
+                        self.qubit_array[i][qubit] = Measure(self.qubit_array[i][qubit]).measure_state()
+                        measured_state = np.argmax(np.diag(self.qubit_array[index][qubit].rho))
+                        self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), i, qubit=qubit)
+                    else:
+                        self.qubit_array[i][qubit].state = Measure(self.qubit_array[i][qubit]).measure_state(povm)
+                        measured_state = np.argmax(np.diag(self.qubit_array[index][qubit].rho))
+                    if measured_state is not None:
+                        self.bits.add_bits(str(measured_state))
+            elif isinstance(index, int):
+                if basis == "Z":
+                    print(f"Measuring qubit number {index} in the Z basis") if self.verbose else None
+                    self.qubit_array[index][qubit] = Measure(self.qubit_array[index][qubit]).measure_state()
+                    measured_state = np.argmax(np.diag(self.qubit_array[index][qubit].rho))
+                elif basis == "X":
+                    print(f"Measuring qubit number {index} in the X basis") if self.verbose else None
+                    self.apply_gate_on_array(Hadamard, index, qubit=qubit, verbose=False)
+                    self.qubit_array[index][qubit] = Measure(self.qubit_array[index][qubit]).measure_state()
+                    measured_state = np.argmax(np.diag(self.qubit_array[index][qubit].rho))
+                    self.apply_gate_on_array(Hadamard, index, qubit=qubit, verbose=False)
+                elif basis == "Y":
+                    print(f"Measuring qubit number {index} in the Y basis") if self.verbose else None
+                    self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index, qubit=qubit, verbose=False)
+                    self.qubit_array[index][qubit] = Measure(self.qubit_array[index][qubit]).measure_state()
+                    measured_state = np.argmax(np.diag(self.qubit_array[index][qubit].rho))
+                    self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index, qubit=qubit, verbose=False)
+                else:
+                    self.qubit_array[index][qubit] = Measure(self.qubit_array[index][qubit]).measure_state(povm)
+                    measured_state = np.argmax(np.diag(self.qubit_array[index][qubit].rho))
+                if measured_state is not None:
+                    self.bits.add_bits(str(measured_state))
+
 
     def measure_state(self, qubit=None, povm=None):
         self.depth += 1
