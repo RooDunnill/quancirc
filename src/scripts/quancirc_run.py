@@ -28,5 +28,7 @@ expression = SymbQuantInfo.trace_distance_bound(state_1, state_2)
 print(expression[0].subs({phi:0.0}))
 print(expression[1].subs({phi:0.0}))
 
+print(q0_symb)
+print(SymbQubit(state=[[1,0],[0,1]], weights=[0.5,0.5]))
 
 
