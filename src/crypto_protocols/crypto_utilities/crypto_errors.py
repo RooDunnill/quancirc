@@ -11,6 +11,11 @@ class PrimitiveError(CryptoError):
         self.message = message
         super().__init__(self.message)
 
+class OTPError(CryptoError):
+    def __init__(self, message="Invalid Operation in OTP protocol"):
+        self.message = message
+        super().__init__(self.message)
+
 class BB84Error(CryptoError):
     def __init__(self, message="Invalid Operation in BB84 protocol"):
         self.message = message

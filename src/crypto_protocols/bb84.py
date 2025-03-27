@@ -7,13 +7,18 @@ from .crypto_utilities import *
 from ..circuit.classes.gate import *
 from itertools import chain
 
+__all__ = ["gen_key", "enc", "measure", "compare_basis" ]
+
 def split_odd_even(bit_string):
+    check_bit_string(bit_string)
     return bit_string[0::2], bit_string[1::2]
 
 def split_2b_chunks(bit_string):
+    check_bit_string(bit_string)
     return [bit_string[i:i+2] for i in range(0, len(bit_string), 2)]
 
 def split_bit_string(bit_string):
+    check_bit_string(bit_string)
     length = len(bit_string)
     if length % 2 != 0:
         raise PrimitiveError(f"The inputted bit string must be even")
@@ -22,12 +27,17 @@ def split_bit_string(bit_string):
 
 
 def gen_key(n, verbose=True):
+    if not isinstance(n, int):
+        raise BB84Error(f"n cannot be of type {type(n)}, expected type int")
+    if n < 0:
+        raise BB84Error(f"n ({n}), cannot be less than or equal to 0, must be positive integer")
     print(f"Generating a key length of {2*n} bits") if verbose else None
     return n_length_bit_key(2*n)
 
 
 
 def enc(key: str, verbose=True):
+    check_bit_string(key)
     if is_bit_string(key) and len(key) % 2 == 0:
         print(f"Creating string of qubits to send") if verbose else None
         qubit_string = QubitArray(q=len(key) // 2)
@@ -54,6 +64,8 @@ def enc(key: str, verbose=True):
         return encoded_qubits
     
 def measure(Qubit_array, verbose=True):
+    if not isinstance(Qubit_array, QubitArray):
+        raise BB84Error(f"Qubit array cannot be of type {type(Qubit_array)}, expected type QubitArray")
     print(f"Starting the circuit in array mode") if verbose else None
     bb84_circ_rec = Circuit(mode="array", verbose=verbose)
     print(f"Uploading received qubit array to the circuit") if verbose else None
@@ -72,6 +84,8 @@ def measure(Qubit_array, verbose=True):
     return ''.join(chain(*zip(basis_key, measured_bits.return_bits_as_str())))
 
 def compare_basis(received_key, encoding_key):
+    check_bit_string(received_key)
+    check_bit_string(encoding_key)
     received_key_len = len(received_key)
     encoding_key_len = len(encoding_key)
     if received_key_len != encoding_key_len:
