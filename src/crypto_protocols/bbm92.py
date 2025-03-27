@@ -89,7 +89,7 @@ def measure_a(Qubit_array, verbose=True):
     print(f"Returning qubits") if verbose else None
     measured_a_qubits = bbm92_circ_a.download_qubit_array()
     return measured_a_qubits, ''.join(chain(*zip(basis_key_a, measured_bits.return_bits_as_str())))
-
+    
 def measure_b(Qubit_array, verbose=True):
     if not isinstance(Qubit_array, QubitArray):
         raise BB84Error(f"Qubit array cannot be of type {type(Qubit_array)}, expected type QubitArray")
