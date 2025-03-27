@@ -106,14 +106,20 @@ class Circuit:
     def return_bits(self):
         return self.bits
 
-    def apply_gate_on_array(self, gate: Gate, index, verbose=True):
+    def apply_gate_on_array(self, gate: Gate, index, qubit=None, verbose=True):
         if gate is Identity:
             if self.verbose and verbose:
                 print(f"Applying {gate.name} to qubit {index}")
             return
-        self.qubit_array[index] = gate @ self.qubit_array[index]
-        if self.verbose and verbose:
-            print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the qubit number {index} to the whole state")
+        if qubit:
+            gate = Gate.Identity(n=qubit, type="dense") % gate % Gate.Identity(n=self.state.n - qubit - 1, type="dense")
+            self.qubit_array[index] = gate @ self.qubit_array[index]
+            if self.verbose and verbose:
+                print(f"Applying {gate.name} of size {gate.n} x {gate.n} to the qubit number {index} to qubit ")
+        else:
+            self.qubit_array[index] = gate @ self.qubit_array[index]
+            if self.verbose and verbose:
+                print(f"Applying {gate.name} of size {gate.n} x {gate.n} to the qubit number {index} to the whole state")
         
     def apply_gate(self, gate, qubit=None) -> None:
         gate_name = gate.name
@@ -146,12 +152,13 @@ class Circuit:
     
     def measure_states_on_array(self, index, basis=None, povm=None):
         if index == "all":
+            qubit_size = self.qubit_array[0].n
             for i in range(len(self.qubit_array)):
-                if basis == "X":
-                    print(f"Measuring all qubits in the X basis") if self.verbose else None
-                    self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
-                elif basis == "Z":
+                if basis == "Z":
                     print(f"Measuring all qubits in the Z basis") if self.verbose else None
+                    self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
+                elif basis == "X":
+                    print(f"Measuring all qubits in the X basis") if self.verbose else None
                     self.apply_gate_on_array(Hadamard, i)
                     self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
                     self.apply_gate_on_array(Hadamard, i)
@@ -163,12 +170,12 @@ class Circuit:
                 elif povm:
                     self.qubit_array[i].state = Measure(self.qubit_array[i]).measure_state(povm)
         elif isinstance(index, int):
-            if basis == "X":
-                print(f"Measuring qubit number {index} in the X basis") if self.verbose else None
+            if basis == "Z":
+                print(f"Measuring qubit number {index} in the Z basis") if self.verbose else None
                 self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state()
                 measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
-            elif basis == "Z":
-                print(f"Measuring qubit number {index} in the Z basis") if self.verbose else None
+            elif basis == "X":
+                print(f"Measuring qubit number {index} in the X basis") if self.verbose else None
                 self.apply_gate_on_array(Hadamard, index, verbose=False)
                 self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state()
                 measured_state = np.argmax(np.diag(self.qubit_array[index].rho))

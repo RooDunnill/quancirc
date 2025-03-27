@@ -20,3 +20,8 @@ class BB84Error(CryptoError):
     def __init__(self, message="Invalid Operation in BB84 protocol"):
         self.message = message
         super().__init__(self.message)
+
+class BBM92Error(CryptoError):
+    def __init__(self, message="Invalid Operation in BBM92 protocol"):
+        self.message = message
+        super().__init__(self.message)
