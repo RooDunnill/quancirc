@@ -9,6 +9,7 @@ import sympy as sympy
 from sympy import pprint
 from ..circuit.classes.symbolic_classes.symb_quant_info import *
 from ..circuit.classes.symbolic_classes.symb_qubit import *
+from ..circuit.classes.symbolic_classes.symb_gate import *
 
 phi = sympy.symbols("phi", real=False)
 a, b, c = sympy.symbols("a b c", real=False)
@@ -29,6 +30,12 @@ print(expression[0].subs({phi:0.0}))
 print(expression[1].subs({phi:0.0}))
 
 print(q0_symb)
-print(SymbQubit(state=[[1,0],[0,1]], weights=[0.5,0.5]))
-
-
+test_state = SymbQubit(state=[[1,0],[0,1]], weights=[0.5,0.5])
+print(test_state.state)
+print(test_state)
+print(test_state.state[2])
+print(type(test_state.state[0]))
+print(type(test_state.state))
+print(Hadamard_symb @ test_state)
+print(Hadamard_symb @ q0_symb)
+print(P_Gate_symb @ qp_symb)

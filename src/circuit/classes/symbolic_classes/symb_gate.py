@@ -2,7 +2,7 @@ import numpy as np
 from ...circuit_utilities.circuit_errors import SymbGateError
 from ...circuit_config import *
 import sympy as sp
-from ..static_methods.gate_methods import *
+from ..static_methods.symb_gate_methods import *
 
 class SymbGate:
     def __init__(self, **kwargs):
@@ -61,9 +61,47 @@ class SymbGate:
         gate = pauli_z_gate(cls)
         return gate
     
+    @classmethod
+    def P_Gate(cls, **kwargs):
+        gate = phase_gate(cls, **kwargs)
+        return gate
+    
+    @classmethod
+    def U_Gate(cls, **kwargs):
+        gate = unitary_gate(cls, **kwargs)
+        return gate
+    
+    @classmethod
+    def Swap(cls):
+        gate = swap_gate(cls)
+        return gate
+    
+    @classmethod
+    def Rotation_X(cls, **kwargs):
+        gate = rotation_x_gate(cls, **kwargs)
+        return gate
+    
+    @classmethod
+    def Rotation_Y(cls, **kwargs):
+        gate = rotation_y_gate(cls, **kwargs)
+        return gate
+    
+    @classmethod
+    def Rotation_Z(cls, **kwargs):
+        gate = rotation_z_gate(cls, **kwargs)
+        return gate
+    
 
-X_Gate = SymbGate.X_Gate()             #initialises the default gates
-Y_Gate = SymbGate.Y_Gate()
-Z_Gate = SymbGate.Z_Gate()
-Identity = SymbGate.Identity()
-Hadamard = SymbGate.Hadamard()
+X_Gate_symb = SymbGate.X_Gate()             #initialises the default gates
+Y_Gate_symb = SymbGate.Y_Gate()
+Z_Gate_symb = SymbGate.Z_Gate()
+Identity_symb = SymbGate.Identity()
+Hadamard_symb = SymbGate.Hadamard()
+Swap_symb = SymbGate.Swap()
+U_Gate_symb = SymbGate.U_Gate()
+P_Gate_symb = SymbGate.P_Gate()
+Rotation_x_symb = SymbGate.Rotation_X()
+Rotation_y_symb = SymbGate.Rotation_Y()
+Rotation_z_symb = SymbGate.Rotation_Z()
+S_Gate_symb = SymbGate.P_Gate(theta=sp.pi/2, name="S Gate")
+T_Gate_symb = SymbGate.P_Gate(theta=sp.pi/4, name="T Gate")

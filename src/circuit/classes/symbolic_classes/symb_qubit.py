@@ -22,6 +22,8 @@ class SymbQubit:
 
     def __str__(self):
         return f"{self.name}:\n{self.rho}"
+    
+
 
     def __sub__(self: "SymbQubit", other: "SymbQubit") -> "SymbQubit":
         """Subtraction of two SymbQubit rho matrices, returns a SymbQubit object"""
@@ -72,9 +74,10 @@ class SymbQubit:
     def build_mixed_rho(self):
         """Builds a mixed rho matrix, primarily in initiation of Qubit object, returns type sp.MatrixBase"""
         if self.weights is not None:
-            mixed_rho = sp.zeros(len(self.weights), len(self.weights))
-            for i in range(len(self.weights)):
-                state = sp.Matrix(self.state[i])
+            dim = len(self.weights)
+            mixed_rho = sp.zeros(dim, dim)
+            for i in range(dim):
+                state = sp.Matrix(self.state[i*dim:i*dim+dim])
                 mixed_rho += self.weights[i] * (state * state.H)
             return mixed_rho
         raise SymbStatePreparationError(f"For a mixed rho to be made, you must provide weights in kwargs")
