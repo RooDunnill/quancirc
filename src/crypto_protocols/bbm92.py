@@ -79,7 +79,9 @@ def measure_a(Qubit_array, verbose=True):
     basis_key_a = n_length_bit_key(len(Qubit_array))
     for i in range(len(Qubit_array)):
         if int(basis_key_a[i]) == 0:
-            bbm92_circ_a.measure_states_on_array()
+            bbm92_circ_a.measure_states_on_array(index=i, basis="Z")
+        elif int(basis_key_a[i]) == 1:
+            bbm92_circ_a.measure_states_on_array(index=i, basis="X")
     
 def measure(Qubit_array, verbose=True):
     if not isinstance(Qubit_array, QubitArray):
@@ -92,9 +94,9 @@ def measure(Qubit_array, verbose=True):
     basis_key = n_length_bit_key(len(Qubit_array))
     for i in range(len(Qubit_array)):
         if int(basis_key[i]) == 0:
-            bb84_circ_rec.measure_states_on_array(index=i, basis="X")
-        elif int(basis_key[i]) == 1:
             bb84_circ_rec.measure_states_on_array(index=i, basis="Z")
+        elif int(basis_key[i]) == 1:
+            bb84_circ_rec.measure_states_on_array(index=i, basis="X")
         else:
             raise BB84Error(f"{basis_key[i]} is not a valid element of the basis key, can only be 0 or 1")
     print(f"Returning bits off of the circuit") if verbose else None

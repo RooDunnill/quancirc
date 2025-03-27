@@ -150,25 +150,31 @@ class Circuit:
             print(f"Listing the probabilities:\n{format_ket_notation(self.prob_distribution)}")
         return self.prob_distribution
     
-    def measure_states_on_array(self, index, basis=None, povm=None):
+    def measure_states_on_array(self, index, qubit=None, basis=None, povm=None):
         if index == "all":
             qubit_size = self.qubit_array[0].n
             for i in range(len(self.qubit_array)):
                 if basis == "Z":
                     print(f"Measuring all qubits in the Z basis") if self.verbose else None
                     self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
+                    measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
                 elif basis == "X":
                     print(f"Measuring all qubits in the X basis") if self.verbose else None
                     self.apply_gate_on_array(Hadamard, i)
                     self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
+                    measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
                     self.apply_gate_on_array(Hadamard, i)
                 elif basis == "Y":
                     print(f"Measuring all qubits in the Y basis") if self.verbose else None
                     self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), i)
                     self.qubit_array[i] = Measure(self.qubit_array[i]).measure_state()
+                    measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
                     self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), i)
-                elif povm:
+                else:
                     self.qubit_array[i].state = Measure(self.qubit_array[i]).measure_state(povm)
+                    measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
+                if measured_state is not None:
+                    self.bits.add_bits(str(measured_state))
         elif isinstance(index, int):
             if basis == "Z":
                 print(f"Measuring qubit number {index} in the Z basis") if self.verbose else None
@@ -186,8 +192,9 @@ class Circuit:
                 self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state()
                 measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
                 self.apply_gate_on_array(Gate.Rotation_Y(np.pi/2), index, verbose=False)
-            elif povm:
+            else:
                 self.qubit_array[index] = Measure(self.qubit_array[index]).measure_state(povm)
+                measured_state = np.argmax(np.diag(self.qubit_array[index].rho))
             if measured_state is not None:
                 self.bits.add_bits(str(measured_state))
 
