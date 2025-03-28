@@ -18,6 +18,7 @@ def aharonov_plotter_example():
         symb_state_0.rho = symb_state_0.rho.subs({sp.symbols("phi_symb"):angle})
         symb_state_1.rho = symb_state_1.rho.subs({sp.symbols("phi_symb"):angle})
         symb_trace_distance[i] = SymbQuantInfo.trace_distance(symb_state_0, symb_state_1).evalf()
+        
     def update(alpha_val, beta_val):
         for i, angle in enumerate(phi):
             symb_state_0 = SymbQubit(rho=[[sp.cos(phi_symb)**2, 0],[0, sp.sin(phi_symb)**2]])
