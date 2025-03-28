@@ -9,3 +9,4 @@ from ..crypto_protocols import otp
 from ..examples import *
 
 
+aharonov_plotter_example()

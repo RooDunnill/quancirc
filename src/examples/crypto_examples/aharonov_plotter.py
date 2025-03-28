@@ -55,7 +55,7 @@ def aharonov_plotter_example():
     slider.ax.set_facecolor("lightgray")
     slider.valtext.set_fontsize(12)
 
-    #plt.show() runs on exit
+    plt.show()
 
 if __name__ == "__main__":
-    aharonov_plotter_example
+    aharonov_plotter_example()
