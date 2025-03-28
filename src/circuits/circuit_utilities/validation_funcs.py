@@ -12,7 +12,6 @@ def qubit_validation(state) -> None:
             state.state = sparse.csr_matrix(state.state, dtype=np.complex128)
         else:
             raise StatePreparationError(f"The inputted self.state cannot be of type {type(state.state)}, expected type list or type np.ndarray")
-        
         if len(state.state.shape) != 1 and state.weights is None:
             raise StatePreparationError(f"The inputted self.state must be 1D not {state.state.shape}")
     if state.weights is not None:
@@ -24,6 +23,7 @@ def qubit_validation(state) -> None:
             raise StatePreparationError(f"The inputted self.weights cannot be of type {type(state.weights)}, expected type list or type np.ndarray")
     if not isinstance(state.skip_val, bool):
         raise StatePreparationError(f"The inputted self.skip_val cannot be of type {type(state.skip_val)}, expected type bool")
+    
     if not state.skip_val:
         if not isinstance(state.name, str):
             raise StatePreparationError(f"The inputted self.name cannot be of type {type(state.name)}, expected type str")
@@ -41,21 +41,6 @@ def qubit_validation(state) -> None:
             if not np.isclose(sum_check, 1.0, atol=1e-4):
                 raise StatePreparationError(f"The absolute square of the elements of the state must sum to 1, not to {sum_check}")
             
-def lw_qubit_validation(state) -> None:
-    if state.state is None:
-        raise LWStatePreparationError(f"self.state must be provided to create the lightweight Quantum state")
-    if isinstance(state.state, (list, np.ndarray)):
-        state.state = np.array(state.state, dtype=np.complex128)
-    elif sparse.issparse(state.state):
-        state.state = sparse.csr_matrix(state.state, dtype=np.complex128)
-    else:
-        raise StatePreparationError(f"The inputted self.state cannot be of type {type(state.state)}, expected type list or type np.ndarray")
-    if not state.skip_val:
-        if not isinstance(state.name, str):
-            raise StatePreparationError(f"The inputted self.name cannot be of type {type(state.name)}, expected type str")
-        if not isinstance(state.display_mode, str):
-            raise StatePreparationError(f"The inputted self.display_mode cannot be of type {type(state.display_mode)}, expected type str")
-        
 def qubit_array_validation(array) -> None:
     if not isinstance(array.name, str):
         raise QubitArrayError(f"self.name cannot be of type {type(array.name)}, expected type str")

@@ -1,9 +1,9 @@
 import numpy as np
 from .qubit_lw import *
-from ..circuit_utilities import *
+from ...circuit_utilities import *
 from scipy.sparse import eye_array
-from ..base_circuit.classes import *
-from ..circuit_config import linewid
+from ...base_circuit.classes import *
+from ...circuit_config import linewid
 
 
 __all__ = ["Circuit_LW"]

@@ -1,5 +1,5 @@
 import numpy as np
-from ..circuits.lightweight_circuit import *
+from ..circuits.lightweight_circuit.classes import *
 from ..gen_utilities.timer import Timer
 from .algorithm_utilities.algorithm_errors import GroverSearchError
 from ..circuits.circuit_utilities.layout_funcs import top_probs, format_ket_notation

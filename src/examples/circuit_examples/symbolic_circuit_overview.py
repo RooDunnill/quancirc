@@ -1,9 +1,9 @@
 import sympy as sp
-from ...circuits.symbolic_circuit import *
+from ...circuits.symbolic_circuit.classes import *
 from ...config import *
 from sympy import pprint
 
-def symbolic_circuit_example():
+def symbolic_circuit_guide():
     print("=" * linewid)
     print(f"Welcome to the overview of the symbolic circuit")
     print(f"Here i will continually add new examples about what you can do and how to do it")
@@ -41,4 +41,4 @@ def symbolic_circuit_example():
 
 
 if __name__ == "__main__":
-    symbolic_circuit_example()
+    symbolic_circuit_guide()

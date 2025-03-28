@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.sparse import eye_array
-from ....circuit_utilities.circuit_errors import GateError
 
 
 def identity_gate(cls, **kwargs):    

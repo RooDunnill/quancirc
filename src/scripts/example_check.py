@@ -6,8 +6,10 @@ bb84_example()
 k_hash_example()
 aharonov_plotter_example()
 
+
 #circuit examples
-symbolic_circuit_example()
+symbolic_circuit_guide()
+base_circuit_guide()
 measure_to_bits_example()
 bell_state_example()
 

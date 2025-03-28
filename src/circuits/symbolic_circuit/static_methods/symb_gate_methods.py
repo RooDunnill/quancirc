@@ -1,5 +1,5 @@
 import numpy as np
-from ...circuit_utilities.circuit_errors import SymbGateError
+from ..utilities.circuit_errors import SymbGateError
 import sympy as sp
 
 

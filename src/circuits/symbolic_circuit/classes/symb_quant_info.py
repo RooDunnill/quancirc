@@ -1,10 +1,10 @@
 import numpy as np
-from ..circuit_utilities import SymbQuantInfoError
+from ..utilities.circuit_errors import SymbQuantInfoError
 from .symb_qubit import *
 from scipy.linalg import sqrtm, logm
 from scipy.sparse.linalg import eigsh
 import matplotlib.pyplot as plt
-from ..circuit_config import *
+from ...circuit_config import *
 import sympy as sp
 from scipy.linalg import sqrtm
 

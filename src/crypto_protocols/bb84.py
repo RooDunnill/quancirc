@@ -78,7 +78,7 @@ def measure(Qubit_array, verbose=True):
         else:
             raise BB84Error(f"{basis_key[i]} is not a valid element of the basis key, can only be 0 or 1")
     print(f"Returning bits off of the circuit") if verbose else None
-    measured_bits = bb84_circ_rec.return_bits()
+    measured_bits = bb84_circ_rec.download_bits()
     return ''.join(chain(*zip(basis_key, measured_bits.return_bits_as_str())))
 
 def compare_basis(received_key, encoding_key):

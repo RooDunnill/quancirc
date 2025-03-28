@@ -10,6 +10,7 @@ from ...circuit_utilities import *
 from ...circuit_config import *
 from scipy.sparse import eye_array
 
+
 __all__ = ["Circuit"]
         
 class Circuit:
@@ -65,7 +66,7 @@ class Circuit:
             raise QuantumCircuitError(f"function cannot be used currently")
             
     def __str__(self):
-        return f"{self.state}\n{self.prob_distribution}" if self.prob_distribution else f"{self.state}"
+        return f"{self.state}\n{self.prob_distribution}" if self.prob_distribution is not None else f"{self.state}"
     
     def __getitem__(self, index: int) -> list:
         """Gets the qubit of that index  of the qubit array and returns"""

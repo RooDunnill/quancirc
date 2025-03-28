@@ -3,8 +3,8 @@ import scipy as sp
 from scipy import sparse
 from scipy.sparse.linalg import eigsh
 from ...circuit_utilities.sparse_funcs import *
-from ...circuit_utilities.circuit_errors import QuantumStateError, StatePreparationError, LWQuantumStateError
-from .static_methods.qubit_methods import *
+from ...circuit_utilities.circuit_errors import QuantumStateError, StatePreparationError
+from ..static_methods.qubit_methods import *
 from ...circuit_config import *
 from ...circuit_utilities.validation_funcs import qubit_validation, rho_validation
 
@@ -173,7 +173,7 @@ class Qubit:                                           #creates the qubit class
     def __matmul__(self: "Qubit", other: "Qubit") -> "Qubit":     
         """Matrix multiplication between two Qubit objects, returns a Qubit object"""
         if self.class_type == "qubit_lw":
-            raise LWQuantumStateError(f"Lightweight States cannot be matrix multiplied with other quantum states")
+            raise QuantumStateError(f"Lightweight States cannot be matrix multiplied with other quantum states")
         if isinstance(other, Qubit):
             rho_1 = convert_to_sparse(self.rho)
             rho_2 = convert_to_sparse(other.rho)

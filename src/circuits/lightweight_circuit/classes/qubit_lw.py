@@ -1,11 +1,13 @@
 import numpy as np
-from ..base_circuit.classes.qubit import *
-from ..base_circuit.classes.qubit import combine_qubit_attr
-from ..circuit_utilities.circuit_errors import *
-from ..circuit_utilities.validation_funcs import lw_qubit_validation
-from ..base_circuit.classes.static_methods.qubit_methods import *
-from ..circuit_utilities.sparse_funcs import *
-from ..circuit_config import *
+from ...base_circuit.classes.qubit import *
+from ...base_circuit.classes.qubit import combine_qubit_attr
+from ...circuit_utilities.circuit_errors import *
+from ..utilities.validation_funcs import lw_qubit_validation
+from ..static_methods.qubit_methods import *
+from ..utilities.circuit_errors import LWQuantumStateError, LWStatePreparationError
+from ...circuit_utilities.sparse_funcs import *
+from ..utilities.circuit_errors import LWQuantumStateError
+from ...circuit_config import *
 
 
 
