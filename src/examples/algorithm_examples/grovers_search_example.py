@@ -1,7 +1,6 @@
 from ...circuit_algorithms.grover_search import grover_search
 
-
-def main():
+def grover_search_example():
     print(f"An example of Grovers with 16 random values and 16 qubits:")
     grover_search(16, n=16)
 
@@ -13,4 +12,4 @@ def main():
     grover_search(8)
 
 if __name__ == "__main__":
-    main()
+    grover_search_example()

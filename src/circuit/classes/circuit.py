@@ -53,11 +53,8 @@ class Circuit:
     def __dir__(self):
         methods = ["upload_qubit_array", "apply_gate", "list_probs", "measure_state", 
                    "get_info", "print_states", "return_states", "purity", "linear_entropy", "vn_entropy",
-                   "shannon_entropy", "apply_channel_to_qubit", "apply_local_channel_to_qubit", "debug", "return_bits"]
-        if self.qubit_array:
-            methods.extend(["download_qubit_array", "apply_gate_on_array", "get_array_info"])
-            methods.remove(["apply_gate", "list_probs", "measure_state","apply_channel_to_qubit", "apply_local_channel_to_qubit",
-                            "return_state", "print_state", "purity", "linear_entropy", "vn_entropy", "shannon_entropy"])
+                   "shannon_entropy", "apply_channel_to_qubit", "apply_local_channel_to_qubit", "debug", "return_bits"
+                   ,"download_qubit_array", "apply_gate_on_array", "get_array_info"]
         return methods
     
     def __getattr__(self, name):

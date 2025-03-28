@@ -1,6 +1,7 @@
 from ...circuit.classes import *
 
-def main():
+
+def bell_state_example():
     print("\n")
     print(f"Producing all four Bell States:")
     print("=" * linewid)
@@ -47,5 +48,7 @@ def main():
     psi_minus.measure_state()
     print("=" * linewid)
 
+
 if __name__ == "__main__":
-    main()
+    bell_state_example()
+    
