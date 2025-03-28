@@ -5,8 +5,6 @@ from ...circuits.symbolic_circuit import *
 from matplotlib.widgets import Slider
 
 
-
-
 def aharonov_plotter_example():
     phi = np.linspace(0, np.pi/2, 200)
     symb_fidelity = np.zeros(200)
@@ -24,11 +22,9 @@ def aharonov_plotter_example():
         for i, angle in enumerate(phi):
             symb_state_0 = SymbQubit(rho=[[sp.cos(phi_symb)**2, 0],[0, sp.sin(phi_symb)**2]])
             symb_state_1 = SymbQubit(rho=[[sp.sin(phi_symb)**2, 0],[0, sp.cos(phi_symb)**2]])
-            
             symb_state_0.rho = symb_state_0.rho.subs({sp.symbols("phi_symb"):angle + alpha_val})
             symb_state_1.rho = symb_state_1.rho.subs({sp.symbols("phi_symb"):angle + alpha_val})
             symb_fidelity[i] = SymbQuantInfo.fidelity(symb_state_0, symb_state_1).evalf()
-            
             
         prob_a = 1/2 + np.sqrt(symb_fidelity) * np.sin(2 * (alpha_val))/2
         prob_b = 1/2 + np.abs(symb_trace_distance/2) * beta_val
@@ -66,20 +62,18 @@ def aharonov_plotter_example():
     ax.set_xlim([0, np.pi/2])
     ax.set_ylim([0, 1])
     ax.grid(True)
-    ax.set_yticks([])
-    fig.subplots_adjust(right=0.75, bottom=0.2)
-    plt.tight_layout(pad=2.0)
+ 
     ax.set_facecolor("#f4f4f4")
 
     ax_slider_a = fig.add_subplot(grid[1], position=[0.1, 0.5, 0.8, 0.5])
     ax_slider_a.set_yticks([])
     ax_slider_a.set_yticklabels([])
-    slider_a = Slider(ax_slider_a, "alpha", 0, np.pi/4, valinit=alpha, valstep=np.pi/32)
+    slider_a = Slider(ax_slider_a, "alpha", 0, np.pi/4, valinit=alpha, valstep=np.pi/64, color="red")
 
     ax_slider_b = fig.add_subplot(grid[2], position=[0.1, 0.5, 0.8, 0.5])
     ax_slider_b.set_yticks([])
     ax_slider_b.set_yticklabels([])
-    slider_b = Slider(ax_slider_b, "beta", 0, 1, valinit=beta, valstep=1)
+    slider_b = Slider(ax_slider_b, "beta", 0, 1, valinit=beta, valstep=1, color="black")
 
     slider_a.on_changed(lambda val: update(val, slider_b.val))
     slider_b.on_changed(lambda val: update(slider_a.val, val))
@@ -89,7 +83,8 @@ def aharonov_plotter_example():
 
     slider_b.ax.set_facecolor("lightgray")
     slider_b.valtext.set_fontsize(12)
-    
+    slider_a.valtext.set_color('red')
+    slider_b.valtext.set_color('black')
     plt.show()
 
 if __name__ == "__main__":
