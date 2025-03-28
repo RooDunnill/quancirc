@@ -65,7 +65,7 @@ class Circuit:
             raise QuantumCircuitError(f"function cannot be used currently")
             
     def __str__(self):
-        return f"{self.state}\n{self.prob_distribution}"
+        return f"{self.state}\n{self.prob_distribution}" if self.prob_distribution else f"{self.state}"
     
     def __getitem__(self, index: int) -> list:
         """Gets the qubit of that index  of the qubit array and returns"""
@@ -82,6 +82,13 @@ class Circuit:
                 return self.state[index]
             raise QuantumCircuitError(f"Cannot get a qubit from index {index}, when the size of the Quantum state is {self.state.n}")
         raise QuantumCircuitError(f"circuit_mode cannot be {self.circuit_mode}, expected mode 'array' or 'circuit'")
+    
+    def set_display_mode(self, mode: str) -> None:
+        """Sets the display mode between the three options, returns type None"""
+        if mode not in ["vector", "density", "both"]:
+            raise QuantumCircuitError(f"The display mode must be set in 'vector', 'density' or 'both'")
+        self.state.display_mode = mode
+
         
     def __setitem__(self, index: int, qub: Qubit) -> None:
         """Sets the qubit of that index on the qubit array with whatever val you enter"""

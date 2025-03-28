@@ -71,7 +71,7 @@ def rho_validation(state):
     if sparse.issparse(state.rho) or isinstance(state.rho[0], sparse.spmatrix):
         state.rho = sparse.csr_matrix(state.rho, dtype=np.complex128)
     elif isinstance(state.rho, (list, np.ndarray)):
-        state.rho = np.array(dense_mat(state.rho), dtype=np.complex128)
+        state.rho = dense_mat(np.array(state.rho, dtype=np.complex128))
     else:
         raise StatePreparationError(f"The inputted self.rho cannot be of type {type(state.rho)}, expected type list or type np.ndarray")
         

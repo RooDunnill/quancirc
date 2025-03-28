@@ -124,11 +124,11 @@ class Qubit:                                           #creates the qubit class
                 raise StatePreparationError(f"The state vector of a pure state cannot be a tuple")
             state_str = np.array2string(dense_mat(state_print), precision=p_prec, separator=', ', suppress_small=True)
             if self.display_mode == "vector":
-                return f"Pure Quantum State Vector:\n{state_str}"
+                return f"{self.name}:\n{state_str}" if self.name else f"Pure Quantum State Vector:\n{state_str}"
             elif self.display_mode == "density":
-                return f"Pure Quantum State Density Matrix:\n{rho_str}"
+                return f"{self.name}\n{rho_str}" if self.name else f"Pure Quantum State Density Matrix:\n{rho_str}"
             elif self.display_mode == "both":
-                return f"Pure Quantum State Vector:\n{state_str}\n\nDensity Matrix:\n{rho_str}"
+                return f"{self.name}\nState:\n{state_str}\nRho:\n{rho_str}" if self.name else f"Pure Quantum State Vector:\n{state_str}\n\nDensity Matrix:\n{rho_str}"
 
         elif self.state_type == "mixed":
             if isinstance(state_print, np.ndarray):
@@ -138,11 +138,11 @@ class Qubit:                                           #creates the qubit class
             weights_str = np.array2string(weights, precision=p_prec, separator=', ', suppress_small=True)
             state_str = np.array2string(state, precision=p_prec, separator=', ', suppress_small=True)
             if self.display_mode == "vector":
-                return f"Mixed Quantum State Vector:\nWeights:\n{weights_str}\n\nStates:\n{state_str}"
+                return f"{self.name}\nWeights\n{weights_str}\nStates:\n{state_str}" if self.name else f"Mixed Quantum State Vector:\nWeights:\n{weights_str}\n\nStates:\n{state_str}"
             elif self.display_mode == "density":
-                return f"Mixed Quantum State Density Matrix:\n{rho_str}"
+                return  f"{self.name}\nRho:\n{rho_str}" if self.name else f"Mixed Quantum State Density Matrix:\n{rho_str}"
             elif self.display_mode == "both":
-                return f"Mixed Quantum State Vector:\nWeights:\n{weights_str}\n\nStates:\n{state_str}\n\nDensity Matrix:\n{rho_str}"
+                return f"{self.name}\nWeights\n{weights_str}\nStates:\n{state_str}\nRho:\n{rho_str}" if self.name else f"Mixed Quantum State Vector:\nWeights:\n{weights_str}\n\nStates:\n{state_str}\n\nDensity Matrix:\n{rho_str}"
             
         elif self.state_type == "non unitary":
             return f"Non Quantum State Density Matrix:\n{rho_str}"
