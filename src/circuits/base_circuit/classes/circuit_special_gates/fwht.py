@@ -1,6 +1,6 @@
 import numpy as np
 from ..qubit import *
-from ...circuit_utilities.circuit_errors import *
+from ....circuit_utilities.circuit_errors import *
 
 def vector_fwht(state: Qubit) -> Qubit:
         """The Fast Walsh Hadamard Transform, used heavily in Grover's to apply the tensored Hadamard"""

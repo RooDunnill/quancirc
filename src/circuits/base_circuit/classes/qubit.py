@@ -2,11 +2,11 @@ import numpy as np
 import scipy as sp
 from scipy import sparse
 from scipy.sparse.linalg import eigsh
-from ..circuit_utilities.sparse_funcs import *
-from ..circuit_utilities.circuit_errors import QuantumStateError, StatePreparationError, LWQuantumStateError
+from ...circuit_utilities.sparse_funcs import *
+from ...circuit_utilities.circuit_errors import QuantumStateError, StatePreparationError, LWQuantumStateError
 from .static_methods.qubit_methods import *
-from ..circuit_config import *
-from ..circuit_utilities.validation_funcs import qubit_validation, rho_validation
+from ...circuit_config import *
+from ...circuit_utilities.validation_funcs import qubit_validation, rho_validation
 
 
 __all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi"]

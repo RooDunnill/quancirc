@@ -1,6 +1,4 @@
-from ...circuit.classes.circuit import *
-from ...circuit.classes.qubit_array import *
-from ...circuit.classes.gate import * 
+from ...circuits.base_circuit import *
 
 def measure_to_bits_example():
     test_circuit = Circuit(mode="array", verbose=True)

@@ -6,8 +6,8 @@ from .quant_info import *
 from .measure import *
 from .qubit_array import *
 from .circuit_special_gates import *
-from ..circuit_utilities import *
-from ..circuit_config import *
+from ...circuit_utilities import *
+from ...circuit_config import *
 from scipy.sparse import eye_array
 
 __all__ = ["Circuit"]

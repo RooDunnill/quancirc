@@ -1,10 +1,10 @@
 import numpy as np
-from ..circuit_utilities.circuit_errors import GateError
+from ...circuit_utilities.circuit_errors import GateError
 from .static_methods.gate_methods import *
 from .qubit import combine_qubit_attr
-from ..circuit_config import *
-from ..circuit_utilities.validation_funcs import gate_validation
-from ..circuit_utilities.sparse_funcs import *
+from ...circuit_config import *
+from ...circuit_utilities.validation_funcs import gate_validation
+from ...circuit_utilities.sparse_funcs import *
 
 
 __all__ = ["Gate", "X_Gate", "Y_Gate", "Z_Gate", "Hadamard", "Identity", "CNot", "CNot_flip",

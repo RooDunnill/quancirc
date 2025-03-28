@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import numpy as np
-from ..circuit.classes import *
-from ..circuit.classes.lightweight_circuit import *
+from ..circuits import *
 from ..circuit_algorithms.grover_search import *
+import sympy as sp
 
 partial_test = q0 % q1 % q1 % q0
 pt = partial_test.partial_trace(0, 3)
@@ -291,20 +291,20 @@ test_gate = Gate(matrix=[[1,0],[0,1]])
 trace_state_1 = Qubit(state=[[1,0],[0,1]], weights=[0.5,0.5])
 QuantInfo.bloch_plotter(trace_state_1)
 print(QuantInfo.trace_distance(trace_state_1, Gate.Rotation_Y(np.pi/2) @ trace_state_1))
-print(QuantInfo.trace_distance2(trace_state_1, Gate.Rotation_Y(np.pi/2) @ trace_state_1))
+print(QuantInfo.trace_distance(trace_state_1, Gate.Rotation_Y(np.pi/2) @ trace_state_1))
 
 state_1 = Qubit(state=[1,0])
 QuantInfo.bloch_plotter(Gate.Rotation_Y(np.pi/2) @ state_1)
-phi = sympy.symbols("phi", real=False)
-a, b, c = sympy.symbols("a b c", real=False)
-d, e, f = sympy.symbols("d e f", real=False)
-state_1 = SymbQubit(rho=sympy.Matrix([[a, b], [sympy.conjugate(b), c]]),skip_validation=True)
-state_2 = SymbQubit(rho=sympy.Matrix([[d, e], [sympy.conjugate(e), f]]),skip_validation=True)
-state_1.rho = state_1.rho.subs({b:0.0, a:sympy.cos(phi)**2, c:sympy.sin(phi)**2,})
-state_2.rho = state_2.rho.subs({d:sympy.sin(phi)**2, f:sympy.cos(phi)**2, e:0.0})
+phi = sp.symbols("phi", real=False)
+a, b, c = sp.symbols("a b c", real=False)
+d, e, f = sp.symbols("d e f", real=False)
+state_1 = SymbQubit(rho=sp.Matrix([[a, b], [sp.conjugate(b), c]]),skip_validation=True)
+state_2 = SymbQubit(rho=sp.Matrix([[d, e], [sp.conjugate(e), f]]),skip_validation=True)
+state_1.rho = state_1.rho.subs({b:0.0, a:sp.cos(phi)**2, c:sp.sin(phi)**2,})
+state_2.rho = state_2.rho.subs({d:sp.sin(phi)**2, f:sp.cos(phi)**2, e:0.0})
 
 expression = SymbQuantInfo.trace_distance(state_1, state_2)
-pprint(expression.subs({phi:0.0}))
+print(expression.subs({phi:0.0}))
 
 expression = SymbQuantInfo.fidelity(state_1, state_2)
 print(expression.subs({phi:0.0}))

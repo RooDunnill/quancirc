@@ -1,4 +1,4 @@
-from ...circuit.classes import *
+from ...circuits.base_circuit import *
 
 
 def bell_state_example():

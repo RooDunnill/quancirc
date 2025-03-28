@@ -1,14 +1,9 @@
 import numpy as np
 from .qubit_lw import *
-from ..bit import *
-from ..gate import *
-from ..quant_info import *
-from ..measure import *
-from ...circuit_utilities import *
-from ..circuit_special_gates import *
+from ..circuit_utilities import *
 from scipy.sparse import eye_array
-from ..qubit import combine_qubit_attr
-from ...circuit_config import linewid
+from ..base_circuit.classes import *
+from ..circuit_config import linewid
 
 
 __all__ = ["Circuit_LW"]

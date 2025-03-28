@@ -1,8 +1,8 @@
 import numpy as np
-from ...circuit_utilities.circuit_errors import SymbGateError
-from ...circuit_config import *
+from ..circuit_utilities.circuit_errors import SymbGateError
+from ..circuit_config import *
 import sympy as sp
-from ..static_methods.symb_gate_methods import *
+from .static_methods.symb_gate_methods import *
 
 
 __all__ = ["SymbGate", "X_Gate_symb", "Y_Gate_symb", "Z_Gate_symb", "Identity_symb", "Hadamard_symb",

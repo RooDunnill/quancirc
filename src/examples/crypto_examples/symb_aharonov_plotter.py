@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from ...circuit.classes.circuit import *
-from ...circuit.classes.quant_info import *
-from ...circuit.classes.qubit import *
-from ...circuit.classes.gate import *
+from ...circuits.classes.circuit import *
+from ...circuits.classes.quant_info import *
+from ...circuits.classes.qubit import *
+from ...circuits.classes.gate import *
 from matplotlib.widgets import Slider
 
 phi = np.linspace(0, np.pi/2, 200)

@@ -1,11 +1,11 @@
 import numpy as np
-from ..circuit.classes.lightweight_circuit.circuit_lw import *
+from ..circuits.lightweight_circuit import *
 from ..gen_utilities.timer import Timer
 from .algorithm_utilities.algorithm_errors import GroverSearchError
-from ..circuit.circuit_utilities.layout_funcs import top_probs, format_ket_notation
+from ..circuits.circuit_utilities.layout_funcs import top_probs, format_ket_notation
 from random import choices, randint
-from ..circuit.classes.qubit import *
-from ..circuit.classes.gate import *
+from ..circuits.base_circuit.classes.qubit import *
+from ..circuits.base_circuit.classes.gate import *
 from ..config import *
 
 __all__ = ["grover_search"]
@@ -30,7 +30,7 @@ def compute_n(oracle_values, n_cap: int, balanced_param: float, it, verbose) -> 
         while max_oracle > 2**n_qubit_min:             #when picking the qubits, we need enough to allow the search space to be bigger than all the oracle values
             n_qubit_min += 1
         if n_qubit_min > n_cap:
-            raise QC_error(f"The search space needed for this search is larger than the qubit limit {n_cap}.")
+            raise GroverSearchError(f"The search space needed for this search is larger than the qubit limit {n_cap}.")
         if it == None:          #if no given iteration then will find it
             print_func(f"No iteration value given, so will now calculate the optimal iterations")
             n_qubit_range = np.arange(n_qubit_min, n_cap + 1, dtype=int)
@@ -119,7 +119,7 @@ def run(oracle_values, n, n_cap, it, mode, verbose, rand_ov, balanced_param):   
         search_space: int = 2**n       #computes the search space for the n provided
         print_func(f"Using {n} Qubits with a search space of {search_space}")
     else:
-        raise QC_error(f"self.n is of the wrong type {type(n)}, expected type int")
+        raise GroverSearchError(f"self.n is of the wrong type {type(n)}, expected type int")
 
     op_iter = optimal_iterations(oracle_values, n)[0]
     if it == None:     #now picks an iteration value

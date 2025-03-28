@@ -1,10 +1,8 @@
 import numpy as np
 import scipy as sp
-from ..circuit.classes.circuit import *
+from ..circuits.base_circuit import *
 from .primitives import *
-from ..circuit.classes.qubit_array import *
 from .crypto_utilities import *
-from ..circuit.classes.gate import *
 from itertools import chain
 
 __all__ = ["gen_key", "enc", "measure", "compare_basis" ]

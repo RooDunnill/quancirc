@@ -1,12 +1,12 @@
 import numpy as np
-from ..circuit_utilities import QuantInfoError
+from ...circuit_utilities.circuit_errors import QuantInfoError
 from .qubit import Qubit
 from .gate import X_Gate, Y_Gate, Z_Gate
 from scipy.linalg import sqrtm, logm
 from scipy import sparse
 from scipy.sparse.linalg import eigsh
 import matplotlib.pyplot as plt
-from ..circuit_config import *
+from ...circuit_config import *
 
 __all__ = ["QuantInfo"]
 

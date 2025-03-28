@@ -1,9 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from ...circuit.classes.circuit import *
-from ...circuit.classes.quant_info import *
-from ...circuit.classes.qubit import *
-from ...circuit.classes.gate import *
+from ...circuits.base_circuit import *
 from matplotlib.widgets import Slider
 
 

@@ -1,5 +1,5 @@
 import sympy as sp
-from ...circuit.classes.symbolic_circuit import *
+from ...circuits.symbolic_circuit import *
 from ...config import *
 from sympy import pprint
 

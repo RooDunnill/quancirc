@@ -1,10 +1,10 @@
 import numpy as np
 from scipy import sparse
-from ..circuit_utilities.circuit_errors import MeasureError
+from ...circuit_utilities.circuit_errors import MeasureError
 from random import choices, randint
 from .qubit import *
-from ..circuit_utilities.validation_funcs import measure_validation
-from ..circuit_utilities.sparse_funcs import dense_mat
+from ...circuit_utilities.validation_funcs import measure_validation
+from ...circuit_utilities.sparse_funcs import dense_mat
 
 
 __all__ = ["Measure"]
