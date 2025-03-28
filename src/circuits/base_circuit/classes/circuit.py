@@ -13,6 +13,7 @@ from scipy.sparse import eye_array
 __all__ = ["Circuit"]
         
 class Circuit:
+    """The main circuit in the program, allows for sparse and dense manipulation of 'full' qubits in rho form"""
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'circuit')
         self.qubit_num = kwargs.get("q", 1)
@@ -31,6 +32,7 @@ class Circuit:
         self.qubit_array = None
 
     def init_circuit(self) -> tuple[Qubit, Bit]:
+        """initialises the Quantum State and Bits for the circuit and prints initiation messages"""
         if self.verbose:
             if self.circuit_mode == "circuit":
                 print("\n")
@@ -57,33 +59,54 @@ class Circuit:
                    ,"download_qubit_array", "apply_gate_on_array", "get_array_info"]
         return methods
     
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> None:
+        """Prevents functions outside the directory from being called"""
         if name not in self.__dir__():
             raise QuantumCircuitError(f"function cannot be used currently")
             
     def __str__(self):
         return f"{self.state}\n{self.prob_distribution}"
     
-    def __getitem__(self, index):
-        if index < len(self.qubit_array):
-            if self.verbose:
-                print(f"Retreiving qubit {index} from the qubit array")
-            return self.qubit_array[index]
-        else:
-            raise QuantumCircuitError(f"Cannot get a qubit from index {index}, when the array length is {len(self.qubit_array)}")
-        
-    def __setitem__(self, index, qub):
-        if index < len(self.qubit_array):
-            if isinstance(qub, Qubit):
-                self.qubit_array[index] = qub
+    def __getitem__(self, index: int) -> list:
+        """Gets the qubit of that index  of the qubit array and returns"""
+        if self.circuit_mode == "array":
+            if index < len(self.qubit_array):
+                if self.verbose:
+                    print(f"Retreiving qubit {index} from the qubit array")
+                return self.qubit_array[index]
             else:
-                raise QuantumCircuitError(f"The inputted value cannot be of type {type(qub)}, expected type Qubit")
-        else:
-            raise QuantumCircuitError(f"Cannot asign a qubit to index {index}, when the array length is {len(self.qubit_array)}")
+                raise QuantumCircuitError(f"Cannot get a qubit from index {index}, when the array length is {len(self.qubit_array)}")
+        elif self.circuit_mode == "circuit":
+            if index < self.state.n:
+                print(f"Retreiving qubit {index} from the Quantum state") if self.verbose else None
+                return self.state[index]
+            raise QuantumCircuitError(f"Cannot get a qubit from index {index}, when the size of the Quantum state is {self.state.n}")
+        raise QuantumCircuitError(f"circuit_mode cannot be {self.circuit_mode}, expected mode 'array' or 'circuit'")
+        
+    def __setitem__(self, index: int, qub: Qubit) -> None:
+        """Sets the qubit of that index on the qubit array with whatever val you enter"""
+        if self.circuit_mode == "array":
+            if index < len(self.qubit_array):
+                if isinstance(qub, Qubit):
+                    self.qubit_array[index] = qub
+                else:
+                    raise QuantumCircuitError(f"The inputted value cannot be of type {type(qub)}, expected type Qubit")
+            else:
+                raise QuantumCircuitError(f"Cannot asign a qubit to index {index}, when the array length is {len(self.qubit_array)}")
+        elif self.circuit_mode == "circuit":
+            if index < self.state.n:
+                if isinstance(qub, Qubit):
+                    self.state[index] = qub
+                else:
+                    raise QuantumCircuitError(f"The inputted value cannot be of type {type(qub)}, expected type Qubit")
+            else:
+                raise QuantumCircuitError(f"Cannot asign a qubit to index {index}, when the Quantum state is {self.state.n}")
     
     def upload_qubit_array(self, qubit_arr: QubitArray) -> None:
+        """Places the list of qubits within the object QubitArray into the circuit for gates and measurements to act upon them"""
         if self.circuit_mode == "circuit":
             print(f"Switching circuit mode to 'array'") if self.verbose else None
+            self.circuit_more = "array"
         if self.qubit_array is None:
             print(f"Uploading qubit array...") if self.verbose else None
             self.qubit_array = qubit_arr.qubit_array
@@ -92,18 +115,23 @@ class Circuit:
             raise QuantumCircuitError(f"Please download current qubit array before uploading the new qubit array, {qubit_arr.name}")
 
     def download_qubit_array(self) -> QubitArray:
+        """Removes the qubit list from the circuit and creates a new QubitArray object"""
         if len(self.qubit_array) != 0:
             print(f"Downloading qubit array...") if self.verbose else None
             qubit_array = QubitArray(array=self.qubit_array)
+            self.qubit_array = None
+            self.circuit_mode = "circuit"
             print(f"Download Complete") if self.verbose else None
             return qubit_array
         else:
             raise QuantumCircuitError(f"There is no qubit array to download currently in the circuit")
 
-    def return_bits(self):
+    def download_bits(self) -> Bit:
+        """Returns the bits within the quantum circuit"""
         return self.bits
 
     def apply_gate_on_array(self, gate: Gate, index, qubit=None, verbose=True):
+        """Allows for the application of gates onto the array, can be applies to all the states or specific ones and can also be applied to individual qubits"""
         if gate is Identity:
             if self.verbose and verbose:
                 print(f"Applying {gate.name} to qubit {index}")
@@ -118,7 +146,8 @@ class Circuit:
             if self.verbose and verbose:
                 print(f"Applying {gate.name} of size {gate.n} x {gate.n} to the qubit number {index} to the whole state")
         
-    def apply_gate(self, gate, qubit=None) -> None:
+    def apply_gate(self, gate: Gate, qubit=None) -> None:
+        """applies a gate to the quantum state when in normal mode"""
         gate_name = gate.name
         if self.collapsed:
             raise QuantumCircuitError(f"This state has already been measured and so no further gates can be applied")
@@ -141,13 +170,14 @@ class Circuit:
             if self.verbose:
                 print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the circuit")
 
-    def list_probs(self, qubit=None, povm=None):
+    def list_probs(self, qubit: Qubit=None, povm=None) -> np.ndarray:
+        """lists the probabilities of the given state, can be applied to individual qubits"""
         self.prob_distribution = Measure(self.state if qubit is None else self.state[qubit]).list_probs(povm)
         if self.verbose:
             print(f"Listing the probabilities:\n{format_ket_notation(self.prob_distribution)}")
         return self.prob_distribution
     
-    def measure_states_on_array(self, index, qubit=None, basis=None, povm=None):
+    def measure_states_on_array(self, index: int, qubit: Qubit=None, basis: str=None, povm=None) -> None:
         if qubit is None:
             if index == "all":
                 qubit_size = self.qubit_array[0].n
@@ -244,7 +274,7 @@ class Circuit:
                     self.bits.add_bits(str(measured_state))
 
 
-    def measure_state(self, qubit=None, povm=None):
+    def measure_state(self, qubit: Qubit=None, povm=None) -> Qubit:
         self.depth += 1
         if qubit is not None:
             measurement = Measure(self.state[qubit]).measure_state(povm)
@@ -262,73 +292,45 @@ class Circuit:
                 print(f"Measured the state {measurement} of the whole system")
             return self.state
         
-    def get_info(self):
+    def get_info(self) -> float:
         return QuantInfo.state_info(self.state)
     
-    def get_array_info(self):
+    def get_array_info(self) -> None:
         for i in range(len(self.qubit_array)):
             QuantInfo.qubit_info(self.qubit_array[i])
 
     
-    def print_state(self, qubit=None):
-        if qubit:
-            print(self.state[qubit])
-        else:
-            print(self.state)
+    def print_state(self, qubit=None) -> None:
+        print(self.state[qubit]) if qubit else print(self.state)
 
-    def return_state(self, qubit=None):
-        if qubit:
-            return self.state[qubit]
-        else:
-            return self.state
-
-    def purity(self, qubit=None):
+    def return_state(self, qubit=None) -> Qubit:
+        return self.state[qubit] if qubit else  self.state
+    
+    def purity(self, qubit: Qubit=None) -> float:
+        """returns the purity of the state or qubit"""
         purity = QuantInfo.purity(self.state[qubit]) if qubit else QuantInfo.purity(self.state)
         if self.verbose:
             print(f"Purity of the qubit {qubit} is {purity}") if qubit else print(f"Purity of the state is {purity}")
         return purity
     
-    def linear_entropy(self, qubit=None):
+    def linear_entropy(self, qubit: Qubit=None) -> float:
+        """returns the linear entropy of the state or qubit"""
         linear_entropy = QuantInfo.linear_entropy(self.state[qubit]) if qubit else QuantInfo.linear_entropy(self.state)
         if self.verbose:
             print(f"Linear Entropy of the qubit {qubit} is {linear_entropy}") if qubit else print(f"Linear Entropy of the state is {linear_entropy}")
         return linear_entropy
     
-    def vn_entropy(self, qubit=None):
+    def vn_entropy(self, qubit: Qubit=None) -> float:
+        """returns the von neumann entropy of the state or qubit"""
         return QuantInfo.vn_entropy(self.state[qubit]) if qubit else QuantInfo.vn_entropy(self.state)
     
-    def shannon_entropy(self, qubit=None):
+    def shannon_entropy(self, qubit: Qubit=None) -> float:
+        """returns the shannon entropy of the state or qubit"""
         return QuantInfo.shannon_entropy(self.state[qubit]) if qubit else QuantInfo.shannon_entropy(self.state)
     
-
-    def kraus_generator(self, channel, prob):
-        K0 = Gate.Identity(n = self.state.n)
-        K0 *= np.sqrt(1 - prob)**self.state.n
-        if channel == "Depol":
-            Kx = X_Gate
-            Ky = Y_Gate
-            Kz = Z_Gate
-            for i in range(self.state.n - 1):
-                Kx = Kx % X_Gate
-                Ky = Ky % Y_Gate
-                Kz = Kz % Z_Gate
-            Kx *= np.sqrt(prob/3)**self.state.n
-            Ky *= np.sqrt(prob/3)**self.state.n
-            Kz *= np.sqrt(prob/3)**self.state.n
-            return K0, Kx, Ky, Kz
-        elif channel == "X":
-            K1 = X_Gate
-        elif channel == "Y":
-            K1 = Y_Gate
-        elif channel == "Z":
-            K1 = Z_Gate
-        gate = K1
-        for i in range(self.state.n - 1):
-            K1 = K1 % gate
-        K1 *= np.sqrt(prob)**self.state.n
-        return K0, K1
     
-    def single_kraus_generator(self, channel, prob):
+    def single_kraus_generator(self, channel: str, prob: float) -> tuple[Gate, Gate] | tuple[Gate, Gate, Gate, Gate]:
+        """Generates the kraus operators for the specific quantum channel"""
         K0 = Gate.Identity()
         K0.skip_val = True
         K0 *= np.sqrt(1 - prob)
@@ -350,7 +352,8 @@ class Circuit:
         K1 *= np.sqrt(prob)
         return K0, K1
     
-    def apply_channel_to_qubit(self, qubit, channel, prob):
+    def apply_channel_to_qubit(self, qubit: int, channel: str, prob: float) -> Qubit:
+        """Applies a channel to a specific qubit"""
         if self.collapsed:
             QuantumCircuitError(f"Cannot apply a quantum channel to a collapsed state")
         qubit_state = self.state[qubit]
@@ -371,12 +374,14 @@ class Circuit:
         self.state.state_type = qubit_state.state_type
         return self.state
 
-    def apply_local_channel_to_state(self, channel, prob):
+    def apply_local_channel_to_state(self, channel: str, prob: float) -> Qubit:
+        """Applies a channel to an entire state"""
         for i in range(self.qubit_num):
             self.apply_channel_to_qubit(i, channel, prob)
         return self.state
 
-    def apply_state_wide_channel(self, channel, prob):
+    def apply_state_wide_channel(self, channel: str, prob: float) -> Qubit:
+        """This doesn't work"""
         if self.collapsed:
             QuantumCircuitError(f"Cannot apply a quantum channel to a collapsed state")
         old_index = self.state.index
@@ -392,7 +397,8 @@ class Circuit:
         self.state = Qubit(**kwargs)
         return self.state
 
-    def debug(self, title=True):
+    def debug(self, title: bool=True) -> None:
+        """Lists some debug information and also calls the debug function in the Qubit class"""
         print("-" * linewid)
         print(f"CIRCUIT DEBUG")
         print(f"Circuit Depth: {self.depth}")
