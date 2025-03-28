@@ -1,1 +1,1 @@
-from .grovers_search_example import *
+from .grovers_search_demo import *

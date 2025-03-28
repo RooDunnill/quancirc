@@ -24,7 +24,8 @@ def k_hash_example():
 
     k_12_hash = Hash(k=k+10, key=rand_key, p=p)
     k_12_hash.analyse(k_12_hash.k_hash(list_vals))
-    plt.show()
+    
+    #plt.show() runs on exit
 
 if __name__ == "__main__":
     k_hash_example()

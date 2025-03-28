@@ -14,6 +14,7 @@ from ...circuit_config import linewid
 __all__ = ["Circuit_LW"]
 
 class Circuit_LW:
+    """A circuit build out of 1D arrays that can only handle pure states, howver is optimised to be overlla faster than the base circuit"""
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'circuit_lw')
         self.qubit_num = kwargs.get("q", 1)
