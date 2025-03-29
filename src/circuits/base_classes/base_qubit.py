@@ -1,9 +1,48 @@
-from .base_class_utilities.base_class_errors import BaseQuantumStateError
+from .base_class_utilities.base_class_errors import BaseQuantumStateError, BaseStatePreparationError
 from ..circuit_config import *
-
+from ..circuit_utilities.sparse_funcs import *
 
 
 class BaseQubit:
+    def __init__(self, **kwargs):
+        self.skip_val = kwargs.get("skip_validation", False)
+        self.display_mode = kwargs.get("display_mode", "density")
+        self.name: str = kwargs.get("name","|Quantum State>")
+        self.state = kwargs.get("state", None)
+
+    def __str__(self: "BaseQubit") -> str:
+        state_print = self.build_state_from_rho() if self.class_type == "qubit" else self.state
+        rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
+        rho_str = np.array2string(rho, precision=p_prec, separator=', ', suppress_small=True)
+        if not self.name:
+            self.name = f"{self.state_type} {self.class_type}"
+        if self.state_type == "pure":
+            if isinstance(state_print, tuple):
+                raise BaseStatePreparationError(f"The state vector of a pure state cannot be a tuple")
+            state_str = np.array2string(dense_mat(state_print), precision=p_prec, separator=', ', suppress_small=True)
+            if self.display_mode == "vector":
+                return f"{self.name}:\n{state_str}"
+            elif self.display_mode == "density":
+                return f"{self.name}\n{rho_str}" 
+            elif self.display_mode == "both":
+                return f"{self.name}\nState:\n{state_str}\nRho:\n{rho_str}"
+        elif self.state_type == "mixed":
+            if isinstance(state_print, np.ndarray):
+                raise BaseStatePreparationError(f"The state vector of a mixed state cannot be a sinlge np.ndarray")
+            weights = dense_mat(state_print[0])
+            state = dense_mat(state_print[1])
+            weights_str = np.array2string(weights, precision=p_prec, separator=', ', suppress_small=True)
+            state_str = np.array2string(state, precision=p_prec, separator=', ', suppress_small=True)
+            if self.display_mode == "vector":
+                return f"{self.name}\nWeights\n{weights_str}\nStates:\n{state_str}"
+            elif self.display_mode == "density":
+                return  f"{self.name}\nRho:\n{rho_str}"
+            elif self.display_mode == "both":
+                return f"{self.name}\nWeights\n{weights_str}\nStates:\n{state_str}\nRho:\n{rho_str}"
+            
+        elif self.state_type == "non unitary":
+            return f"Non Quantum State Density Matrix:\n{rho_str}"
+
     def __copy__(self: "BaseQubit") -> None:
         raise BaseQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem")
     

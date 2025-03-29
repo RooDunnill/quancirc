@@ -18,8 +18,6 @@ class BaseQuantumCircuitError(QC_error):
         self.message = message
         super().__init__(self.message)
 
-
-
 class BaseStatePreparationError(QC_error):
     """Error related to base quantum state preparation."""
     def __init__(self, message="Invalid Base State Preparation Operation"):

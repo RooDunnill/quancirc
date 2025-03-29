@@ -19,12 +19,9 @@ class Qubit_LW(BaseQubit):
         at the forfeit of always being pure"""
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'qubit_lw')
-        self.skip_val = kwargs.get("skip_validation", False)
+        super().__init__(**kwargs)
+        self.state_type = "pure"
         self.matrix_type = kwargs.get("matrix_type", "dense")
-        self.display_mode = kwargs.get("display_mode", "vector")
-        self.name: str = kwargs.get("name","|Quantum State>")
-        self.state: list = kwargs.get("state", None)
-        self.state_type = None
         self.index = kwargs.get("index", None)
         lw_qubit_validation(self)
         self.dim = self.state.shape[0]
@@ -40,10 +37,12 @@ class Qubit_LW(BaseQubit):
     def __repr__(self):
         return self.__str__()
     
-    def __str__(self) -> str:
-            state_str = np.array2string(dense_mat(self.state), precision=p_prec, separator='\n', suppress_small=True)
-            if self.display_mode == "vector":
-                return f"Pure Quantum State Vector:\n{state_str}"
+
+    def build_pure_rho(self: "Qubit_LW") -> np.ndarray:
+        """Builds a pure rho matrix, primarily in initiation of Qubit object, returns type np.ndarray"""
+        if isinstance(self.state, np.ndarray):
+            return np.einsum("i,j", np.conj(self.state), self.state, optimize=True)
+        raise LWStatePreparationError(f"self.state cannot be of type {type(self.state)}, expected np.ndarray")
             
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""

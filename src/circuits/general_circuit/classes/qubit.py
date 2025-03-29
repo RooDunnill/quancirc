@@ -64,12 +64,9 @@ class Qubit(BaseQubit):                                           #creates the q
     """The class to define and initialise Qubits and Quantum States"""
     def __init__(self, *args, **kwargs) -> None:
         object.__setattr__(self, 'class_type', 'qubit')
-        self.skip_val = kwargs.get("skip_validation", False)
+        super().__init__(**kwargs)
         self.matrix_type = kwargs.get("matrix_type", "dense")
-        self.display_mode = kwargs.get("display_mode", "density")
         self.weights: list = kwargs.get("weights", None)
-        self.name: str = kwargs.get("name","|Quantum State>")
-        self.state: list = kwargs.get("state", None)
         self.rho: list = kwargs.get("rho", None)
         self.state_type = None
         self.index = kwargs.get("index", None)
@@ -117,36 +114,6 @@ class Qubit(BaseQubit):                                           #creates the q
     def __repr__(self: "Qubit") -> str:
         return self.__str__()
 
-    def __str__(self: "Qubit") -> str:
-        state_print = self.build_state_from_rho()
-        rho_str = np.array2string(dense_mat(self.rho), precision=p_prec, separator=', ', suppress_small=True)
-        if self.state_type == "pure":
-            if isinstance(state_print, tuple):
-                raise StatePreparationError(f"The state vector of a pure state cannot be a tuple")
-            state_str = np.array2string(dense_mat(state_print), precision=p_prec, separator=', ', suppress_small=True)
-            if self.display_mode == "vector":
-                return f"{self.name}:\n{state_str}" if self.name else f"Pure Quantum State Vector:\n{state_str}"
-            elif self.display_mode == "density":
-                return f"{self.name}\n{rho_str}" if self.name else f"Pure Quantum State Density Matrix:\n{rho_str}"
-            elif self.display_mode == "both":
-                return f"{self.name}\nState:\n{state_str}\nRho:\n{rho_str}" if self.name else f"Pure Quantum State Vector:\n{state_str}\n\nDensity Matrix:\n{rho_str}"
-
-        elif self.state_type == "mixed":
-            if isinstance(state_print, np.ndarray):
-                raise StatePreparationError(f"The state vector of a mixed state cannot be a sinlge np.ndarray")
-            weights = dense_mat(state_print[0])
-            state = dense_mat(state_print[1])
-            weights_str = np.array2string(weights, precision=p_prec, separator=', ', suppress_small=True)
-            state_str = np.array2string(state, precision=p_prec, separator=', ', suppress_small=True)
-            if self.display_mode == "vector":
-                return f"{self.name}\nWeights\n{weights_str}\nStates:\n{state_str}" if self.name else f"Mixed Quantum State Vector:\nWeights:\n{weights_str}\n\nStates:\n{state_str}"
-            elif self.display_mode == "density":
-                return  f"{self.name}\nRho:\n{rho_str}" if self.name else f"Mixed Quantum State Density Matrix:\n{rho_str}"
-            elif self.display_mode == "both":
-                return f"{self.name}\nWeights\n{weights_str}\nStates:\n{state_str}\nRho:\n{rho_str}" if self.name else f"Mixed Quantum State Vector:\nWeights:\n{weights_str}\n\nStates:\n{state_str}\n\nDensity Matrix:\n{rho_str}"
-            
-        elif self.state_type == "non unitary":
-            return f"Non Quantum State Density Matrix:\n{rho_str}"
         
     def __setattr__(self: "Qubit", name: str, value) -> None:
         if getattr(self, "immutable", False) and name in self.immutable_attr:

@@ -8,13 +8,12 @@ from ..static_methods.symb_qubit_methods import *
 __all__ = ["SymbQubit", "q0_symb", "q1_symb", "qp_symb", "qm_symb", "qpi_symb", "qmi_symb", "qg"]
 
 
-class SymbQubit:
+class SymbQubit(BaseQubit):
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'symbqubit')
-        self.name: str = kwargs.get("name","|Symbolic State>")
+        super().__init__(**kwargs)
         self.rho = kwargs.get("rho", None)
         self.rho = sp.Matrix(self.rho) if self.rho is not None else None
-        self.state = kwargs.get("state", None)
         self.state = sp.Matrix(self.state) if self.state is not None else None
         self.weights = kwargs.get("weights", None)
         self.rho_init()
