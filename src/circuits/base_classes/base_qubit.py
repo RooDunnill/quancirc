@@ -1,6 +1,7 @@
 from .base_class_utilities.base_class_errors import BaseQuantumStateError, BaseStatePreparationError
 from ..circuit_config import *
 from ..circuit_utilities.sparse_funcs import *
+import sympy as sp
 
 
 class BaseQubit:
@@ -39,9 +40,18 @@ class BaseQubit:
                 return  f"{self.name}\nRho:\n{rho_str}"
             elif self.display_mode == "both":
                 return f"{self.name}\nWeights\n{weights_str}\nStates:\n{state_str}\nRho:\n{rho_str}"
-            
         elif self.state_type == "non unitary":
             return f"Non Quantum State Density Matrix:\n{rho_str}"
+        
+    def build_pure_rho(self):
+        """Builds a pure rho matrix, primarily in initiation of Qubit object, returns type sp.MatrixBase"""
+        if isinstance(self.state, sp.MatrixBase):
+            return self.state * self.state.H
+        elif isinstance(self.state, np.ndarray):
+            return np.einsum("i,j", np.conj(self.state), self.state, optimize=True)
+        
+    def __repr__(self: "BaseQubit") -> str:
+        return self.__str__()
 
     def __copy__(self: "BaseQubit") -> None:
         raise BaseQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem")

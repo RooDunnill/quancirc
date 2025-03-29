@@ -34,16 +34,6 @@ class Qubit_LW(BaseQubit):
     def __dir__(self):
         return None
 
-    def __repr__(self):
-        return self.__str__()
-    
-
-    def build_pure_rho(self: "Qubit_LW") -> np.ndarray:
-        """Builds a pure rho matrix, primarily in initiation of Qubit object, returns type np.ndarray"""
-        if isinstance(self.state, np.ndarray):
-            return np.einsum("i,j", np.conj(self.state), self.state, optimize=True)
-        raise LWStatePreparationError(f"self.state cannot be of type {type(self.state)}, expected np.ndarray")
-            
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
         if isinstance(other, Qubit_LW):

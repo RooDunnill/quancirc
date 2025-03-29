@@ -3,6 +3,7 @@ import numpy as np
 from ..circuits import *
 from ..circuit_algorithms.grover_search import *
 import sympy as sp
+from .example_check import *
 
 partial_test = q0 % q1 % q1 % q0
 pt = partial_test.partial_trace(0, 3)

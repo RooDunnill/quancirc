@@ -68,13 +68,6 @@ class SymbQubit(BaseQubit):
                 else:
                     self.rho = self.build_pure_rho()
     
-
-    def build_pure_rho(self):
-        """Builds a pure rho matrix, primarily in initiation of Qubit object, returns type sp.MatrixBase"""
-        if isinstance(self.state, (list, sp.MatrixBase)):
-            return self.state * self.state.H
-        raise SymbStatePreparationError(f"self.state cannot be of type {type(self.state)}, expected type list or type sp.MatrixBase")
-    
     def build_mixed_rho(self):       #this is wrong
         """Builds a mixed rho matrix, primarily in initiation of Qubit object, returns type sp.MatrixBase"""
         if self.weights is not None:

@@ -111,9 +111,6 @@ class Qubit(BaseQubit):                                           #creates the q
             else:
                 self.rho = self.build_pure_rho()
 
-    def __repr__(self: "Qubit") -> str:
-        return self.__str__()
-
         
     def __setattr__(self: "Qubit", name: str, value) -> None:
         if getattr(self, "immutable", False) and name in self.immutable_attr:
@@ -306,14 +303,6 @@ class Qubit(BaseQubit):                                           #creates the q
             else:
                 raise QuantumStateError(f"The trace of the density matrix cannot be 0 and so cannot normalise")
         raise QuantumStateError(f"self.rho must be a square matrix, not of shape {self.rho.shape}")
-
-    
-
-    def build_pure_rho(self: "Qubit") -> np.ndarray:
-        """Builds a pure rho matrix, primarily in initiation of Qubit object, returns type np.ndarray"""
-        if isinstance(self.state, np.ndarray):
-            return np.einsum("i,j", np.conj(self.state), self.state, optimize=True)
-        raise StatePreparationError(f"self.state cannot be of type {type(self.state)}, expected np.ndarray")
     
     def build_mixed_rho(self: "Qubit") -> np.ndarray:
         """Builds a mixed rho matrix, primarily in initiation of Qubit object, returns type np.ndarray"""
