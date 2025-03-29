@@ -318,17 +318,14 @@ class Qubit:                                           #creates the qubit class
         
     def decompose_state(self, qubit_index: int) -> tuple["Qubit", "Qubit", "Qubit"]:
         """Used primarily in __setitem__ to 'pull out' the Qubit to be replaced, returns three Qubit objects that can be recombined"""
-        if qubit_index is not None:
-            if qubit_index > self.n - 1:
-                raise QuantumStateError(f"The chosen qubit {qubit_index}, must be no more than the number of qubits in the state: {self.n}")
-            if isinstance(qubit_index, int):
-                A_rho = self.partial_trace(0, self.n - qubit_index)
-                B_rho = self.partial_trace(qubit_index + 1,0)
-                isolated_rho = self.partial_trace(qubit_index, self.n - qubit_index - 1)
-            else:
-                raise QuantumStateError(f"Inputted qubit cannot be of type {type(qubit_index)}, expected int") 
-            return A_rho, isolated_rho, B_rho
+        if qubit_index is None or not isinstance(qubit_index, int):
+            raise QuantumStateError(f"Inputted qubit cannot be of type {type(qubit_index)}, expected int") 
+        if qubit_index > self.n - 1:
+            raise QuantumStateError(f"The chosen qubit {qubit_index}, must be no more than the number of qubits in the state: {self.n}")
+        A_rho = self.partial_trace(0, self.n - qubit_index)
+        B_rho = self.partial_trace(qubit_index + 1,0)
         isolated_rho = self.partial_trace(qubit_index, self.n - qubit_index - 1)
+        return A_rho, isolated_rho, B_rho
     
     def norm(self) -> None:
         """Normalises a rho matrix, returns type None"""
@@ -386,6 +383,20 @@ class Qubit:                                           #creates the qubit class
             raise QuantumStateError(f"The norm cannot be 0")
         return probs, states
     
+    @classmethod
+    def create_mixed_state(self, states, weights):
+        """This is used for when you want to combine premade states into a larger mixed state"""
+        if not isinstance(states, list) or not isinstance(weights, list):
+            raise StatePreparationError(f"states and weights cannot be of type, {type(states)} and {type(weights)}, must be of type list and list")
+        if not all(isinstance(state, Qubit) for state in states) or not all(isinstance(probs, float) for probs in weights):
+            raise StatePreparationError(f"States and weights must be made up of types Qubit and types float")
+        if len(states) != len(weights):
+            raise StatePreparationError(f"The amount of states must match the amount of weights given, not {len(states)} and {len(weights)}")
+        new_rho = np.tensordot(weights, [state.rho for state in states], axes=1)
+        kwargs = {"rho": new_rho}
+        return Qubit(**kwargs)
+        
+    
     def debug(self, title=True) -> None:
         """Prints out lots of information on the Qubits core properties primarily for debug purposes, returns type None"""
         print(f"\n")
@@ -432,6 +443,8 @@ class Qubit:                                           #creates the qubit class
     @classmethod
     def qmi(cls):
         return qmi_state(cls)
+    
+    
     
 q0 = Qubit.q0()
 q0.immutable = True

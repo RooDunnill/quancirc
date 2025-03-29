@@ -9,4 +9,16 @@ from ..crypto_protocols import otp
 from ..crypto_protocols import rsa_weak_key_gen
 from ..examples import *
 
-print(rsa_key_gen(83719, 174121, 65537))
+
+
+test_mixed_state = Qubit.create_mixed_state([q0,q1],[0.5,0.5])
+print(test_mixed_state)
+
+test = SymbQubit(state=[[1,0],[0,1]], weights=[0.5,0.5])
+print(test)
+
+test2 = SymbQubit(state=[[1,0],[0,1],[sp.sqrt(0.5),sp.sqrt(0.5)]], weights=[0.2,0.2,0.6])
+print(test2)
+
+test3 = SymbQubit(state=[[1,0],[0,1],[sp.sqrt(0.5),sp.sqrt(0.5)]], weights=[sp.symbols("alpha"),0.2,0.6])
+print(test3)

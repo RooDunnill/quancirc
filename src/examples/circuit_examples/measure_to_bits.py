@@ -10,7 +10,7 @@ def measure_to_bits_example():
     test_circuit.measure_states_on_array(1, basis="X")
     test_circuit.measure_states_on_array(2, basis="Z")
     test_circuit.measure_states_on_array(3, basis="X")
-    print(test_circuit.return_bits())
+    print(test_circuit.download_bits())
 
 if __name__ == "__main__":
     measure_to_bits_example()

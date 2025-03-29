@@ -12,12 +12,12 @@ class SymbQubit:
         object.__setattr__(self, 'class_type', 'symbqubit')
         self.name: str = kwargs.get("name","|Symbolic State>")
         self.rho = kwargs.get("rho", None)
-        self.rho = sp.Matrix(self.rho) if self.rho else None
+        self.rho = sp.Matrix(self.rho) if self.rho is not None else None
         self.state = kwargs.get("state", None)
-        self.state = sp.Matrix(self.state) if self.state else None
+        self.state = sp.Matrix(self.state) if self.state is not None else None
         self.weights = kwargs.get("weights", None)
         self.rho_init()
-        self.dim = len(self.rho)
+        self.dim = self.rho.shape[0]
         self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))
 
@@ -78,13 +78,30 @@ class SymbQubit:
     def build_mixed_rho(self):       #this is wrong
         """Builds a mixed rho matrix, primarily in initiation of Qubit object, returns type sp.MatrixBase"""
         if self.weights is not None:
-            dim = len(self.weights)
+            dim = self.state.shape[1]
             mixed_rho = sp.zeros(dim, dim)
-            for i in range(dim):
+            for i in range(len(self.weights)):
                 state = sp.Matrix(self.state[i*dim:i*dim+dim])
                 mixed_rho += self.weights[i] * (state * state.H)
             return mixed_rho
         raise SymbStatePreparationError(f"For a mixed rho to be made, you must provide weights in kwargs")
+    
+    @classmethod
+    def create_mixed_state(self, states, weights):
+        """This is used for when you want to combine premade states into a larger mixed state"""
+        if not isinstance(states, list) or not isinstance(weights, list):
+            raise SymbStatePreparationError(f"states and weights cannot be of type, {type(states)} and {type(weights)}, must be of type list and list")
+        if not all(isinstance(state, SymbQubit) for state in states) or not all(isinstance(probs, (float, sp.Symbol)) for probs in weights):
+            raise SymbStatePreparationError(f"States and weights must be made up of types SymbQubit and types float or sp.symbol")
+        if len(states) != len(weights):
+            raise SymbStatePreparationError(f"The amount of states must match the amount of weights given, not {len(states)} and {len(weights)}")
+        new_rho = sp.zeros((states[0].dim, states[0].dim))
+        for i in range(len(states)):
+            new_rho += weights[i] * states[i].rho
+        kwargs = {"rho": new_rho}
+        return SymbQubit(**kwargs)
+    
+    
     
 
     
