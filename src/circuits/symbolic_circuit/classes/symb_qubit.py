@@ -25,6 +25,12 @@ class SymbQubit:
     def __str__(self):
         return f"{self.name}:\n{self.rho}"
     
+    def __copy__(self: "SymbQubit") -> None:
+        raise SymbQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem")
+    
+    def __deepcopy__(self: "SymbQubit") -> None:
+        raise SymbQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem, its twice the sin to try to double copy them")
+    
     def subs(self, substitution: dict) -> "SymbQubit":
         self.rho = self.rho.subs(substitution)
         return self
@@ -56,7 +62,7 @@ class SymbQubit:
     def __mod__(self: "SymbQubit", other: "SymbQubit") -> "SymbQubit":
         """Tensor product among two SymbQubit objects, returns a SymbQubit object"""
         if isinstance(other, SymbQubit):
-            new_rho = sp.tensorproduct(self.rho, other.rho)
+            new_rho = sp.kronecker_product(self.rho, other.rho)
             kwargs = {"rho": new_rho}
             return SymbQubit(**kwargs)
         raise SymbQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
@@ -89,21 +95,17 @@ class SymbQubit:
     @classmethod
     def create_mixed_state(self, states, weights):
         """This is used for when you want to combine premade states into a larger mixed state"""
-        if not isinstance(states, list) or not isinstance(weights, list):
+        if not all(isinstance(obj, list) for obj in (states, weights)):
             raise SymbStatePreparationError(f"states and weights cannot be of type, {type(states)} and {type(weights)}, must be of type list and list")
         if not all(isinstance(state, SymbQubit) for state in states) or not all(isinstance(probs, (float, sp.Symbol)) for probs in weights):
             raise SymbStatePreparationError(f"States and weights must be made up of types SymbQubit and types float or sp.symbol")
         if len(states) != len(weights):
             raise SymbStatePreparationError(f"The amount of states must match the amount of weights given, not {len(states)} and {len(weights)}")
         new_rho = sp.zeros((states[0].dim, states[0].dim))
-        for i in range(len(states)):
-            new_rho += weights[i] * states[i].rho
+        for state, weight in zip(states, weights):
+            new_rho += weight * state.rho
         kwargs = {"rho": new_rho}
         return SymbQubit(**kwargs)
-    
-    
-    
-
     
     @classmethod
     def q0(cls, **kwargs):

@@ -36,7 +36,6 @@ class Qubit_LW(Qubit):
     def __dir__(self):
         return None
 
-
     def __repr__(self):
         return self.__str__()
     
@@ -44,6 +43,12 @@ class Qubit_LW(Qubit):
             state_str = np.array2string(dense_mat(self.state), precision=p_prec, separator='\n', suppress_small=True)
             if self.display_mode == "vector":
                 return f"Pure Quantum State Vector:\n{state_str}"
+            
+    def __copy__(self: "Qubit_LW") -> None:
+        raise LWQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem")
+    
+    def __deepcopy__(self: "Qubit_LW") -> None:
+        raise LWQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem, its twice the sin to try to double copy them")
             
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""

@@ -38,6 +38,8 @@ def symbolic_circuit_guide():
     gen_qubit = qg
     print(f"Here is a general Qubit: {qg}")
     print(f"You can set the values as such: {qg.subs({sp.symbols("alpha"):1})}")
+    print(f"Lets tensor product two general qubits together to see what that looks like:")
+    print(f"{SymbQubit.gen() % SymbQubit.gen()}")
 
 
 if __name__ == "__main__":
