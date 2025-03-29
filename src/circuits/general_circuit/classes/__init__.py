@@ -7,4 +7,3 @@ from .circuit import *
 from .qubit_array import *
 from ..static_methods import *
 from ...circuit_config import *
-from .circuit_special_gates import *

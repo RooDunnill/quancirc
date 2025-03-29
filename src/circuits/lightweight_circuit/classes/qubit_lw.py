@@ -1,6 +1,7 @@
 import numpy as np
-from ...base_circuit.classes.qubit import *
-from ...base_circuit.classes.qubit import combine_qubit_attr
+from ...base_classes.base_qubit import *
+from ...general_circuit.classes.qubit import *
+from ...general_circuit.classes.qubit import combine_qubit_attr
 from ...circuit_utilities.circuit_errors import *
 from ..utilities.validation_funcs import lw_qubit_validation
 from ..static_methods.qubit_methods import *
@@ -13,7 +14,7 @@ from ...circuit_config import *
 
 __all__ = ["Qubit_LW", "q0_lw", "q1_lw", "qp_lw", "qm_lw", "qpi_lw", "qmi_lw"]
 
-class Qubit_LW(Qubit): 
+class Qubit_LW(BaseQubit): 
     """A lightweight variant of the Qubit class, which utilises 1D arrays and sparse matrices to make a faster quantum state
         at the forfeit of always being pure"""
     def __init__(self, **kwargs):
@@ -43,12 +44,6 @@ class Qubit_LW(Qubit):
             state_str = np.array2string(dense_mat(self.state), precision=p_prec, separator='\n', suppress_small=True)
             if self.display_mode == "vector":
                 return f"Pure Quantum State Vector:\n{state_str}"
-            
-    def __copy__(self: "Qubit_LW") -> None:
-        raise LWQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem")
-    
-    def __deepcopy__(self: "Qubit_LW") -> None:
-        raise LWQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem, its twice the sin to try to double copy them")
             
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""

@@ -1,4 +1,5 @@
 import numpy as np
+from ...base_classes.base_gate import *
 from ..utilities.circuit_errors import SymbGateError
 from ...circuit_config import *
 import sympy as sp
@@ -9,7 +10,7 @@ __all__ = ["SymbGate", "X_Gate_symb", "Y_Gate_symb", "Z_Gate_symb", "Identity_sy
            "U_Gate_symb", "S_Gate_symb", "T_Gate_symb", "Swap_symb", "P_Gate_symb", "Rotation_x_symb",
            "Rotation_y_symb", "Rotation_z_symb"]
 
-class SymbGate:
+class SymbGate(BaseGate):
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'symbgate')
         self.matrix = kwargs.get("matrix", None)

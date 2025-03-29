@@ -1,5 +1,5 @@
 import numpy as np
-from ...circuit_utilities.circuit_errors import BitError
+from ..utilities.circuit_errors import BitError
 
 
 __all__ = ["Bit"]

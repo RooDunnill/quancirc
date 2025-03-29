@@ -1,5 +1,6 @@
 import numpy as np
-from ...circuit_utilities.circuit_errors import GateError
+from ...base_classes.base_gate import *
+from ..utilities.circuit_errors import GateError
 from ..static_methods.gate_methods import *
 from .qubit import combine_qubit_attr
 from ...circuit_config import *
@@ -21,7 +22,7 @@ def combine_gate_attr(self: "Gate", other: "Gate", op = "+") -> list:
             kwargs["skip_validation"] = True
         return kwargs
 
-class Gate:
+class Gate(BaseGate):
     all_immutable_attr = ["class_type"]
     immutable_attr = ["name", "matrix", "lenght", "n", "dim", "immutable"]
     def __init__(self, **kwargs):
@@ -77,10 +78,6 @@ class Gate:
             raise GateError(f"The inputted objects must have attr: self.matrix and other.matrix")
         raise GateError(f"Cannot have types {type(self)} and {type(other)}, expected two Gate classes")
     
-    def __getitem__(self, index: tuple[int, int]) -> np.ndarray:
-        if isinstance(index, tuple) and len(index) == 2:
-            row, col = index
-            return self.matrix[row, col]
 
     def __mod__(self, other) -> "Gate":            #tensor product
         mat_1 = convert_to_sparse(self.matrix)

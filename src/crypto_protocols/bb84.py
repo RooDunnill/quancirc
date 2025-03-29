@@ -1,6 +1,6 @@
 import numpy as np
 import scipy as sp
-from ..circuits.base_circuit import *
+from ..circuits.general_circuit import *
 from .primitives import *
 from .crypto_utilities import *
 from itertools import chain

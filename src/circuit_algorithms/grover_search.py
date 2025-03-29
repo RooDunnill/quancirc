@@ -1,11 +1,11 @@
 import numpy as np
-from ..circuits.lightweight_circuit.classes import *
+from ..circuits.lightweight_circuit import *
 from ..gen_utilities.timer import Timer
 from .algorithm_utilities.algorithm_errors import GroverSearchError
 from ..circuits.circuit_utilities.layout_funcs import top_probs, format_ket_notation
 from random import choices, randint
-from ..circuits.base_circuit.classes.qubit import *
-from ..circuits.base_circuit.classes.gate import *
+from ..circuits.general_circuit import *
+
 from ..config import *
 
 __all__ = ["grover_search"]

@@ -1,4 +1,4 @@
-from ...circuits.base_circuit import *
+from ...circuits.general_circuit import *
 
 def measure_to_bits_example():
     test_circuit = Circuit(mode="array", verbose=True)

@@ -1,5 +1,5 @@
 import numpy as np
-from ...circuit_utilities.circuit_errors import QuantInfoError
+from ..utilities.circuit_errors import QuantInfoError
 from .qubit import Qubit
 from .gate import X_Gate, Y_Gate, Z_Gate
 from scipy.linalg import sqrtm, logm

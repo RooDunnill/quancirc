@@ -1,4 +1,5 @@
 import numpy as np
+from ...base_classes.base_qubit import *
 from ..utilities.circuit_errors import SymbQuantumStateError, SymbStatePreparationError
 from ...circuit_config import *
 import sympy as sp
@@ -24,12 +25,6 @@ class SymbQubit:
 
     def __str__(self):
         return f"{self.name}:\n{self.rho}"
-    
-    def __copy__(self: "SymbQubit") -> None:
-        raise SymbQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem")
-    
-    def __deepcopy__(self: "SymbQubit") -> None:
-        raise SymbQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem, its twice the sin to try to double copy them")
     
     def subs(self, substitution: dict) -> "SymbQubit":
         self.rho = self.rho.subs(substitution)

@@ -1,19 +1,20 @@
 import numpy as np
+from ...base_classes.base_circuit import *
 from .qubit import *
 from .bit import *
 from .gate import *
 from .quant_info import *
 from .measure import *
 from .qubit_array import *
-from .circuit_special_gates import *
 from ...circuit_utilities import *
+from ..utilities.circuit_errors import QuantumCircuitError
 from ...circuit_config import *
 from scipy.sparse import eye_array
 
 
 __all__ = ["Circuit"]
         
-class Circuit:
+class Circuit(BaseCircuit):
     """The main circuit in the program, allows for sparse and dense manipulation of 'full' qubits in rho form"""
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'circuit')
@@ -84,12 +85,6 @@ class Circuit:
             raise QuantumCircuitError(f"Cannot get a qubit from index {index}, when the size of the Quantum state is {self.state.n}")
         raise QuantumCircuitError(f"circuit_mode cannot be {self.circuit_mode}, expected mode 'array' or 'circuit'")
     
-    def set_display_mode(self, mode: str) -> None:
-        """Sets the display mode between the three options, returns type None"""
-        if mode not in ["vector", "density", "both"]:
-            raise QuantumCircuitError(f"The display mode must be set in 'vector', 'density' or 'both'")
-        self.state.display_mode = mode
-
         
     def __setitem__(self, index: int, qub: Qubit) -> None:
         """Sets the qubit of that index on the qubit array with whatever val you enter"""
@@ -306,13 +301,6 @@ class Circuit:
     def get_array_info(self) -> None:
         for i in range(len(self.qubit_array)):
             QuantInfo.qubit_info(self.qubit_array[i])
-
-    
-    def print_state(self, qubit=None) -> None:
-        print(self.state[qubit]) if qubit else print(self.state)
-
-    def return_state(self, qubit=None) -> Qubit:
-        return self.state[qubit] if qubit else  self.state
     
     def purity(self, qubit: Qubit=None) -> float:
         """returns the purity of the state or qubit"""

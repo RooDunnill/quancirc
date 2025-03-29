@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from ...circuits.base_circuit import *
+from ...circuits.general_circuit import *
 from matplotlib.widgets import Slider
 
 

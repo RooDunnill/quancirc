@@ -1,7 +1,7 @@
 import numpy as np
 from .qubit import *
 from .quant_info import QuantInfo
-from ...circuit_utilities.circuit_errors import QubitArrayError
+from ..utilities.circuit_errors import QubitArrayError
 from ...circuit_utilities.validation_funcs import qubit_array_validation
 
 __all__ = ["QubitArray"]

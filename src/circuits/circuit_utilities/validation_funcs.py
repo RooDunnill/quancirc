@@ -2,6 +2,7 @@ import numpy as np
 from scipy import sparse
 from .circuit_errors import *
 from .sparse_funcs import *
+from ..general_circuit.utilities.circuit_errors import *
 
 def qubit_validation(state) -> None:
     """Checks if a density matrix is valid in __init__, returns type None"""

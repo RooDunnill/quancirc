@@ -1,5 +1,5 @@
 import numpy as np
-from ...circuits.base_circuit import *
+from ...circuits.general_circuit import *
 
 def base_circuit_guide():
     print("BASE CIRCUIT OVERVIEW".center(linewid, '^'))

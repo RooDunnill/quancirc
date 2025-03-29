@@ -2,21 +2,22 @@ import numpy as np
 import scipy as sp
 from scipy import sparse
 from scipy.sparse.linalg import eigsh
+from ...base_classes.base_qubit import *
 from ...circuit_utilities.sparse_funcs import *
-from ...circuit_utilities.circuit_errors import QuantumStateError, StatePreparationError
+from ..utilities.circuit_errors import QuantumStateError, StatePreparationError
 from ..static_methods.qubit_methods import *
 from ...circuit_config import *
 from ...circuit_utilities.validation_funcs import qubit_validation, rho_validation
 
 
-__all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi"]
+__all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi", "combine_qubit_attr", "copy_qubit_attr"]
 
 def combine_qubit_attr(self: "Qubit", other: "Qubit", op: str = None) -> dict:
         """Allows the returned objects to still return name and info too"""
         kwargs = {}
         if op == "%":
             self_name_size = int(np.log2(self.dim))
-            other_name_size = int(np.log2(other.dim)) 
+            other_name_size = int(np.log2(other.dim))
             kwargs["name"] = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
         elif hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
             if op:
@@ -57,7 +58,7 @@ def copy_qubit_attr(self: "Qubit") -> dict:
         kwargs["index"] = self.index
     return kwargs
 
-class Qubit:                                           #creates the qubit class
+class Qubit(BaseQubit):                                           #creates the qubit class
     all_immutable_attr = ["class_type"]
     immutable_attr = ["state", "dim", "length", "n", "rho", "name", "state_type", "immutable"]
     """The class to define and initialise Qubits and Quantum States"""
@@ -154,11 +155,7 @@ class Qubit:                                           #creates the qubit class
             raise AttributeError(f"Cannot modify immutable object: {name}")
         super().__setattr__(name, value)
 
-    def __copy__(self: "Qubit") -> None:
-        raise QuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem")
     
-    def __deepcopy__(self: "Qubit") -> None:
-        raise QuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem, its twice the sin to try to double copy them")
 
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
@@ -176,11 +173,7 @@ class Qubit:                                           #creates the qubit class
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
-    def __imod__(self: "Qubit", other: "Qubit") -> "Qubit":
-        if isinstance(other, Qubit):
-            self = self % other
-            return self
-        raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected types Qubit and Qubit")
+    
         
     def __matmul__(self: "Qubit", other: "Qubit") -> "Qubit":     
         """Matrix multiplication between two Qubit objects, returns a Qubit object"""
@@ -236,11 +229,7 @@ class Qubit:                                           #creates the qubit class
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
-    def __isub__(self: "Qubit", other: "Qubit") -> "Qubit":
-        if isinstance(other, Qubit):
-            self.rho = self.rho - other.rho
-            return self
-        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+    
     
     def __add__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Addition of two Qubit rho matrices, returns a Qubit object"""
@@ -251,11 +240,7 @@ class Qubit:                                           #creates the qubit class
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
-    def __iadd__(self: "Qubit", other: "Qubit") -> "Qubit":
-        if isinstance(other, Qubit):
-            self.rho = self.rho + other.rho
-            return self
-        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+    
     
     def __and__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Direct sum of two Qubit rho matrices, returns a Qubit object"""
@@ -355,11 +340,7 @@ class Qubit:                                           #creates the qubit class
                 raise QuantumStateError(f"The trace of the density matrix cannot be 0 and so cannot normalise")
         raise QuantumStateError(f"self.rho must be a square matrix, not of shape {self.rho.shape}")
 
-    def set_display_mode(self: "Qubit", mode: str) -> None:
-        """Sets the display mode between the three options, returns type None"""
-        if mode not in ["vector", "density", "both"]:
-            raise QuantumStateError(f"The display mode must be set in 'vector', 'density' or 'both'")
-        self.display_mode = mode
+    
 
     def build_pure_rho(self: "Qubit") -> np.ndarray:
         """Builds a pure rho matrix, primarily in initiation of Qubit object, returns type np.ndarray"""
@@ -414,28 +395,9 @@ class Qubit:                                           #creates the qubit class
         kwargs = {"rho": new_rho}
         return Qubit(**kwargs)
         
-    def debug(self: "Qubit", title=True) -> None:
-        """Prints out lots of information on the Qubits core properties primarily for debug purposes, returns type None"""
-        print(f"\n")
-        if title:
-            print("-" * linewid)
-            print(f"QUBIT DEBUG")
-        print(f"self.rho.shape: {self.rho.shape}")
-        print(f"self.rho type: {type(self.rho)}")
-        print(f"self.rho:\n {self.rho}")
-        print(f"self.state:\n {self.build_state_from_rho()}")
-        print(f"self.n: {self.n}")
-        for i in range(self.n):
-            print(f"Qubit {i}: {self[i]}")
-        print(f"state_type: {self.state_type}")
-        print(f"All attributes and variables of the Qubit object:")
-        print(vars(self))
-        if title:
-            print("-" * linewid)
+    
 
     
-            
-
 
     @classmethod
     def q0(cls, **kwargs):
@@ -460,9 +422,7 @@ class Qubit:                                           #creates the qubit class
     @classmethod
     def qmi(cls):
         return qmi_state(cls)
-    
-    
-    
+
 q0 = Qubit.q0()
 q0.immutable = True
 q1 = Qubit.q1()

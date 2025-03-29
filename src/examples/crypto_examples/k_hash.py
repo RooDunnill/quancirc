@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def k_hash_example():
-    list_vals = np.array(range(10000))
+    list_vals = np.array(range(1000))
     k = 2
     p = 3
     rand_key = n_length_int_key(24)

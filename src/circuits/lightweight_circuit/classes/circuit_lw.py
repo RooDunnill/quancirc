@@ -1,14 +1,17 @@
 import numpy as np
+from random import choices
+from ...base_classes.base_circuit import *
+from ...general_circuit.classes import *
 from .qubit_lw import *
+from ..utilities.circuit_errors import LWQuantumCircuitError
 from ...circuit_utilities import *
 from scipy.sparse import eye_array
-from ...base_circuit.classes import *
 from ...circuit_config import linewid
-
+from ..circuit_special_gates.fwht import *
 
 __all__ = ["Circuit_LW"]
 
-class Circuit_LW:
+class Circuit_LW(BaseCircuit):
     """A circuit build out of 1D arrays that can only handle pure states, howver is optimised to be overlla faster than the base circuit"""
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'circuit_lw')
@@ -28,7 +31,7 @@ class Circuit_LW:
             print("\n")
             print("=" * linewid)
             print(f"Initialising circuit with {self.qubit_num} qubits and {self.bit_num} bits")
-        return Qubit_LW.q0(n=self.qubit_num), Bit("00000000")
+        return Qubit_LW.q0_lw(n=self.qubit_num), Bit("00000000")
     
 
     def apply_gate(self, gate, qubit=None, **kwargs) -> None:
@@ -90,12 +93,6 @@ class Circuit_LW:
     def get_info(self):
         return QuantInfo.state_info(self.state)
     
-    def print_state(self):
-        print(self.state)
-
-    def return_state(self):
-        return self.state
-
     def purity(self, qubit=None):
         purity = QuantInfo.purity(self.state[qubit]) if qubit else QuantInfo.purity(self.state)
         if self.verbose:

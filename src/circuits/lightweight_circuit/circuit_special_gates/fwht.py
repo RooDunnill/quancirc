@@ -1,10 +1,8 @@
 import numpy as np
-from ..qubit import *
-from ....circuit_utilities.circuit_errors import *
 
-def vector_fwht(state: Qubit) -> Qubit:
+def vector_fwht(state):
         """The Fast Walsh Hadamard Transform, used heavily in Grover's to apply the tensored Hadamard"""
-        if isinstance(state, Qubit):
+        if state.class_type == "qubit_lw":
             sqrt2_inv = 1/np.sqrt(2)
             vec = state.state
             for i in range(state.n):                                            #loops through each size of qubit below the size of the state
