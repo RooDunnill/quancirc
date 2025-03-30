@@ -42,7 +42,7 @@ def aharonov_plotter_example():
         ax.set_xlabel(r"$\phi$ radians")
         ax.set_ylabel(f"Probabilities")
         ax.set_title(f"Alice and Bob's cheating probabilities")
-        ax.legend(loc='upper right', bbox_to_anchor=(1.35, 1.2), fontsize=10, frameon=False)
+        ax.legend(loc='upper right', bbox_to_anchor=(1.2, 1.0), fontsize=10, frameon=False)
         ax.text(1.7, 0.6, r"$Pr_A = \frac{1}{2} + \sqrt{F(\rho_0, \rho_1)} \sin(2\alpha) / 2$", fontsize=12, color="red", bbox=dict(facecolor='white', alpha=0.5))
         ax.text(1.7, 0.4, r"$Pr_B = \frac{1}{2} + \frac{|T(\rho_0, \rho_1)|}{2}$", fontsize=12, color="black", bbox=dict(facecolor='white', alpha=0.5))
         ax.text(1.7, 0.2, r"$F(\rho_0, \rho_1) = \left(\text{Tr} \sqrt{\sqrt{\rho_0} \rho_1 \sqrt{\rho_0}}\right)^2$", fontsize=12, color="red", bbox=dict(facecolor='white', alpha=0.5))
@@ -53,7 +53,7 @@ def aharonov_plotter_example():
         ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x/np.pi:.1f}π'))
         ax.set_xticks(np.linspace(0, np.pi/2, 6))
         ax.set_yticks(np.linspace(0,1,5))
-        fig.subplots_adjust(right=0.5, bottom=0.1)
+        fig.subplots_adjust(right=0.7, bottom=0.1)
         plt.tight_layout(pad=3.0)
         fig.canvas.draw_idle()
 
@@ -70,12 +70,12 @@ def aharonov_plotter_example():
     ax_slider_a = fig.add_subplot(grid[1], position=[0.1, 0.5, 0.8, 0.5])
     ax_slider_a.set_yticks([])
     ax_slider_a.set_yticklabels([])
-    slider_a = Slider(ax_slider_a, "alpha", 0, np.pi/4, valinit=alpha, valstep=np.pi/64, color="red")
+    slider_a = Slider(ax_slider_a, "Alice rotation angle", 0, np.pi/4, valinit=alpha, valstep=np.pi/32, color="red", valfmt="%.1fπ")
 
     ax_slider_b = fig.add_subplot(grid[2], position=[0.1, 0.5, 0.8, 0.5])
     ax_slider_b.set_yticks([])
     ax_slider_b.set_yticklabels([])
-    slider_b = Slider(ax_slider_b, "beta", 0, 1, valinit=beta, valstep=1, color="black")
+    slider_b = Slider(ax_slider_b, "Bob measures early", 0, 1, valinit=beta, valstep=1, color="black")
 
     slider_a.on_changed(lambda val: update(val, slider_b.val))
     slider_b.on_changed(lambda val: update(slider_a.val, val))
