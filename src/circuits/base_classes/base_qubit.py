@@ -6,6 +6,7 @@ import sympy as sp
 
 class BaseQubit:
     def __init__(self, **kwargs):
+        print(f"Calling super test")
         self.skip_val = kwargs.get("skip_validation", False)
         self.display_mode = kwargs.get("display_mode", "density")
         self.name: str = kwargs.get("name","|Quantum State>")

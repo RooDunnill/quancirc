@@ -13,8 +13,8 @@ __all__ = ["SymbGate", "X_Gate_symb", "Y_Gate_symb", "Z_Gate_symb", "Identity_sy
 class SymbGate(BaseGate):
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'symbgate')
-        self.matrix = kwargs.get("matrix", None)
-        self.dim: int = self.matrix.shape[0]
+        super().__init__(**kwargs)
+        self.dim: int = int(self.matrix.shape[0])
         self.length = self.dim ** 2
         self.n: int =  int(np.log2(self.dim))
 

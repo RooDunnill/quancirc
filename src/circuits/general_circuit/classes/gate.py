@@ -27,9 +27,7 @@ class Gate(BaseGate):
     immutable_attr = ["name", "matrix", "lenght", "n", "dim", "immutable"]
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'gate')
-        self.skip_val = kwargs.get("skip_validation", False)
-        self.name = kwargs.get("name", "Quantum Gate")
-        self.matrix = kwargs.get("matrix", None)
+        super().__init__(**kwargs)
         gate_validation(self)
         self.dim: int = self.matrix.shape[0]
         self.length = self.dim ** 2
