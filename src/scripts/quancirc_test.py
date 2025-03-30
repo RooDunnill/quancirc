@@ -97,6 +97,8 @@ norm_test_2 = Qubit(state=[0,1])
 norm_test_1.norm()
 norm_test_2.norm()
 print(large_qubit_state)
+large_qubit_state.debug()
+large_qubit_def.debug()
 large_qubit_state.norm()
 complex_qub = Qubit.create_mixed_state([q0,qmi,qp,qm],[0.1,0.1,0.1,0.7])
 complex_2_qub = Qubit.create_mixed_state([qpi,qpi,qmi,q0],[0.05,0.5,0.15,0.3])
@@ -104,6 +106,9 @@ print(complex_qub % complex_2_qub)
 print(Hadamard @ complex_qub)
 print(Swap @ (complex_2_qub % complex_qub))
 complex_3_qub = Qubit.create_mixed_state([q0%q0,q0%q1,qm%qpi,qm%qm,qp%q1],[0.1,0.1,0.1,0.4,0.3])
+complex_qub.debug()
+complex_2_qub.debug()
+complex_3_qub.debug()
 print(complex_3_qub @ (complex_2_qub % complex_qub))
 print(T_Gate @ qp)
 t_gate_qub = Qubit(state=[0,0,0,0,0,0,0,1])
@@ -114,6 +119,7 @@ print((T_Gate % T_Gate % T_Gate) @ t_gate_qub)
 t_gate_test = Gate(matrix=[[1,0],[0,np.exp(1j*np.pi/4)]])
 t_gate_test.matrix = sparse_mat(t_gate_test.matrix)
 print(t_gate_test @ q0)
+q0.debug()
 
 t_gate_circuit = Circuit(q=3)
 t_gate_circuit.measure_state(qubit=0)
@@ -141,3 +147,87 @@ test_circuit.measure_state(qubit=2)
 test_circuit.list_probs(qubit=0)
 test_circuit.list_probs(qubit=1)
 test_circuit.list_probs(qubit=2)
+print(test_circuit[0])
+print(test_circuit[1])
+print(test_circuit[2])
+test_circuit.get_info()
+large_circuit = Circuit(q=6)
+large_circuit.apply_gate(Hadamard, 0)
+large_circuit.apply_gate(Hadamard, 3)
+large_circuit.apply_gate(Hadamard, 4)
+
+large_circuit.apply_gate(Hadamard, 2)
+large_circuit.apply_gate(CNot % CNot % T_Gate % Hadamard)
+large_circuit.list_probs()
+large_circuit.get_info()
+large_qub = q0 % q0 % q0 % q0 % q0 % q0
+other_large_qub = large_circuit.return_state()
+slightly_smaller_qub = q0 % q0 % qp % q0 % qm
+print(QuantInfo.quantum_mutual_info(slightly_smaller_qub, slightly_smaller_qub))
+print(QuantInfo.fidelity(other_large_qub, other_large_qub))
+print(QuantInfo.trace_distance(other_large_qub, other_large_qub))
+print(QuantInfo.trace_distance_bound(other_large_qub, other_large_qub))
+
+print(f"Cond ent:{QuantInfo.quantum_conditional_entropy(other_large_qub, other_large_qub)}")
+print(f"Rel ent:{QuantInfo.quantum_relative_entropy(other_large_qub, other_large_qub)}")
+
+print(type(other_large_qub.rho))
+print(type(large_qub.rho))
+print(QuantInfo.fidelity(large_qub, other_large_qub))
+print(QuantInfo.trace_distance(large_qub, other_large_qub))
+print(QuantInfo.trace_distance_bound(large_qub, other_large_qub))
+
+print(type(other_large_qub.rho))
+print(type(large_qub.rho))
+print(large_qub)
+print(other_large_qub @ large_qub)
+print(type(other_large_qub @ large_qub))
+even_smaller_qub = q0 % q0
+print(f"Cond ent:{QuantInfo.quantum_conditional_entropy(even_smaller_qub, even_smaller_qub)}")
+print(f"Rel ent:{QuantInfo.quantum_relative_entropy(even_smaller_qub, even_smaller_qub)}")
+print(f"Discord:{QuantInfo.quantum_discord(even_smaller_qub, even_smaller_qub)}")
+print(f"Mutual Info:{QuantInfo.quantum_mutual_info(even_smaller_qub, even_smaller_qub)}")
+even_smaller_qub = q0 % q0 % qm
+print(f"Cond ent:{QuantInfo.quantum_conditional_entropy(even_smaller_qub, even_smaller_qub)}")
+print(f"Rel ent:{QuantInfo.quantum_relative_entropy(even_smaller_qub, even_smaller_qub)}")
+print(f"Discord:{QuantInfo.quantum_discord(even_smaller_qub, even_smaller_qub)}")
+print(f"Mutual Info:{QuantInfo.quantum_mutual_info(even_smaller_qub, even_smaller_qub)}")
+even_smaller_qub = q0 % q0 % qm % qp
+print(f"Cond ent:{QuantInfo.quantum_conditional_entropy(even_smaller_qub, even_smaller_qub)}")
+print(f"Rel ent:{QuantInfo.quantum_relative_entropy(even_smaller_qub, even_smaller_qub)}")
+print(f"Discord:{QuantInfo.quantum_discord(even_smaller_qub, even_smaller_qub)}")
+print(f"Mutual Info:{QuantInfo.quantum_mutual_info(even_smaller_qub, even_smaller_qub)}")
+even_smaller_qub = q0 % q0 % qm % qp % qp
+print(f"Cond ent:{QuantInfo.quantum_conditional_entropy(even_smaller_qub, even_smaller_qub)}")
+print(f"Rel ent:{QuantInfo.quantum_relative_entropy(even_smaller_qub, even_smaller_qub)}")
+print(f"Discord:{QuantInfo.quantum_discord(even_smaller_qub, even_smaller_qub)}")
+print(f"Mutual Info:{QuantInfo.quantum_mutual_info(even_smaller_qub, even_smaller_qub)}")
+even_smaller_qub_2 = qp % qm % qpi % qmi % q0
+print(f"Cond ent:{QuantInfo.quantum_conditional_entropy(even_smaller_qub, even_smaller_qub_2)}")
+print(f"Rel ent:{QuantInfo.quantum_relative_entropy(even_smaller_qub, even_smaller_qub_2)}")
+print(f"Discord:{QuantInfo.quantum_discord(even_smaller_qub, even_smaller_qub_2)}")
+print(f"Mutual Info:{QuantInfo.quantum_mutual_info(even_smaller_qub, even_smaller_qub_2)}")
+
+hugeeee_qubit = q0
+hugeeee_qubit_2 = qm
+hugeeee_gate = X_Gate
+hugeeee_gate_2 = Hadamard
+for i in range(8):
+    hugeeee_qubit %= q0
+    
+    hugeeee_qubit_2 %= qm
+    hugeeee_qubit @= hugeeee_qubit_2
+    hugeeee_gate %= X_Gate
+    hugeeee_gate_2 %= Hadamard
+    hugeeee_gate @= hugeeee_gate_2
+    print(f"Qubits {i}")
+    print(type(hugeeee_qubit.rho))
+    print(count_zeros(hugeeee_qubit.rho))
+    print(type(hugeeee_qubit_2.rho))
+    print(count_zeros(hugeeee_qubit_2.rho))
+    print(f"Gates {i}")
+    print(type(hugeeee_gate.matrix))
+    print(count_zeros(hugeeee_gate.matrix))
+    print(hugeeee_gate.matrix.size)
+    print(type(hugeeee_gate_2.matrix))
+    print(count_zeros(hugeeee_gate_2.matrix))

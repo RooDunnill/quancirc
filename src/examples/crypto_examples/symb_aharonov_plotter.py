@@ -32,8 +32,8 @@ def aharonov_plotter_example():
         prob_b = 1/2 + np.abs(symb_trace_distance/2) * beta_val
 
         ax.clear()
-        ax.plot(phi, prob_a, color="red", label=f"Pr[Alice Wins if cheating]")
-        ax.plot(phi, prob_b, color="black", label=f"Pr[Bob Wins if cheating]")
+        ax.plot(phi, prob_a, color="red", label=f"Pr[Alice Wins when only she cheats]")
+        ax.plot(phi, prob_b, color="black", label=f"Pr[Bob Wins when only he cheats]")
         ax.plot(phi, symb_fidelity, color="red", linestyle="--", label=r"Fidelity")
         if beta_val == 1:
             ax.plot(phi, symb_trace_distance, color="black", linestyle="--", label="trace distance")
@@ -43,8 +43,8 @@ def aharonov_plotter_example():
         ax.set_ylabel(f"Probabilities")
         ax.set_title(f"Alice and Bob's cheating probabilities")
         ax.legend(loc='upper right', bbox_to_anchor=(1.2, 1.0), fontsize=10, frameon=False)
-        ax.text(1.7, 0.6, r"$Pr_A = \frac{1}{2} + \sqrt{F(\rho_0, \rho_1)} \sin(2\alpha) / 2$", fontsize=12, color="red", bbox=dict(facecolor='white', alpha=0.5))
-        ax.text(1.7, 0.4, r"$Pr_B = \frac{1}{2} + \frac{|T(\rho_0, \rho_1)|}{2}$", fontsize=12, color="black", bbox=dict(facecolor='white', alpha=0.5))
+        ax.text(1.7, 0.6, r"$Pr_A \leq \frac{1}{2} + \sqrt{F(\rho_0, \rho_1)} \sin(2\alpha) / 2$", fontsize=12, color="red", bbox=dict(facecolor='white', alpha=0.5))
+        ax.text(1.7, 0.4, r"$Pr_B \leq \frac{1}{2} + \frac{|T(\rho_0, \rho_1)|}{2}$", fontsize=12, color="black", bbox=dict(facecolor='white', alpha=0.5))
         ax.text(1.7, 0.2, r"$F(\rho_0, \rho_1) = \left(\text{Tr} \sqrt{\sqrt{\rho_0} \rho_1 \sqrt{\rho_0}}\right)^2$", fontsize=12, color="red", bbox=dict(facecolor='white', alpha=0.5))
         ax.text(1.7, 0.0, r"$T(\rho_0, \rho_1) = \frac{1}{2} \text{Tr} |\rho_0 - \rho_1|$", fontsize=12, color="black", bbox=dict(facecolor='white', alpha=0.5))
         ax.set_xlim([0, np.pi/2])
@@ -70,7 +70,7 @@ def aharonov_plotter_example():
     ax_slider_a = fig.add_subplot(grid[1], position=[0.1, 0.5, 0.8, 0.5])
     ax_slider_a.set_yticks([])
     ax_slider_a.set_yticklabels([])
-    slider_a = Slider(ax_slider_a, "Alice rotation angle", 0, np.pi/4, valinit=alpha, valstep=np.pi/32, color="red", valfmt="%.1fπ")
+    slider_a = Slider(ax_slider_a, "Alice rotation angle", 0, np.pi/4, valinit=alpha, valstep=np.pi/8, color="red", valfmt="%.1fπ")
 
     ax_slider_b = fig.add_subplot(grid[2], position=[0.1, 0.5, 0.8, 0.5])
     ax_slider_b.set_yticks([])

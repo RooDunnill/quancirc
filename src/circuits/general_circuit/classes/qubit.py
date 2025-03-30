@@ -30,7 +30,7 @@ class Qubit(BaseQubit):                                           #creates the q
         self.rho_init()
         rho_validation(self)
         self.set_state_type()
-        self.dim = len(dense_mat(self.rho))
+        self.dim = self.rho.shape[0]
         self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))
 
@@ -45,8 +45,7 @@ class Qubit(BaseQubit):                                           #creates the q
 
     def set_state_type(self) -> None:
         """Checks that state type and corrects if needed, returns type None"""
-        purity_rho = dense_mat(self.rho)
-        purity = np.trace(np.dot(purity_rho, purity_rho)).real
+        purity = (self.rho.dot(self.rho)).diagonal().sum().real if sparse.issparse(self.rho) else np.einsum('ij,ji', self.rho, self.rho).real  
         if self.skip_val:
             self.state_type = "non unitary"
         elif np.isclose(purity, 1.0, atol=1e-4):
@@ -86,12 +85,11 @@ class Qubit(BaseQubit):                                           #creates the q
         if isinstance(other, Qubit):
             rho_1 = convert_to_sparse(self.rho)
             rho_2 = convert_to_sparse(other.rho)
-            if sparse.issparse(rho_1) and sparse.issparse(rho_2):
-                new_rho = sparse.kron(rho_1, rho_2)
+            if sparse.issparse(rho_1) or sparse.issparse(rho_2):
+                new_rho = sparse.kron(sparse_mat(rho_1), sparse_mat(rho_2))
             else:
-                rho_1 = self.rho
-                rho_2 = other.rho
-                new_rho = np.kron(rho_1, rho_2)
+       
+                new_rho = np.kron(self.rho, other.rho)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "%"))
             return Qubit(**kwargs)
@@ -104,8 +102,8 @@ class Qubit(BaseQubit):                                           #creates the q
         if isinstance(other, Qubit):
             rho_1 = convert_to_sparse(self.rho)
             rho_2 = convert_to_sparse(other.rho)
-            if sparse.issparse(rho_1) and sparse.issparse(rho_2):
-                new_rho = rho_1.dot(rho_2)   #swapped indice order for the transpose
+            if sparse.issparse(rho_1) or sparse.issparse(rho_2):
+                new_rho = sparse_mat(rho_1) @ sparse_mat(rho_2)   #swapped indice order for the transpose
             else:
                 new_rho = np.dot(rho_1, rho_2)
             kwargs = {"rho": new_rho, "skip_validation": True}

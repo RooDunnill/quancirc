@@ -11,6 +11,5 @@ from ..examples import *
 from ..examples.circuit_examples.generators_printer import *
 
 
-print(su_N_generators(4))
-print(su_N_generators(8))
-print(su_N_generators(128))
+
+

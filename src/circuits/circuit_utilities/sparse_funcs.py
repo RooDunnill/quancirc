@@ -20,6 +20,23 @@ def convert_to_sparse(matrix):
         return sparse.csr_matrix(matrix, dtype=np.complex128) 
     return matrix
 
+def convert_both_to_sparse(matrix_1, matrix_2):
+    zero_fraction_1 = count_zeros(matrix_1) / matrix_1.size
+    zero_fraction_2 = count_zeros(matrix_2) / matrix_2.size
+    if sparse.issparse(matrix_1) and sparse.issparse(matrix_2):
+        return matrix_1, matrix_2
+    
+    if sparse.issparse(matrix_1):
+        if zero_fraction_2 >= sparse_matrix_threshold:
+            return sparse.csr_matrix(matrix_1, dtype=np.complex128), sparse.csr_matrix(matrix_2, dtype=np.complex128) 
+    if sparse.issparse(matrix_2):
+        if zero_fraction_1 >= sparse_matrix_threshold:
+            return sparse.csr_matrix(matrix_1, dtype=np.complex128), sparse.csr_matrix(matrix_2, dtype=np.complex128)
+    zero_fraction = (count_zeros(matrix_1) + count_zeros(matrix_2))/(matrix_1.size + matrix_2.size)
+    if zero_fraction >= sparse_matrix_threshold:
+        return sparse.csr_matrix(matrix_1, dtype=np.complex128), sparse.csr_matrix(matrix_2, dtype=np.complex128) 
+    return dense_mat(matrix_1), dense_mat(matrix_2)
+
 def convert_to_sparse_array(array):
     if isinstance(array, sparse.csr_matrix):
         return array

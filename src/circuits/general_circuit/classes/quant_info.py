@@ -1,12 +1,13 @@
 import numpy as np
+from ...circuit_config import *
 from ..utilities.circuit_errors import QuantInfoError
 from .qubit import Qubit
 from .gate import X_Gate, Y_Gate, Z_Gate
 from scipy.linalg import sqrtm, logm
 from scipy import sparse
-from scipy.sparse.linalg import eigsh
+from scipy.sparse.linalg import eigsh, eigs
 import matplotlib.pyplot as plt
-from ...circuit_config import *
+from ...circuit_utilities.sparse_funcs import *
 
 __all__ = ["QuantInfo"]
 
@@ -83,7 +84,14 @@ class QuantInfo:
 
     @staticmethod
     def purity(state: Qubit) -> float:      #a measure of mixedness
-        return np.einsum('ij,ji', state.rho, state.rho).real     #dot product then trace over
+        if sparse.issparse(state.rho):
+            trace_value = 0
+            for i, j in zip(*state.rho.nonzero()):
+                trace_value += state.rho[i, j] * state.rho[j, i]
+            return trace_value.real
+        else:
+            return np.trace(state.rho @ state.rho).real
+    
     
     @staticmethod                           #an approximation of von neumann
     def linear_entropy(state: Qubit) -> float:
@@ -92,9 +100,10 @@ class QuantInfo:
     @staticmethod
     def vn_entropy(state: Qubit) -> float:
         if isinstance(state, Qubit):
-            N = state.rho.shape[0]
-            k = max(1, N - 2)
-            eigenvalues, eigenvectors =  eigsh(state.rho, k=k, which="LM") if sparse.issparse(state.rho) else np.linalg.eig(state.rho)
+            if state.n > 14:
+                raise QuantInfoError(f"Matrix too big")
+            k = max(1, min(state.dim - 2, int(2 * np.log2(state.dim))))
+            eigenvalues, eigenvectors =  eigsh(state.rho, k=k, which="LM", ncv=k+2) if sparse.issparse(state.rho) else np.linalg.eig(state.rho)
             entropy = 0
             for ev in eigenvalues:
                 if ev > 0:    #prevents ev=0 which would create an infinity from the log2
@@ -107,7 +116,10 @@ class QuantInfo:
     @staticmethod
     def shannon_entropy(state: Qubit) -> float:
         if isinstance(state, Qubit):
-            diag_probs = np.diag(state.rho)
+            if sparse.issparse(state.rho):
+                diag_probs = state.rho.diagonal()
+            else:
+                diag_probs = np.diag(state.rho) 
             entropy = -np.sum(diag_probs[diag_probs > 0] * np.log2(diag_probs[diag_probs > 0]))
             if entropy < 1e-10:         #rounds the value if very very small
                 entropy = 0.0
@@ -116,15 +128,17 @@ class QuantInfo:
 
     @staticmethod
     def quantum_discord(state_1: Qubit, state_2: Qubit) -> float:     #measures non classical correlation
+        if state_1.n + state_2.n > 14:
+            raise QuantInfoError(f"Matrix too big")
         return QuantInfo.quantum_mutual_info(state_1, state_2) - QuantInfo.quantum_conditional_entropy(state_1, state_2)
 
     @staticmethod
     def fidelity(state_1: Qubit, state_2: Qubit) -> float:
-        if state_1 is None or state_2 is None:
-            raise QuantInfoError(f"Must provide two states of type Qubit")
+        if state_1.rho.shape != state_2.rho.shape:
+            raise QuantInfoError(f"The shapes of the matrices must be the same, not {state_1.rho.shape} and {state_2.rho.shape}")
         if isinstance(state_1, Qubit) and isinstance(state_2, Qubit):
-            rho_1 = state_1.rho
-            rho_2 = state_2.rho
+            rho_1 = dense_mat(state_1.rho)
+            rho_2 = dense_mat(state_2.rho)
             product =  sqrtm(rho_1) @ rho_2 @ sqrtm(rho_1)
             sqrt_product = sqrtm(product)
             mat_trace = np.trace(sqrt_product)
@@ -134,8 +148,10 @@ class QuantInfo:
     
     @staticmethod
     def trace_distance(state_1: Qubit, state_2: Qubit) -> float:
-        diff_state = state_1 - state_2
-        eigenvalues = np.linalg.eigvals(diff_state.rho)
+        if state_1.rho.shape != state_2.rho.shape:
+            raise QuantInfoError(f"The shapes of the matrices must be the same, not {state_1.rho.shape} and {state_2.rho.shape}")
+        diff_rho = dense_mat(state_1.rho) - dense_mat(state_2.rho)
+        eigenvalues = np.linalg.eigvals(diff_rho)
         abs_eigenvalues = np.abs(eigenvalues)
         trace_dist = 0.5 * np.sum(abs_eigenvalues)
         return trace_dist
@@ -162,6 +178,8 @@ class QuantInfo:
     @staticmethod
     def quantum_mutual_info(state_1, state_2) -> float:                               #S(A:B)
         if isinstance(state_1, Qubit) and isinstance(state_2, Qubit):
+            state_1.rho = sparse_mat(state_1.rho)
+            state_2.rho = sparse_mat(state_2.rho)
             mut_info = QuantInfo.vn_entropy(state_1) + QuantInfo.vn_entropy(state_2) - QuantInfo.vn_entropy(state_1 % state_2)
             return mut_info
         raise QuantInfoError(f"state_1 and state_2 must both be of type Qubit, not of type {type(state_1)} and {type(state_2)}")
@@ -169,20 +187,40 @@ class QuantInfo:
     @staticmethod
     def quantum_relative_entropy(state_1: Qubit, state_2: Qubit) -> float:   #rho is again the first value in S(A||B)
         if isinstance(state_1, Qubit) and isinstance(state_2, Qubit):
-            rho_1 = state_1.rho
-            rho_2 = state_2.rho
-            eigenvalues_1, eigenvectors_1 = np.linalg.eig(rho_1)
-            eigenvalues_2, eigenvectors_2 = np.linalg.eig(rho_2)
-            threshold = 1e-10
-            eigenvalues_1 = np.maximum(eigenvalues_1, threshold)
-            eigenvalues_2 = np.maximum(eigenvalues_2, threshold)
-            rho_1 = eigenvectors_1 @ np.diag(eigenvalues_1) @ eigenvectors_1.T
-            rho_2 = eigenvectors_2 @ np.diag(eigenvalues_2) @ eigenvectors_2.T
-            try:
-                quant_rel_ent = np.trace(rho_1 @ (logm(rho_1) - logm(rho_2)))
-                return quant_rel_ent.real
-            except Exception as e:
-                raise QuantInfoError(f"Error in computing relative entropy: {e}")
+            if sparse.issparse(state_1.rho) or sparse.issparse(state_2.rho):
+                state_1.rho = sparse_mat(state_1.rho)
+                state_2.rho = sparse_mat(state_2.rho)
+                if state_1.rho.shape != state_2.rho.shape:
+                    raise QuantInfoError(f"The shapes of the matrices must be the same, not {state_1.rho.shape} and {state_2.rho.shape}")
+                eigenvalues_1, eigenvectors_1 = eigs(state_1.rho, k=max(1, state_1.dim/2), which='LM')
+                eigenvalues_2, eigenvectors_2 = eigs(state_2.rho, k=max(1, state_2.dim/2), which='LM') 
+                eigenvalues_1 = np.maximum(eigenvalues_1, 1e-4)
+                eigenvalues_2 = np.maximum(eigenvalues_2, 1e-4)
+                log_eigenvalues_1 = np.log(eigenvalues_1)
+                log_eigenvalues_2 = np.log(eigenvalues_2)
+                rho_1_log = eigenvectors_1 @ sparse.diags(log_eigenvalues_1) @ eigenvectors_1.T
+                rho_2_log = eigenvectors_2 @ sparse.diags(log_eigenvalues_2) @ eigenvectors_2.T
+                rho_1_log = sparse_mat(rho_1_log)
+                rho_2_log = sparse_mat(rho_2_log)
+                try:
+                    quant_rel_ent = (rho_1_log @ state_1.rho - rho_2_log @ state_2.rho).diagonal().sum()  #not correct
+                    if quant_rel_ent < 1.e-4:
+                        quant_rel_ent = 0.0
+                    return quant_rel_ent.real
+                except Exception as e:
+                    raise QuantInfoError(f"Error in computing relative entropy: {e}")
+            else:
+                eigenvalues_1, eigenvectors_1 = np.linalg.eig(state_1.rho)
+                eigenvalues_2, eigenvectors_2 = np.linalg.eig(state_2.rho)
+                eigenvalues_1 = np.maximum(eigenvalues_1, 1e-4)
+                eigenvalues_2 = np.maximum(eigenvalues_2, 1e-4)
+                rho_1 = eigenvectors_1 @ np.diag(eigenvalues_1) @ eigenvectors_1.T
+                rho_2 = eigenvectors_2 @ np.diag(eigenvalues_2) @ eigenvectors_2.T
+                try:
+                    quant_rel_ent = np.trace(rho_1 @ (logm(rho_1) - logm(rho_2)))
+                    return quant_rel_ent.real
+                except Exception as e:
+                    raise QuantInfoError(f"Error in computing relative entropy: {e}")
         raise QuantInfoError(f"Incorrect type {type(state_1)} and type {type(state_2)}, expected both Qubit types")
     
     @staticmethod
