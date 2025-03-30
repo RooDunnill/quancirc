@@ -1,6 +1,6 @@
 from scipy import sparse
 import numpy as np
-from .circuit_errors import LwStatePreparationError
+from .circuit_errors import LwStatePreparationError, LwMeasureError
 
 
 def lw_qubit_validation(state) -> None:

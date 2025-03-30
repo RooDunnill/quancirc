@@ -6,7 +6,9 @@ from .gate import *
 from .quant_info import *
 from .measure import *
 from .qubit_array import *
-from ...circuit_utilities import *
+from ..utilities.validation_funcs import circuit_validation, kraus_validation
+from ...circuit_utilities.sparse_funcs import *
+from ...circuit_utilities.layout_funcs import *
 from ..utilities.circuit_errors import QuantumCircuitError
 from ...circuit_config import *
 from scipy.sparse import eye_array

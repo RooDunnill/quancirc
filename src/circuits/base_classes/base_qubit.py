@@ -3,10 +3,10 @@ from ..circuit_config import *
 from ..circuit_utilities.sparse_funcs import *
 import sympy as sp
 
+__all__ = ["BaseQubit"]
 
 class BaseQubit:
     def __init__(self, **kwargs):
-        print(f"Calling super test")
         self.skip_val = kwargs.get("skip_validation", False)
         self.display_mode = kwargs.get("display_mode", "density")
         self.name: str = kwargs.get("name","|Quantum State>")

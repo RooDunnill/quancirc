@@ -5,7 +5,8 @@ from ...general_circuit.classes import *
 from .lw_qubit import *
 from .lw_measure import *
 from ..utilities.circuit_errors import LwQuantumCircuitError
-from ...circuit_utilities import *
+from ...circuit_utilities.sparse_funcs import *
+from ...circuit_utilities.layout_funcs import *
 from scipy.sparse import eye_array
 from ...circuit_config import linewid
 from ..circuit_special_gates.fwht import *

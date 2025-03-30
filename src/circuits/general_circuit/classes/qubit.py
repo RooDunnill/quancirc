@@ -7,56 +7,12 @@ from ...circuit_utilities.sparse_funcs import *
 from ..utilities.circuit_errors import QuantumStateError, StatePreparationError
 from ..static_methods.qubit_methods import *
 from ...circuit_config import *
-from ...circuit_utilities.validation_funcs import qubit_validation, rho_validation
+from ..utilities.validation_funcs import qubit_validation, rho_validation
+from ...circuit_utilities.misc_funcs import copy_qubit_attr, combine_qubit_attr
+
+__all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi"]
 
 
-__all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi", "combine_qubit_attr", "copy_qubit_attr"]
-
-def combine_qubit_attr(self: "Qubit", other: "Qubit", op: str = None) -> dict:
-        """Allows the returned objects to still return name and info too"""
-        kwargs = {}
-        if op == "%":
-            self_name_size = int(np.log2(self.dim))
-            other_name_size = int(np.log2(other.dim))
-            kwargs["name"] = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
-        elif hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
-            if op:
-                kwargs["name"] = f"{self.name} {op} {other.name}"
-            else:
-                kwargs["name"] = f"{self.name}"
-        if isinstance(self, Qubit) and isinstance(other, Qubit):
-            if isinstance(self.index, int) != isinstance(other.index, int):
-                if isinstance(self.index, int):
-                    kwargs["index"] = self.index
-                else:
-                    kwargs["index"] = other.index
-            if hasattr(self, "display_mode") and hasattr(other, "display_mode"):
-                if self.display_mode == "both" or other.display_mode == "both":
-                    kwargs["display_mode"] = "both"
-                elif self.display_mode == "density" or other.display_mode == "density":
-                    kwargs["display_mode"] = "density"
-                else:
-                    kwargs["display_mode"] = "vector"
-        elif isinstance(other, Qubit):
-            if hasattr(other, "index"):
-                kwargs["index"] = other.index
-        if hasattr(self, "skip_val") and self.skip_val == True:
-            kwargs["skip_validation"] = True
-        elif hasattr(other, "skip_val") and other.skip_val == True: 
-            kwargs["skip_validation"] = True
-        return kwargs
-
-def copy_qubit_attr(self: "Qubit") -> dict:
-    kwargs = {}
-    if hasattr(self, "name"):
-        kwargs["name"] = self.name
-    if hasattr(self, "display_mode"):
-        kwargs["display_mode"] = self.display_mode
-    if hasattr(self, "skip_val") and self.skip_val == True:
-        kwargs["skip_validation"] = True
-    if hasattr(self, "index"):
-        kwargs["index"] = self.index
-    return kwargs
 
 class Qubit(BaseQubit):                                           #creates the qubit class
     all_immutable_attr = ["class_type"]
