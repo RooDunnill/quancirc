@@ -74,6 +74,27 @@ large_qubit_def[1] = Hadamard @ large_qubit_def[1]
 large_qubit_def[2] = Hadamard @ large_qubit_def[2]
 large_qubit_def[3] = Hadamard @ large_qubit_def[3]
 large_qubit_def[4] = Hadamard @ large_qubit_def[4]
-
-
+print(large_qubit_def.isolate_qubit(0))
+print(large_qubit_def.isolate_qubit(1))
+print(large_qubit_def.isolate_qubit(2))
+print(large_qubit_def.isolate_qubit(3))
+print(large_qubit_def.isolate_qubit(4))
+print(q0 + q0)
+print(q0 - q0)
+large_qubit_def += large_qubit_def
+print(large_qubit_def)
+large_qubit_def -= large_qubit_def
+print(large_qubit_def)
+large_qubit_def @= large_qubit_def
+print(large_qubit_def)
+normal_mixed_qubit_def %= normal_mixed_qubit_def
+normal_qubit_def %= normal_qubit_def
+print(normal_mixed_qubit_def)
+large_qubit_def.norm()
+norm_test_1 = Qubit(state=[1,0])
+norm_test_2 = Qubit(state=[0,1])
+norm_test_1.norm()
+norm_test_2.norm()
+print(large_qubit_state)
+large_qubit_state.norm()
 

@@ -1,4 +1,5 @@
 import numpy as np
+from ...circuit_config import *
 from ...base_classes.base_circuit import *
 from .qubit import *
 from .bit import *
@@ -10,8 +11,6 @@ from ..utilities.validation_funcs import circuit_validation, kraus_validation
 from ...circuit_utilities.sparse_funcs import *
 from ...circuit_utilities.layout_funcs import *
 from ..utilities.circuit_errors import QuantumCircuitError
-from ...circuit_config import *
-from scipy.sparse import eye_array
 
 
 __all__ = ["Circuit"]

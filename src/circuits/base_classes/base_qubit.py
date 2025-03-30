@@ -62,13 +62,13 @@ class BaseQubit:
     
     def __isub__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         if isinstance(other, BaseQubit):
-            self.rho = self.rho - other.rho
+            self = self - other
             return self
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
     def __iadd__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         if isinstance(other, BaseQubit):
-            self.rho = self.rho + other.rho
+            self = self + other
             return self
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     

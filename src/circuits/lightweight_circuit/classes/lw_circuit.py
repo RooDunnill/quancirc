@@ -39,7 +39,7 @@ class LwCircuit(BaseCircuit):
     def apply_gate(self, gate, qubit=None, **kwargs) -> None:
         gate_name = gate.name
         if self.collapsed:
-            raise QuantumCircuitError(f"This state has already been measured and so no further gates can be applied")
+            raise LwQuantumCircuitError(f"This state has already been measured and so no further gates can be applied")
         if gate is Identity:
             if self.verbose:
                 print(f"Applying {gate.name} to qubit {qubit}")
@@ -54,7 +54,7 @@ class LwCircuit(BaseCircuit):
         else:
             if qubit is not None:        #MAKE SO IT APPLIES JUST TO THAT QUBIT AND THEN RETENSORS
                 if qubit in self.collapsed_qubits:
-                    raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
+                    raise LwQuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
                 self.state.state = sparse_array(self.state.state)    #this is changing the shape i believe FIXXXXXXXXXXXXXXXX
                 gate_action = Gate(matrix=sparse_mat(gate.matrix))
                 gate = Gate.Identity(n=qubit, type="sparse") % gate_action % Gate.Identity(n=self.state.n - qubit - 1, type="sparse")

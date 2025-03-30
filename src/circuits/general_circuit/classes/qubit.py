@@ -55,6 +55,10 @@ class Qubit(BaseQubit):                                           #creates the q
             self.state_type = "mixed"
         else:
             raise StatePreparationError(f"The purity of a state must be between 0 and 1, purity: {purity}")
+        
+    def __str__(self):
+        self.set_state_type()
+        return super().__str__()
 
     def rho_init(self) -> None:
         """Builds and checks the rho attribute during __init__, returns type None"""
@@ -67,15 +71,12 @@ class Qubit(BaseQubit):                                           #creates the q
             else:
                 self.rho = self.build_pure_rho()
 
-        
     def __setattr__(self: "Qubit", name: str, value) -> None:
         if getattr(self, "immutable", False) and name in self.immutable_attr:
             raise AttributeError(f"Cannot modify immutable object: {name}")
         if name in self.all_immutable_attr:
             raise AttributeError(f"Cannot modify immutable object: {name}")
         super().__setattr__(name, value)
-
-    
 
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
@@ -93,8 +94,6 @@ class Qubit(BaseQubit):                                           #creates the q
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
-    
-        
     def __matmul__(self: "Qubit", other: "Qubit") -> "Qubit":     
         """Matrix multiplication between two Qubit objects, returns a Qubit object"""
         if self.class_type == "qubit_lw":
@@ -106,7 +105,7 @@ class Qubit(BaseQubit):                                           #creates the q
                 new_rho = rho_1.dot(rho_2)   #swapped indice order for the transpose
             else:
                 new_rho = np.dot(rho_1, rho_2)
-            kwargs = {"rho": new_rho}
+            kwargs = {"rho": new_rho, "skip_validation": True}
             kwargs.update(combine_qubit_attr(self, other, op = "@"))
             return Qubit(**kwargs)
         raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
@@ -149,8 +148,6 @@ class Qubit(BaseQubit):                                           #creates the q
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
-    
-    
     def __add__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Addition of two Qubit rho matrices, returns a Qubit object"""
         if isinstance(other, Qubit):
@@ -159,8 +156,6 @@ class Qubit(BaseQubit):                                           #creates the q
             kwargs.update(combine_qubit_attr(self, other, op = "+"))
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
-    
-    
     
     def __and__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Direct sum of two Qubit rho matrices, returns a Qubit object"""
@@ -253,12 +248,16 @@ class Qubit(BaseQubit):                                           #creates the q
     def norm(self: "Qubit") -> None:
         """Normalises a rho matrix, returns type None"""
         if self.rho.shape[0] == self.rho.shape[1]:
-            trace_rho = np.trace(self.rho)
+            if sparse.issparse(self.rho):
+                trace_rho = self.rho.diagonal().sum()
+            else:
+                trace_rho = np.trace(self.rho)
             if trace_rho != 0:
                 self.rho = self.rho / trace_rho
-            else:
+            elif not self.skip_val:
                 raise QuantumStateError(f"The trace of the density matrix cannot be 0 and so cannot normalise")
-        raise QuantumStateError(f"self.rho must be a square matrix, not of shape {self.rho.shape}")
+        else:
+            raise QuantumStateError(f"self.rho must be a square matrix, not of shape {self.rho.shape}")
     
     def build_mixed_rho(self: "Qubit") -> np.ndarray:
         """Builds a mixed rho matrix, primarily in initiation of Qubit object, returns type np.ndarray"""
@@ -272,12 +271,16 @@ class Qubit(BaseQubit):                                           #creates the q
     def build_state_from_rho(self: "Qubit") -> np.ndarray:
         """Builds a state vector from the given rho matrix, primarily for printing purposes, returns type np.ndarray"""
         if sparse.issparse(self.rho):
+            if np.all(np.isclose(self.rho.data, 0.0, atol=1e-4)):
+                return np.zeros(self.rho.shape[0], dtype=np.complex128)
             N = self.rho.shape[0]
             k = max(1, N - 2)
             probs, states = eigsh(self.rho, k=k, which="LM")
             probs = sparse.csr_matrix(probs, dtype=np.float64)
             states = sparse.csr_matrix(states, dtype=np.complex128)
         else:
+            if np.all(np.isclose(self.rho, 0.0, atol=1e-4)):
+                return np.zeros(self.rho.shape[0], dtype=np.complex128)
             probs, states = np.linalg.eigh(self.rho)
             probs = np.array(probs, dtype=np.float64)
             states = np.array(states, dtype=np.complex128)
