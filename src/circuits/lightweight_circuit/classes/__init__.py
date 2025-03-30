@@ -1,2 +1,3 @@
-from .circuit_lw import *
-from .qubit_lw import *
+from .lw_circuit import *
+from .lw_qubit import *
+from .lw_measure import *

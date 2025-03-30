@@ -5,20 +5,19 @@ from ...general_circuit.classes.qubit import combine_qubit_attr
 from ...circuit_utilities.circuit_errors import *
 from ..utilities.validation_funcs import lw_qubit_validation
 from ..static_methods.qubit_methods import *
-from ..utilities.circuit_errors import LWQuantumStateError, LWStatePreparationError
+from ..utilities.circuit_errors import LwQuantumStateError, LwStatePreparationError
 from ...circuit_utilities.sparse_funcs import *
-from ..utilities.circuit_errors import LWQuantumStateError
 from ...circuit_config import *
 
 
 
-__all__ = ["Qubit_LW", "q0_lw", "q1_lw", "qp_lw", "qm_lw", "qpi_lw", "qmi_lw"]
+__all__ = ["LwQubit", "q0_lw", "q1_lw", "qp_lw", "qm_lw", "qpi_lw", "qmi_lw"]
 
-class Qubit_LW(BaseQubit): 
+class LwQubit(BaseQubit): 
     """A lightweight variant of the Qubit class, which utilises 1D arrays and sparse matrices to make a faster quantum state
         at the forfeit of always being pure"""
     def __init__(self, **kwargs):
-        object.__setattr__(self, 'class_type', 'qubit_lw')
+        object.__setattr__(self, 'class_type', 'lwqubit')
         super().__init__(**kwargs)
         self.state_type = "pure"
         self.matrix_type = kwargs.get("matrix_type", "dense")
@@ -34,9 +33,9 @@ class Qubit_LW(BaseQubit):
     def __dir__(self):
         return None
 
-    def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
+    def __mod__(self: "LwQubit", other: "LwQubit") -> "LwQubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
-        if isinstance(other, Qubit_LW):
+        if isinstance(other, LwQubit):
             vec_1 = convert_to_sparse(self.state)
             vec_2 = convert_to_sparse(other.state)
             if sparse.issparse(vec_1) and sparse.issparse(vec_2):
@@ -47,8 +46,8 @@ class Qubit_LW(BaseQubit):
                 new_vec = np.kron(vec_1, vec_2)
             kwargs = {"state": new_vec}
             kwargs.update(combine_qubit_attr(self, other, op = "%"))
-            return Qubit(**kwargs)
-        raise LWQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+            return LwQubit(**kwargs)
+        raise LwQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     """
     def partial_trace(self, size_a, size_c, **kwargs):
         state = kwargs.get("state", self.state)
@@ -101,15 +100,15 @@ class Qubit_LW(BaseQubit):
     
     
     
-q0_lw = Qubit_LW.q0_lw()
+q0_lw = LwQubit.q0_lw()
 q0_lw.immutable = True
-q1_lw = Qubit_LW.q1_lw()
+q1_lw = LwQubit.q1_lw()
 q1_lw.immutable = True
-qp_lw = Qubit_LW.qp_lw()
+qp_lw = LwQubit.qp_lw()
 qp_lw.immutable = True
-qm_lw = Qubit_LW.qm_lw()
+qm_lw = LwQubit.qm_lw()
 qm_lw.immutable = True
-qpi_lw = Qubit_LW.qpi_lw()
+qpi_lw = LwQubit.qpi_lw()
 qpi_lw.immutable = True
-qmi_lw = Qubit_LW.qmi_lw()
+qmi_lw = LwQubit.qmi_lw()
 qmi_lw.immutable = True

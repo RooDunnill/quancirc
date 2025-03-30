@@ -2,19 +2,20 @@ import numpy as np
 from random import choices
 from ...base_classes.base_circuit import *
 from ...general_circuit.classes import *
-from .qubit_lw import *
-from ..utilities.circuit_errors import LWQuantumCircuitError
+from .lw_qubit import *
+from .lw_measure import *
+from ..utilities.circuit_errors import LwQuantumCircuitError
 from ...circuit_utilities import *
 from scipy.sparse import eye_array
 from ...circuit_config import linewid
 from ..circuit_special_gates.fwht import *
 
-__all__ = ["Circuit_LW"]
+__all__ = ["LwCircuit"]
 
-class Circuit_LW(BaseCircuit):
+class LwCircuit(BaseCircuit):
     """A circuit build out of 1D arrays that can only handle pure states, howver is optimised to be overlla faster than the base circuit"""
     def __init__(self, **kwargs):
-        object.__setattr__(self, 'class_type', 'circuit_lw')
+        object.__setattr__(self, 'class_type', 'lwcircuit')
         self.qubit_num = kwargs.get("q", 1)
         self.bit_num = kwargs.get("b", 1)
         self.verbose = kwargs.get("verbose", True)
@@ -31,7 +32,7 @@ class Circuit_LW(BaseCircuit):
             print("\n")
             print("=" * linewid)
             print(f"Initialising circuit with {self.qubit_num} qubits and {self.bit_num} bits")
-        return Qubit_LW.q0_lw(n=self.qubit_num), Bit("00000000")
+        return LwQubit.q0_lw(n=self.qubit_num), Bit("00000000")
     
 
     def apply_gate(self, gate, qubit=None, **kwargs) -> None:
@@ -44,7 +45,7 @@ class Circuit_LW(BaseCircuit):
             return
         fwht = kwargs.get("fwht", False)
         if gate is not Hadamard and fwht == True:
-            raise LWQuantumCircuitError(f"fwht can only be used when the gate is Hadamard")
+            raise LwQuantumCircuitError(f"fwht can only be used when the gate is Hadamard")
         if gate is Hadamard and qubit is None and fwht == True:
             self.state = vector_fwht(self.state)
             if self.verbose:
@@ -66,12 +67,7 @@ class Circuit_LW(BaseCircuit):
                     print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the circuit")
 
     def list_probs(self, qubit=None):
-        if qubit is None:
-            if sparse.issparse(self.state.state):
-                self.prob_distribution = self.state.state.multiply(self.state.state.conjugate())
-            else:
-                self.prob_distribution = np.einsum("i,i->i", self.state.state.ravel(), np.conj(self.state.state.ravel()))
-            self.prob_distribution = dense_mat(self.prob_distribution).ravel().real
+        self.prob_distribution = LwMeasure(state=self.state).list_probs()
         if self.verbose:
             print(f"Listing the probabilities:\n{format_ket_notation(self.prob_distribution)}")
         return self.prob_distribution
@@ -79,16 +75,13 @@ class Circuit_LW(BaseCircuit):
     def measure_state(self, qubit=None):
         self.depth += 1
         if qubit is None:
-            probs = self.list_probs()
-            measurement = choices(range(len(probs)), weights=probs)[0]
-            post_measurement_vector = np.zeros((self.state.dim), dtype=np.complex128)
-            post_measurement_vector[measurement] = 1
-            kwargs = {"state": post_measurement_vector}
-            kwargs.update(copy_qubit_attr(self))
+            self.state = Measure(state=self.state).measure_state()
             self.collapsed = True
             if self.verbose:
-                print(f"Measured the state {measurement} of the whole system")
-            return Qubit(**kwargs)
+                print(f"Measured the state {self.state} of the whole system")
+            return self.state
+        
+
         
     def get_info(self):
         return QuantInfo.state_info(self.state)

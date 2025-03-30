@@ -20,7 +20,6 @@ class Measure:
         return ["list_probs", "measure_state"]
 
     def list_probs(self, povm: np.ndarray=None) -> np.ndarray:
-        if isinstance(self.state, Qubit)
         rho = dense_mat(self.state.rho)
         if isinstance(self.state, Qubit):
             if povm:

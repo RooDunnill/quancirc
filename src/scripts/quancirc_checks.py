@@ -3,7 +3,7 @@ import numpy as np
 from ..circuits import *
 from ..circuit_algorithms.grover_search import *
 import sympy as sp
-from .example_check import *
+
 
 partial_test = q0 % q1 % q1 % q0
 pt = partial_test.partial_trace(0, 3)
@@ -240,7 +240,7 @@ print(Hadamard @ q0_lw)
 
 print(q0_lw)
 print(q0_lw % q0_lw)
-lw_circuit = Circuit_LW(q=4)
+lw_circuit = LwCircuit(q=4)
 lw_circuit.apply_gate(Hadamard, qubit=1)
 print(type(lw_circuit.state))
 lw_circuit.apply_gate(Hadamard, qubit=2)
@@ -248,7 +248,7 @@ lw_circuit.apply_gate(Identity % Hadamard % Hadamard % Identity)
 lw_circuit.list_probs()
 test = q0_lw % q0_lw
 print(test)
-print(type(test.rho))
+print(test.state)
 grover_search(16, n=16, verbose=False)
 test = grover_search(16, verbose=False)
 print(test)
@@ -290,12 +290,12 @@ print(dir(qub2))
 test_gate = Gate(matrix=[[1,0],[0,1]])
 
 trace_state_1 = Qubit(state=[[1,0],[0,1]], weights=[0.5,0.5])
-QuantInfo.bloch_plotter(trace_state_1)
+
 print(QuantInfo.trace_distance(trace_state_1, Gate.Rotation_Y(np.pi/2) @ trace_state_1))
 print(QuantInfo.trace_distance(trace_state_1, Gate.Rotation_Y(np.pi/2) @ trace_state_1))
 
 state_1 = Qubit(state=[1,0])
-QuantInfo.bloch_plotter(Gate.Rotation_Y(np.pi/2) @ state_1)
+
 phi = sp.symbols("phi", real=False)
 a, b, c = sp.symbols("a b c", real=False)
 d, e, f = sp.symbols("d e f", real=False)

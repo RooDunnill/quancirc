@@ -77,7 +77,7 @@ def iterate_alg(oracle_values, n, mode, it, verbose) -> Qubit:
         print_func(f"\r",end="")
         print_func(f"\rHadamard and Quantum State created, time to create was: {timer.elapsed()[0]:.4f}")
         fwht_mode = False
-    grovers_circuit = Circuit_LW(q=n, verbose=False)
+    grovers_circuit = LwCircuit(q=n, verbose=False)
 
     print_func(f"\rApplying Initial Hadamard                                                                     ", end="")
     grovers_circuit.apply_gate(Hadamard, fwht=fwht_mode)
