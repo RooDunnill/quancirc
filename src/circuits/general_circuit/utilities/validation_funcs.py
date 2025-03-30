@@ -76,7 +76,7 @@ def rho_validation(state):
             if not np.isclose(np.trace(state.rho), 1.0):
                 raise StatePreparationError(f"Density matrix must have a trace of 1, not of trace {np.trace(state.rho)}")
         if state.rho.shape != (1,1):
-            eigenvalues = eigsh(state.rho, k=min(6, state.rho.shape[0]-1), which="SA", return_eigenvectors=False) if sparse.issparse(state.rho) else np.linalg.eigvalsh(state.rho)
+            eigenvalues = eigsh(state.rho, k=max(1, state.rho.shape[0]-2), which="SA", return_eigenvectors=False) if sparse.issparse(state.rho) else np.linalg.eigvalsh(state.rho)
             if np.any(eigenvalues < -1e-4):
                 negative_indices = np.where(eigenvalues < 0)[0]
                 raise StatePreparationError(f"Density matrix is not positive semi-definite. "

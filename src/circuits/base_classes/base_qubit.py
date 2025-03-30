@@ -30,7 +30,7 @@ class BaseQubit:
                 return f"{self.name}\nState:\n{state_str}\nRho:\n{rho_str}"
         elif self.state_type == "mixed":
             if isinstance(state_print, np.ndarray):
-                raise BaseStatePreparationError(f"The state vector of a mixed state cannot be a sinlge np.ndarray")
+                raise BaseStatePreparationError(f"The state vector of a mixed state cannot be a single np.ndarray")
             weights = dense_mat(state_print[0])
             state = dense_mat(state_print[1])
             weights_str = np.array2string(weights, precision=p_prec, separator=', ', suppress_small=True)

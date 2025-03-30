@@ -121,7 +121,7 @@ class Gate(BaseGate):
         if isinstance(other, Gate):
             mat_2 = convert_to_sparse(other.matrix)
             if sparse.issparse(mat_1) or sparse.issparse(mat_2):
-                new_rho = sparse_mat(mat_1) @ sparse_mat(mat_2)
+                new_matrix = sparse_mat(mat_1) @ sparse_mat(mat_2)
             else:
                 mat_1 = dense_mat(self.matrix)
                 mat_2 = dense_mat(other.matrix)
