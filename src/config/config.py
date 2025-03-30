@@ -8,6 +8,7 @@ p_prec: int = 3
 linewid: int = 150
 sparse_matrix_threshold: float = 0.9
 sparse_array_threshold: float = 0.9
+name_limit = 20
 set_printoptions(precision=p_prec, suppress=True, floatmode="fixed")
 set_printoptions(linewidth=linewid)
 

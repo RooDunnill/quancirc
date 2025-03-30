@@ -231,3 +231,7 @@ for i in range(8):
     print(hugeeee_gate.matrix.size)
     print(type(hugeeee_gate_2.matrix))
     print(count_zeros(hugeeee_gate_2.matrix))
+print(Hadamard @ Hadamard.matrix)
+print(Hadamard @ q0_lw)
+for i in range(20):
+    Hadamard @= Hadamard

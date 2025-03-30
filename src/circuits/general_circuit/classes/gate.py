@@ -13,9 +13,13 @@ __all__ = ["Gate", "X_Gate", "Y_Gate", "Z_Gate", "Hadamard", "Identity", "CNot",
 
 def combine_gate_attr(self: "Gate", other: "Gate", op = "+") -> list:
         """Allows the returned objects to still return name too"""
+        
         kwargs = {}
         if hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
-            kwargs["name"] = f"{self.name} {op} {other.name}"
+            new_name = f"{self.name} {op} {other.name}"
+            if len(new_name) > name_limit:
+                new_name = new_name[len(new_name) - name_limit:]
+            kwargs["name"] = new_name
         if hasattr(self, "skip_val") and self.skip_val == True:
             kwargs["skip_validation"] = True
         elif hasattr(other, "skip_val") and other.skip_val == True: 
@@ -77,7 +81,6 @@ class Gate(BaseGate):
             raise GateError(f"The inputted objects must have attr: self.matrix and other.matrix")
         raise GateError(f"Cannot have types {type(self)} and {type(other)}, expected two Gate classes")
     
-
     def __mod__(self, other) -> "Gate":            #tensor product
         mat_1 = convert_to_sparse(self.matrix)
         mat_2 = convert_to_sparse(other.matrix)
@@ -126,6 +129,17 @@ class Gate(BaseGate):
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "@"))
             return Gate(**kwargs)
+        elif isinstance(other, (sparse.sparray, np.ndarray)):
+            mat_2 = other
+            if sparse.issparse(mat_1) and sparse.issparse(mat_2):
+                new_matrix = mat_1.dot(mat_2)
+            else:
+                mat_1 = dense_mat(self.matrix)
+                mat_2 = dense_mat(other)
+                new_matrix = np.dot(mat_1, mat_2)
+            kwargs = {"matrix": new_matrix}
+            kwargs.update(combine_gate_attr(self, other, op = "@"))
+            return Gate(**kwargs)
         elif other.class_type == "qubit":
             rho_2 = convert_to_sparse(other.rho)
             if sparse.issparse(mat_1) and sparse.issparse(rho_2):
@@ -149,17 +163,6 @@ class Gate(BaseGate):
             kwargs = {"state":new_vec}
             kwargs.update(combine_qubit_attr(self, other, op = "@"))
             return other.__class__(**kwargs)
-        elif isinstance(other, (sparse.sparray, np.ndarray)):
-            mat_2 = other
-            if sparse.issparse(mat_1) and sparse.issparse(mat_2):
-                new_matrix = mat_1.dot(mat_2)
-            else:
-                mat_1 = dense_mat(self.matrix)
-                mat_2 = dense_mat(other)
-                new_matrix = np.dot(mat_1, mat_2)
-            kwargs = {"matrix": new_matrix}
-            kwargs.update(combine_gate_attr(self, other, op = "@"))
-            return Gate(**kwargs)
         raise GateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
 
     @classmethod                             #creates any specific control gate

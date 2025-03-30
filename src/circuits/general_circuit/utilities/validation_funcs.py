@@ -108,6 +108,7 @@ def gate_validation(gate) -> None:
         else:
             gate_check = np.dot(np.conj(gate.matrix.T), gate.matrix)
             if not np.all(np.isclose(np.diag(gate_check),1.0, atol=1e-4)):
+                print(gate_check)
                 raise GateError(f"This gate is not unitary {gate.matrix}")
         
 def measure_validation(measure):

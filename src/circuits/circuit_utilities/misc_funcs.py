@@ -1,4 +1,5 @@
 import numpy as np
+from ..circuit_config import *
 from .circuit_errors import QC_error
 from ..base_classes.base_qubit import BaseQubit
 
@@ -17,10 +18,16 @@ def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", op: str = None) ->
         if op == "%":
             self_name_size = int(np.log2(self.dim))
             other_name_size = int(np.log2(other.dim))
-            kwargs["name"] = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
+            new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
+            if len(new_name) > name_limit:
+                new_name = new_name[len(new_name) - name_limit:]
+                kwargs["name"] = new_name
         elif hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
             if op:
-                kwargs["name"] = f"{self.name} {op} {other.name}"
+                new_name = f"{self.name} {op} {other.name}"
+                if len(new_name) > name_limit:
+                    new_name = new_name[len(new_name) - name_limit:]
+                kwargs["name"] = new_name
             else:
                 kwargs["name"] = f"{self.name}"
         if isinstance(self, BaseQubit) and isinstance(other, BaseQubit):
