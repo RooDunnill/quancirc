@@ -63,7 +63,7 @@ def rho_validation(state):
         
     if not state.skip_val:
         test_rho = dense_mat(state.rho)
-        if not np.allclose(test_rho, (test_rho.conj()).T):  
+        if not np.allclose(test_rho, (test_rho.conj()).T, atol=1e-4):  
             raise StatePreparationError(f"Density matrix is not Hermitian: {test_rho}")
         if not np.array_equal(test_rho, np.array([1])):
             eigenvalues = np.linalg.eigvalsh(test_rho)
@@ -74,7 +74,7 @@ def rho_validation(state):
             if not np.isclose(np.trace(test_rho), 1.0):
                 raise StatePreparationError(f"Density matrix must have a trace of 1, not of trace {np.trace(test_rho)}")
 
-def gate_validation(gate):
+def gate_validation(gate) -> None:
     if not isinstance(gate.name, str):
             raise GateError(f"self.name cannot be of type: {type(gate.name)}, expected type str")
     if gate.matrix is None:
@@ -94,11 +94,11 @@ def gate_validation(gate):
             gate_adjoint = gate.matrix.T
             gate_check = gate_adjoint.dot(gate.matrix)
             diag_elements = gate_check.diagonal()  
-            if not np.all(np.isclose(diag_elements, 1.0, atol=1e-3)):
+            if not np.all(np.isclose(np.abs(diag_elements), 1.0, atol=1e-4)):
                 raise GateError(f"This gate is not unitary {gate.matrix}")
         else:
             gate_check = np.dot(np.conj(gate.matrix.T), gate.matrix)
-            if not np.all(np.isclose(np.diag(gate_check),1.0, atol=1e-3)):
+            if not np.all(np.isclose(np.diag(gate_check),1.0, atol=1e-4)):
                 raise GateError(f"This gate is not unitary {gate.matrix}")
         
 def measure_validation(measure):

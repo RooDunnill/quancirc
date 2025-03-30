@@ -17,7 +17,7 @@ def convert_to_sparse(matrix):
         return matrix
     zero_fraction = count_zeros(matrix) / matrix.size
     if zero_fraction >= sparse_matrix_threshold:
-        return sparse.csr_matrix(matrix)
+        return sparse.csr_matrix(matrix, dtype=np.complex128) 
     return matrix
 
 def convert_to_sparse_array(array):
@@ -27,7 +27,7 @@ def convert_to_sparse_array(array):
         return array
     zero_fraction = count_zeros(array) / array.size
     if zero_fraction >= sparse_matrix_threshold:
-        return sparse.csr_array(array)
+        return sparse.csr_array(array, dtype=np.complex128)
     return array
 
 def convert_to_dense(matrix):
@@ -48,13 +48,13 @@ def sparse_mat(matrix):
     if sparse.issparse(matrix):
         return matrix
     else:
-        return sparse.csr_matrix(matrix)
+        return sparse.csr_matrix(matrix, dtype=np.complex128)
     
 def sparse_array(array):
     if sparse.issparse(array):
         return array
     else:
-        return sparse.csr_array(array)
+        return sparse.csr_array(array, dtype=np.complex128)
 
 def dense_mat(matrix):
     if isinstance(matrix, sparse.spmatrix): 

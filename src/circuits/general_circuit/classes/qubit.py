@@ -73,6 +73,9 @@ class Qubit(BaseQubit):                                           #creates the q
 
     def __setattr__(self: "Qubit", name: str, value) -> None:
         if getattr(self, "immutable", False) and name in self.immutable_attr:
+            current_value = getattr(self, name, None)
+            if current_value == value:
+                return
             raise AttributeError(f"Cannot modify immutable object: {name}")
         if name in self.all_immutable_attr:
             raise AttributeError(f"Cannot modify immutable object: {name}")

@@ -8,6 +8,7 @@ from ..crypto_protocols import bb84
 from ..crypto_protocols import otp
 from ..crypto_protocols import rsa_weak_key_gen
 from ..examples import *
+from ..circuits.circuit_utilities.sparse_funcs import *
 
 print(Hadamard % Hadamard)
 print(Hadamard_symb % Hadamard_symb)
@@ -97,4 +98,46 @@ norm_test_1.norm()
 norm_test_2.norm()
 print(large_qubit_state)
 large_qubit_state.norm()
+complex_qub = Qubit.create_mixed_state([q0,qmi,qp,qm],[0.1,0.1,0.1,0.7])
+complex_2_qub = Qubit.create_mixed_state([qpi,qpi,qmi,q0],[0.05,0.5,0.15,0.3])
+print(complex_qub % complex_2_qub)
+print(Hadamard @ complex_qub)
+print(Swap @ (complex_2_qub % complex_qub))
+complex_3_qub = Qubit.create_mixed_state([q0%q0,q0%q1,qm%qpi,qm%qm,qp%q1],[0.1,0.1,0.1,0.4,0.3])
+print(complex_3_qub @ (complex_2_qub % complex_qub))
+print(T_Gate @ qp)
+t_gate_qub = Qubit(state=[0,0,0,0,0,0,0,1])
+t_gate_qub = (Hadamard % Hadamard % Hadamard ) @ t_gate_qub
 
+print((T_Gate % T_Gate % T_Gate) @ t_gate_qub)
+
+t_gate_test = Gate(matrix=[[1,0],[0,np.exp(1j*np.pi/4)]])
+t_gate_test.matrix = sparse_mat(t_gate_test.matrix)
+print(t_gate_test @ q0)
+
+t_gate_circuit = Circuit(q=3)
+t_gate_circuit.measure_state(qubit=0)
+t_gate_circuit.apply_gate(Hadamard, 1)
+t_gate_circuit.apply_gate(Identity % T_Gate % Identity)
+
+t_gate_circuit = Circuit(q=3)
+t_gate_circuit.measure_state(qubit=0)
+t_gate_circuit.apply_gate(Hadamard, 1)
+t_gate_circuit.apply_gate(T_Gate, 1)
+
+test_circuit = Circuit(q=3)
+test_circuit.apply_gate(Hadamard, 0)
+test_circuit.apply_gate(Hadamard, 1)
+test_circuit.apply_gate(Hadamard, 2)
+test_circuit.apply_gate(Hadamard % Hadamard % Hadamard)
+test_circuit.measure_state(qubit=0)
+test_circuit.apply_gate(Hadamard, 1)
+print(test_circuit.state)
+test_circuit.apply_gate(T_Gate, 1)
+test_circuit.apply_gate(Identity % T_Gate % Identity)
+print(test_circuit.state)
+test_circuit.measure_state(qubit=1)
+test_circuit.measure_state(qubit=2)
+test_circuit.list_probs(qubit=0)
+test_circuit.list_probs(qubit=1)
+test_circuit.list_probs(qubit=2)

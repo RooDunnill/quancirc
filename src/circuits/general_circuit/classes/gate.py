@@ -28,6 +28,7 @@ class Gate(BaseGate):
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'gate')
         super().__init__(**kwargs)
+        self.matrix_type = kwargs.get("matrix_type", "dense")
         gate_validation(self)
         self.dim: int = self.matrix.shape[0]
         self.length = self.dim ** 2
@@ -129,7 +130,7 @@ class Gate(BaseGate):
             rho_2 = convert_to_sparse(other.rho)
             if sparse.issparse(mat_1) and sparse.issparse(rho_2):
                 temp_rho = mat_1.dot(rho_2)
-                new_rho = temp_rho.dot(mat_1.T)
+                new_rho = temp_rho.dot(mat_1.conj().T)
             else:
                 mat_1 = dense_mat(self.matrix)
                 rho_2 = dense_mat(other.rho)
