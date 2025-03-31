@@ -110,7 +110,7 @@ class QuantInfo:
                     entropy -= ev * np.log2(ev)
             if entropy < 1e-10:         #rounds the value if very very small
                 entropy = 0.0
-            return entropy
+            return entropy.real
         raise QuantInfo(f"State cannot be of type {type(state)}, must be of type Qubit")
     
     @staticmethod
@@ -123,7 +123,7 @@ class QuantInfo:
             entropy = -np.sum(diag_probs[diag_probs > 0] * np.log2(diag_probs[diag_probs > 0]))
             if entropy < 1e-10:         #rounds the value if very very small
                 entropy = 0.0
-            return entropy
+            return entropy.real
         raise QuantInfoError(f"No mixed Quantum state of type Qubit provided")
 
     @staticmethod

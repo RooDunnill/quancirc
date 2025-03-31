@@ -75,13 +75,13 @@ class Circuit(BaseCircuit):
         if self.circuit_mode == "array":
             if index < len(self.qubit_array):
                 if self.verbose:
-                    print(f"Retreiving qubit {index} from the qubit array")
+                    print(f"Retreiving qubit {index} from the qubit array:")
                 return self.qubit_array[index]
             else:
                 raise QuantumCircuitError(f"Cannot get a qubit from index {index}, when the array length is {len(self.qubit_array)}")
         elif self.circuit_mode == "circuit":
             if index < self.state.n:
-                print(f"Retreiving qubit {index} from the Quantum state") if self.verbose else None
+                print(f"Retreiving qubit {index} from the Quantum state:") if self.verbose else None
                 return self.state[index]
             raise QuantumCircuitError(f"Cannot get a qubit from index {index}, when the size of the Quantum state is {self.state.n}")
         raise QuantumCircuitError(f"circuit_mode cannot be {self.circuit_mode}, expected mode 'array' or 'circuit'")
@@ -172,7 +172,7 @@ class Circuit(BaseCircuit):
         elif qubit is None:
             self.state = gate @ self.state
             if self.verbose:
-                print(f"Adding {gate.name} of size {gate.n} x {gate.n} to the circuit")
+                print(f"Applying {gate.name} of size {gate.n} x {gate.n} to the circuit")
 
     def list_probs(self, qubit: Qubit=None, povm=None) -> np.ndarray:
         """lists the probabilities of the given state, can be applied to individual qubits"""

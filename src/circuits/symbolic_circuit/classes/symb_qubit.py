@@ -12,6 +12,7 @@ class SymbQubit(BaseQubit):
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'symbqubit')
         super().__init__(**kwargs)
+        self.state_type = "symbolic"
         self.rho = kwargs.get("rho", None)
         self.rho = sp.Matrix(self.rho) if self.rho is not None else None
         self.state = sp.Matrix(self.state) if self.state is not None else None

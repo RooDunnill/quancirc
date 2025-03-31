@@ -15,21 +15,22 @@ def binary_entropy(prob: float) -> float:
 def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", op: str = None) -> dict:
         """Allows the returned objects to still return name and info too"""
         kwargs = {}
-        if op == "%":
-            self_name_size = int(np.log2(self.dim))
-            other_name_size = int(np.log2(other.dim))
-            new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
+        if hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
+            if op == "%":
+                self_name_size = int(np.log2(self.dim))
+                other_name_size = int(np.log2(other.dim))
+                new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
+                kwargs["name"] = new_name
+            elif op == "@":
+                new_name = f"{self.name} {other.name}"
+                kwargs["name"] = new_name
+            elif op:
+                new_name = f"{self.name} {op} {other.name}"
+            else:
+                new_name = f"{self.name}"
             if len(new_name) > name_limit:
                 new_name = new_name[len(new_name) - name_limit:]
-                kwargs["name"] = new_name
-        elif hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
-            if op:
-                new_name = f"{self.name} {op} {other.name}"
-                if len(new_name) > name_limit:
-                    new_name = new_name[len(new_name) - name_limit:]
-                kwargs["name"] = new_name
-            else:
-                kwargs["name"] = f"{self.name}"
+            kwargs["name"] = new_name
         if isinstance(self, BaseQubit) and isinstance(other, BaseQubit):
             if isinstance(self.index, int) != isinstance(other.index, int):
                 if isinstance(self.index, int):

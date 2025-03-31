@@ -4,7 +4,7 @@ from .base_class_utilities.base_class_errors import BaseGateError
 class BaseGate:
     def __init__(self, **kwargs):
         self.skip_val = kwargs.get("skip_validation", False)
-        self.name = kwargs.get("name", "Quantum Gate")
+        self.name = kwargs.get("name", "QG")
         self.matrix = kwargs.get("matrix", None)
 
     def __getitem__(self, index: tuple[int, int]):

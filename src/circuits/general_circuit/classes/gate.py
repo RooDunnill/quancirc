@@ -16,7 +16,10 @@ def combine_gate_attr(self: "Gate", other: "Gate", op = "+") -> list:
         
         kwargs = {}
         if hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
-            new_name = f"{self.name} {op} {other.name}"
+            if op == "%":
+                new_name = f"{self.name}{other.name}"
+            elif op:
+                new_name = f"{self.name} {op} {other.name}"
             if len(new_name) > name_limit:
                 new_name = new_name[len(new_name) - name_limit:]
             kwargs["name"] = new_name
@@ -250,13 +253,13 @@ Identity = Gate.Identity()
 Identity.immutable = True
 Hadamard = Gate.Hadamard()
 Hadamard.immutable = True
-CNot_flip = Gate.C_Gate(type="inverted", name="CNot_flip")
+CNot_flip = Gate.C_Gate(type="inverted", name="Cf")
 CNot_flip.immutable = True
-CNot = Gate.C_Gate(type="standard", name="CNot")
+CNot = Gate.C_Gate(type="standard", name="C")
 CNot.immutable = True
 Swap = Gate.Swap()
 Swap.immutable = True
-S_Gate = Gate.P_Gate(theta=np.pi/2, name="S Gate")
+S_Gate = Gate.P_Gate(theta=np.pi/2, name="S")
 S_Gate.immutable = True
-T_Gate = Gate.P_Gate(theta=np.pi/4, name="T Gate")
+T_Gate = Gate.P_Gate(theta=np.pi/4, name="T")
 T_Gate.immutable = True
