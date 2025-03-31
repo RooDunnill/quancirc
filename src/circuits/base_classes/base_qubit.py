@@ -13,14 +13,14 @@ class BaseQubit:
         self.state = kwargs.get("state", None)
 
     def __str__(self: "BaseQubit") -> str:
-        state_print = self.build_state_from_rho() if self.class_type == "qubit" else self.state
-        rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
-        rho_str = np.array2string(rho, precision=p_prec, separator=', ', suppress_small=True)
         if not self.name:
             self.name = f"{self.state_type} {self.class_type}"
-        if self.state_type == "pure":
+        if self.state_type == "Pure":
+            state_print = self.build_state_from_rho() if self.class_type == "qubit" else self.state
             if isinstance(state_print, tuple):
                 raise BaseStatePreparationError(f"The state vector of a pure state cannot be a tuple")
+            rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
+            rho_str = np.array2string(rho, precision=p_prec, separator=', ', suppress_small=True)
             state_str = np.array2string(dense_mat(state_print), precision=p_prec, separator=', ', suppress_small=True)
             if self.display_mode == "vector":
                 return f"{self.name}:\n{state_str}"
@@ -28,9 +28,12 @@ class BaseQubit:
                 return f"{self.name}\n{rho_str}" 
             elif self.display_mode == "both":
                 return f"{self.name}\nState:\n{state_str}\nRho:\n{rho_str}"
-        elif self.state_type == "mixed":
+        elif self.state_type == "Mixed":
+            state_print = self.build_state_from_rho() if self.class_type == "qubit" else self.state
             if isinstance(state_print, np.ndarray):
                 raise BaseStatePreparationError(f"The state vector of a mixed state cannot be a single np.ndarray")
+            rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
+            rho_str = np.array2string(rho, precision=p_prec, separator=', ', suppress_small=True)
             weights = dense_mat(state_print[0])
             state = dense_mat(state_print[1])
             weights_str = np.array2string(weights, precision=p_prec, separator=', ', suppress_small=True)
@@ -41,7 +44,11 @@ class BaseQubit:
                 return  f"{self.name}\nRho:\n{rho_str}"
             elif self.display_mode == "both":
                 return f"{self.name}\nWeights\n{weights_str}\nStates:\n{state_str}\nRho:\n{rho_str}"
-        elif self.state_type == "non unitary":
+        elif self.state_type == "Symbolic":
+            return f"{self.state_type}{self.name}:\n{self.rho}"
+        elif self.state_type == "Non-Unitary":
+            rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
+            rho_str = np.array2string(rho, precision=p_prec, separator=', ', suppress_small=True)
             return f"Non Quantum State Density Matrix:\n{rho_str}"
         
     def build_pure_rho(self):

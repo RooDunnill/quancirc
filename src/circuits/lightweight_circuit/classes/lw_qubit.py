@@ -19,7 +19,7 @@ class LwQubit(BaseQubit):
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'lwqubit')
         super().__init__(**kwargs)
-        self.state_type = "pure"
+        self.state_type = "Pure"
         self.matrix_type = kwargs.get("matrix_type", "dense")
         self.index = kwargs.get("index", None)
         lw_qubit_validation(self)

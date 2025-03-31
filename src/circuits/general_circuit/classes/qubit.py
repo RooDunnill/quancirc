@@ -47,11 +47,11 @@ class Qubit(BaseQubit):                                           #creates the q
         """Checks that state type and corrects if needed, returns type None"""
         purity = (self.rho.dot(self.rho)).diagonal().sum().real if sparse.issparse(self.rho) else np.einsum('ij,ji', self.rho, self.rho).real  
         if self.skip_val:
-            self.state_type = "non unitary"
+            self.state_type = "Non-Unitary"
         elif np.isclose(purity, 1.0, atol=1e-4):
-            self.state_type = "pure"
+            self.state_type = "Pure"
         elif purity < 1:
-            self.state_type = "mixed"
+            self.state_type = "Mixed"
         else:
             raise StatePreparationError(f"The purity of a state must be between 0 and 1, purity: {purity}")
         
@@ -73,7 +73,10 @@ class Qubit(BaseQubit):                                           #creates the q
     def __setattr__(self: "Qubit", name: str, value) -> None:
         if getattr(self, "immutable", False) and name in self.immutable_attr:
             current_value = getattr(self, name, None)
-            if current_value == value:
+            if name == "rho" or name == "state":
+                if np.array_equal(dense_mat(current_value), dense_mat(value)):
+                    return
+            elif current_value == value:
                 return
             raise AttributeError(f"Cannot modify immutable object: {name}")
         if name in self.all_immutable_attr:
