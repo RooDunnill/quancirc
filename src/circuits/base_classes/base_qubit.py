@@ -5,6 +5,63 @@ import sympy as sp
 
 __all__ = ["BaseQubit"]
 
+
+def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", op: str = None) -> dict:
+        """Allows the returned objects to still return name and info too"""
+        kwargs = {}
+        if hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
+            if op == "%":
+                self_name_size = int(np.log2(self.dim))
+                other_name_size = int(np.log2(other.dim))
+                new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
+                kwargs["name"] = new_name
+            elif op == "@":
+                new_name = f"{self.name} {other.name}"
+                kwargs["name"] = new_name
+            elif op:
+                new_name = f"{self.name} {op} {other.name}"
+            else:
+                new_name = f"{self.name}"
+            if len(new_name) > name_limit:
+                new_name = new_name[len(new_name) - name_limit:]
+            kwargs["name"] = new_name
+        if isinstance(self, BaseQubit) and isinstance(other, BaseQubit):
+            if isinstance(self.index, int) != isinstance(other.index, int):
+                if isinstance(self.index, int):
+                    kwargs["index"] = self.index
+                else:
+                    kwargs["index"] = other.index
+            if hasattr(self, "display_mode") and hasattr(other, "display_mode"):
+                if self.display_mode == "both" or other.display_mode == "both":
+                    kwargs["display_mode"] = "both"
+                elif self.display_mode == "density" or other.display_mode == "density":
+                    kwargs["display_mode"] = "density"
+                else:
+                    kwargs["display_mode"] = "vector"
+        elif isinstance(other, BaseQubit):
+            if hasattr(other, "index"):
+                kwargs["index"] = other.index
+        if hasattr(self, "skip_val") and self.skip_val == True:
+            kwargs["skip_validation"] = True
+        elif hasattr(other, "skip_val") and other.skip_val == True: 
+            kwargs["skip_validation"] = True
+        return kwargs
+
+def copy_qubit_attr(self: "BaseQubit") -> dict:
+    kwargs = {}
+    if hasattr(self, "name"):
+        kwargs["name"] = self.name
+    if hasattr(self, "display_mode"):
+        kwargs["display_mode"] = self.display_mode
+    if hasattr(self, "skip_val") and self.skip_val == True:
+        kwargs["skip_validation"] = True
+    if hasattr(self, "index"):
+        kwargs["index"] = self.index
+    return kwargs
+
+
+
+
 class BaseQubit:
     def __init__(self, **kwargs):
         self.skip_val = kwargs.get("skip_validation", False)
@@ -13,43 +70,38 @@ class BaseQubit:
         self.state = kwargs.get("state", None)
 
     def __str__(self: "BaseQubit") -> str:
+        rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
+        rho_str = np.array2string(rho, precision=p_prec, separator=', ', suppress_small=True)
         if not self.name:
             self.name = f"{self.state_type} {self.class_type}"
-        if self.state_type == "Pure":
-            state_print = self.build_state_from_rho() if self.class_type == "qubit" else self.state
-            if isinstance(state_print, tuple):
-                raise BaseStatePreparationError(f"The state vector of a pure state cannot be a tuple")
-            rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
-            rho_str = np.array2string(rho, precision=p_prec, separator=', ', suppress_small=True)
-            state_str = np.array2string(dense_mat(state_print), precision=p_prec, separator=', ', suppress_small=True)
-            if self.display_mode == "vector":
-                return f"{self.name}:\n{state_str}"
-            elif self.display_mode == "density":
-                return f"{self.name}\n{rho_str}" 
-            elif self.display_mode == "both":
-                return f"{self.name}\nState:\n{state_str}\nRho:\n{rho_str}"
-        elif self.state_type == "Mixed":
-            state_print = self.build_state_from_rho() if self.class_type == "qubit" else self.state
-            if isinstance(state_print, np.ndarray):
-                raise BaseStatePreparationError(f"The state vector of a mixed state cannot be a single np.ndarray")
-            rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
-            rho_str = np.array2string(rho, precision=p_prec, separator=', ', suppress_small=True)
-            weights = dense_mat(state_print[0])
-            state = dense_mat(state_print[1])
-            weights_str = np.array2string(weights, precision=p_prec, separator=', ', suppress_small=True)
-            state_str = np.array2string(state, precision=p_prec, separator=', ', suppress_small=True)
-            if self.display_mode == "vector":
-                return f"{self.name}\nWeights\n{weights_str}\nStates:\n{state_str}"
-            elif self.display_mode == "density":
-                return  f"{self.name}\nRho:\n{rho_str}"
-            elif self.display_mode == "both":
-                return f"{self.name}\nWeights\n{weights_str}\nStates:\n{state_str}\nRho:\n{rho_str}"
-        elif self.state_type == "Symbolic":
-            return f"{self.state_type}{self.name}:\n{self.rho}"
-        elif self.state_type == "Non-Unitary":
-            rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
-            rho_str = np.array2string(rho, precision=p_prec, separator=', ', suppress_small=True)
-            return f"Non Quantum State Density Matrix:\n{rho_str}"
+        if self.display_mode == "density":
+            return f"{self.state_type} {self.name}\n{rho_str}" 
+        state_print = self.build_state_from_rho() if self.class_type == "qubit" else self.state
+        if isinstance(state_print, tuple):
+            raise BaseStatePreparationError(f"The state vector of a pure state cannot be a tuple")
+        state_str = np.array2string(dense_mat(state_print), precision=p_prec, separator=', ', suppress_small=True)
+        if self.display_mode == "vector":
+            return f"{self.name}:\n{state_str}"
+        elif self.display_mode == "both":
+            return f"{self.name}\nState:\n{state_str}\nRho:\n{rho_str}"
+     
+        
+    def set_state_type(self) -> None:
+        """Checks that state type and corrects if needed, returns type None"""
+        excluded_classes = ["lwqubit", "symbqubit"]
+        if self.class_type in excluded_classes:
+            return
+        purity = (self.rho.dot(self.rho)).diagonal().sum().real if sparse.issparse(self.rho) else np.einsum('ij,ji', self.rho, self.rho).real  
+        if self.skip_val:
+            self.state_type = "Non-Unitary"
+            self.set_display_mode("density")
+        elif np.isclose(purity, 1.0, atol=1e-4):
+            self.state_type = "Pure"
+        elif purity < 1:
+            self.state_type = "Mixed"
+            self.set_display_mode("density")
+        else:
+            raise BaseStatePreparationError(f"The purity of a state must be between 0 and 1, purity: {purity}")
         
     def build_pure_rho(self):
         """Builds a pure rho matrix, primarily in initiation of Qubit object, returns type sp.MatrixBase"""
@@ -57,6 +109,15 @@ class BaseQubit:
             return self.state * self.state.H
         elif isinstance(self.state, np.ndarray):
             return np.einsum("i,j", np.conj(self.state), self.state, optimize=True)
+        
+    def set_display_mode(self: "BaseQubit", mode: str) -> None:
+        """Sets the display mode between the three options, returns type None"""
+        if mode not in ["vector", "density", "both"]:
+            raise BaseQuantumStateError(f"The display mode must be set in 'vector', 'density' or 'both'")
+        non_vector_state_types = ["Mixed", "Non-Unitary"]
+        if self.state_type in non_vector_state_types and mode != "density":
+            raise BaseQuantumStateError(f"Mixed and Non-Unitary states can only be displayed as density matrices")
+        self.display_mode = mode
         
     def __repr__(self: "BaseQubit") -> str:
         return self.__str__()
@@ -78,12 +139,6 @@ class BaseQubit:
             self = self + other
             return self
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
-    
-    def set_display_mode(self: "BaseQubit", mode: str) -> None:
-        """Sets the display mode between the three options, returns type None"""
-        if mode not in ["vector", "density", "both"]:
-            raise BaseQuantumStateError(f"The display mode must be set in 'vector', 'density' or 'both'")
-        self.display_mode = mode
 
     def __imod__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         if isinstance(other, BaseQubit):
@@ -97,13 +152,14 @@ class BaseQubit:
         if title:
             print("-" * linewid)
             print(f"QUBIT DEBUG")
-        print(f"self.rho.shape: {self.rho.shape}")
-        print(f"self.rho type: {type(self.rho)}")
-        print(f"self.rho:\n {self.rho}")
-        print(f"self.state:\n {self.build_state_from_rho()}")
-        print(f"self.n: {self.n}")
-        for i in range(self.n):
-            print(f"Qubit {i}: {self[i]}")
+        if self.rho is not None:
+            print(f"self.rho.shape: {self.rho.shape}")
+            print(f"self.rho type: {type(self.rho)}")
+            print(f"self.rho:\n {self.rho}")
+            print(f"self.n: {self.n}")
+            for i in range(self.n):
+                print(f"Qubit {i}: {self[i]}")
+        print(f"self.state:\n {self.build_state_from_rho()}") if self.rho is not None else print(f"self.state:\n {self.state}")
         print(f"state_type: {self.state_type}")
         print(f"All attributes and variables of the Qubit object:")
         print(vars(self))

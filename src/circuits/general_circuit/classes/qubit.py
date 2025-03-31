@@ -8,7 +8,7 @@ from ..utilities.circuit_errors import QuantumStateError, StatePreparationError
 from ..static_methods.qubit_methods import *
 from ...circuit_config import *
 from ..utilities.validation_funcs import qubit_validation, rho_validation
-from ...circuit_utilities.misc_funcs import copy_qubit_attr, combine_qubit_attr
+from ...base_classes.base_qubit import copy_qubit_attr, combine_qubit_attr
 
 __all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi"]
 
@@ -43,17 +43,7 @@ class Qubit(BaseQubit):                                           #creates the q
         methods = ["debug", "partial_trace", "isolate_qubit", "decompose_qubit", "set_display_mode", "norm"]
         return [func for func in methods if callable(getattr(self, func, None)) and not func.startswith("__")]
 
-    def set_state_type(self) -> None:
-        """Checks that state type and corrects if needed, returns type None"""
-        purity = (self.rho.dot(self.rho)).diagonal().sum().real if sparse.issparse(self.rho) else np.einsum('ij,ji', self.rho, self.rho).real  
-        if self.skip_val:
-            self.state_type = "Non-Unitary"
-        elif np.isclose(purity, 1.0, atol=1e-4):
-            self.state_type = "Pure"
-        elif purity < 1:
-            self.state_type = "Mixed"
-        else:
-            raise StatePreparationError(f"The purity of a state must be between 0 and 1, purity: {purity}")
+    
         
     def __str__(self):
         self.set_state_type()

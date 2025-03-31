@@ -17,9 +17,9 @@ class LwQubit(BaseQubit):
     """A lightweight variant of the Qubit class, which utilises 1D arrays and sparse matrices to make a faster quantum state
         at the forfeit of always being pure"""
     def __init__(self, **kwargs):
-        object.__setattr__(self, 'class_type', 'lwqubit')
+        object.__setattr__(self, "class_type", "lwqubit")
+        object.__setattr__(self, "state_type", "Pure")
         super().__init__(**kwargs)
-        self.state_type = "Pure"
         self.matrix_type = kwargs.get("matrix_type", "dense")
         self.index = kwargs.get("index", None)
         lw_qubit_validation(self)
