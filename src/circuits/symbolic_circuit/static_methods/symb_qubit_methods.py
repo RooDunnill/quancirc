@@ -9,8 +9,6 @@ def gen_state(cls, **kwargs):
     q_gen_name = f"General Symbolic State"
     return cls(name=q_gen_name, state=q_gen_vector)
 
-
-
 def q0_state(cls, **kwargs):
     """The |0> Qubit"""
     q0_vector = sp.Matrix([1,0])

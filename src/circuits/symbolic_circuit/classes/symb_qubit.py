@@ -5,7 +5,7 @@ from ...circuit_config import *
 import sympy as sp
 from ..static_methods.symb_qubit_methods import *
 
-__all__ = ["SymbQubit", "q0_symb", "q1_symb", "qp_symb", "qm_symb", "qpi_symb", "qmi_symb", "qg"]
+__all__ = ["SymbQubit", "q0_symb", "q1_symb", "qp_symb", "qm_symb", "qpi_symb", "qmi_symb", "qgen_symb"]
 
 
 class SymbQubit(BaseQubit):
@@ -27,8 +27,9 @@ class SymbQubit(BaseQubit):
         return f"{self.name}:\n{self.rho}"
     
     def subs(self, substitution: dict) -> "SymbQubit":
-        self.rho = self.rho.subs(substitution)
-        return self
+        new_rho = self.rho.subs(substitution)
+        kwargs = {"rho": new_rho}
+        return SymbQubit(**kwargs)
 
     def __sub__(self: "SymbQubit", other: "SymbQubit") -> "SymbQubit":
         """Subtraction of two SymbQubit rho matrices, returns a SymbQubit object"""
@@ -41,6 +42,8 @@ class SymbQubit(BaseQubit):
     def __add__(self: "SymbQubit", other: "SymbQubit") -> "SymbQubit":
         """Addition of two SymbQubit rho matrices, returns a SymbQubit object"""
         if isinstance(other, SymbQubit):
+            print(f"1st Rho: {self.rho}")
+            print(f"2nd Rho: {other.rho}")
             new_rho = self.rho + other.rho
             kwargs = {"rho": new_rho, "skip_validation": True}
             return SymbQubit(**kwargs)
@@ -124,7 +127,7 @@ class SymbQubit(BaseQubit):
         return gen_state(cls, **kwargs)
     
 
-qg = SymbQubit.gen()    
+qgen_symb = SymbQubit.gen()    
 q0_symb = SymbQubit.q0()
 q1_symb = SymbQubit.q1()
 qp_symb = SymbQubit.qp()

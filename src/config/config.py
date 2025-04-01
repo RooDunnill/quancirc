@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 start = time.time() 
 p_prec: int = 3
-linewid: int = 150
+linewid: int = 160
 sparse_matrix_threshold: float = 0.9
 sparse_array_threshold: float = 0.9
 name_limit = 50

@@ -43,7 +43,6 @@ class Qubit(BaseQubit):                                           #creates the q
         methods = ["debug", "partial_trace", "isolate_qubit", "decompose_qubit", "set_display_mode", "norm"]
         return [func for func in methods if callable(getattr(self, func, None)) and not func.startswith("__")]
 
-    
         
     def __str__(self):
         self.set_state_type()

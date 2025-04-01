@@ -16,7 +16,7 @@ print(q0_lw % q0_lw)
 print(q0_symb % q0_symb)
 print(q0 % q0)
 print(X_Gate @ q0)
-print(P_Gate_symb @ qg)
+print(P_Gate_symb @ qgen_symb)
 print(T_Gate @ qpi_lw)
 print(Hadamard_symb % X_Gate_symb % T_Gate_symb)
 print(CNot @ (q0 % q1))
@@ -197,16 +197,6 @@ print(f"Cond ent:{QuantInfo.quantum_conditional_entropy(even_smaller_qub, even_s
 print(f"Rel ent:{QuantInfo.quantum_relative_entropy(even_smaller_qub, even_smaller_qub)}")
 print(f"Discord:{QuantInfo.quantum_discord(even_smaller_qub, even_smaller_qub)}")
 print(f"Mutual Info:{QuantInfo.quantum_mutual_info(even_smaller_qub, even_smaller_qub)}")
-even_smaller_qub = q0 % q0 % qm % qp % qp
-print(f"Cond ent:{QuantInfo.quantum_conditional_entropy(even_smaller_qub, even_smaller_qub)}")
-print(f"Rel ent:{QuantInfo.quantum_relative_entropy(even_smaller_qub, even_smaller_qub)}")
-print(f"Discord:{QuantInfo.quantum_discord(even_smaller_qub, even_smaller_qub)}")
-print(f"Mutual Info:{QuantInfo.quantum_mutual_info(even_smaller_qub, even_smaller_qub)}")
-even_smaller_qub_2 = qp % qm % qpi % qmi % q0
-print(f"Cond ent:{QuantInfo.quantum_conditional_entropy(even_smaller_qub, even_smaller_qub_2)}")
-print(f"Rel ent:{QuantInfo.quantum_relative_entropy(even_smaller_qub, even_smaller_qub_2)}")
-print(f"Discord:{QuantInfo.quantum_discord(even_smaller_qub, even_smaller_qub_2)}")
-print(f"Mutual Info:{QuantInfo.quantum_mutual_info(even_smaller_qub, even_smaller_qub_2)}")
 
 hugeeee_qubit = q0
 hugeeee_qubit_2 = qm
@@ -235,3 +225,23 @@ print(Hadamard @ Hadamard.matrix)
 print(Hadamard @ q0_lw)
 for i in range(20):
     Hadamard @= Hadamard
+print(q0_symb + q1_symb)
+print(q0_symb + qgen_symb)
+print(qgen_symb + qgen_symb)
+print(q0_symb - q1_symb)
+print(q0_symb - qgen_symb)
+print(qgen_symb - qgen_symb)
+print(q0_symb % q1_symb)
+print(q0_symb % qgen_symb)
+print(qgen_symb % qgen_symb)
+print(q0_symb @ q1_symb)
+print(q0_symb @ qgen_symb)
+print(qgen_symb @ qgen_symb)
+q0_symb += q0_symb
+q0_symb -= q0_symb
+q0_symb %= q0_symb
+q0_symb @= q0_symb
+q0_symb += qgen_symb
+q0_symb -= qgen_symb
+q0_symb %= qgen_symb
+q0_symb @= qgen_symb

@@ -68,6 +68,7 @@ class BaseQubit:
         self.display_mode = kwargs.get("display_mode", "density")
         self.name: str = kwargs.get("name","|\u03C8>")
         self.state = kwargs.get("state", None)
+        self.index = None
 
     def __str__(self: "BaseQubit") -> str:
         rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
