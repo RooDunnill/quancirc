@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
 from scipy import sparse
-from ..circuit_config import sparse_matrix_threshold, sparse_array_threshold
+from ..circuit_config import sparse_matrix_threshold, sparse_array_threshold, sparse_threshold
 from ..circuit_utilities.circuit_errors import SparseMatrixError
 
 def count_zeros(matrix):
@@ -16,7 +16,7 @@ def convert_to_sparse(matrix):
     if sparse.issparse(matrix):
         return matrix
     zero_fraction = count_zeros(matrix) / matrix.size
-    if zero_fraction >= sparse_matrix_threshold:
+    if zero_fraction >= sparse_matrix_threshold and matrix.shape[0] > sparse_threshold:
         return sparse.csr_matrix(matrix, dtype=np.complex128) 
     return matrix
 
@@ -43,7 +43,7 @@ def convert_to_sparse_array(array):
     if sparse.issparse(array):
         return array
     zero_fraction = count_zeros(array) / array.size
-    if zero_fraction >= sparse_matrix_threshold:
+    if zero_fraction >= sparse_matrix_threshold and array.shape[0]**2 > sparse_threshold:
         return sparse.csr_array(array, dtype=np.complex128)
     return array
 

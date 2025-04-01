@@ -13,7 +13,6 @@ from ...base_classes.base_qubit import copy_qubit_attr, combine_qubit_attr
 __all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi"]
 
 
-
 class Qubit(BaseQubit):                                           #creates the qubit class
     immutable_attr = ["state", "dim", "length", "n", "rho", "name", "state_type", "immutable"]
     """The class to define and initialise Qubits and Quantum States"""
@@ -67,12 +66,12 @@ class Qubit(BaseQubit):                                           #creates the q
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
         if isinstance(other, Qubit):
-            rho_1 = convert_to_sparse(self.rho)
-            rho_2 = convert_to_sparse(other.rho)
-            if sparse.issparse(rho_1) or sparse.issparse(rho_2):
-                new_rho = sparse.kron(sparse_mat(rho_1), sparse_mat(rho_2))
+            zero_fraction = (count_zeros(self.rho) + count_zeros(other.rho))/(self.rho.size + other.rho.size)
+            if self.dim * other.dim > eig_threshold and zero_fraction > sparse_matrix_threshold:
+                new_rho = sparse.kron(sparse_mat(self.rho), sparse_mat(other.rho))
+                
             else:
-                new_rho = np.kron(self.rho, other.rho)
+                new_rho = np.kron(dense_mat(self.rho), dense_mat(other.rho))
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "%"))
             return Qubit(**kwargs)
@@ -109,6 +108,8 @@ class Qubit(BaseQubit):                                           #creates the q
     def __and__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Direct sum of two Qubit rho matrices, returns a Qubit object"""
         if isinstance(other, Qubit):
+            self.rho = dense_mat(self.rho)
+            other.rho = dense_mat(other.rho)
             new_rho = np.block([[self.rho, np.zeros_like(other.rho)], [np.zeros_like(self.rho), other.rho]])
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "&"))
@@ -222,9 +223,8 @@ class Qubit(BaseQubit):                                           #creates the q
         if sparse.issparse(self.rho):
             if np.all(np.isclose(self.rho.data, 0.0, atol=1e-4)):
                 return np.zeros(self.rho.shape[0], dtype=np.complex128)
-            N = self.rho.shape[0]
             k = int(np.log(self.rho.shape[0]))
-            probs, states = np.linalg.eig(dense_mat(self.rho)) if N < eig_threshold else eigsh(self.rho, k=k, which="LM")
+            probs, states = np.linalg.eig(dense_mat(self.rho)) if self.rho.shape[0] < eig_threshold else eigsh(self.rho, k=k, which="LM")
             probs = sparse.csr_matrix(probs, dtype=np.float64)
             states = sparse.csr_matrix(states, dtype=np.complex128)
         else:

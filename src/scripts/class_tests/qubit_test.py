@@ -62,4 +62,12 @@ qub_3 = qm_symb % q1_symb % qpi_symb
 qub_3_2 = qmi_symb % q0_symb % qpi_symb
 print(qub_3_2 % qub_3)
 print(qub_3_2 @ qub_3)
-sparse_qub = q0_symb % q0_symb % q0_symb % q0_symb
+sparse_qub = q0_symb % q0_symb % q0_symb % q0_symb % qm_symb
+test = sparse_qub % sparse_qub
+print(type(test.rho))
+sparse_qub = q0_lw % q0_lw % q0_lw % q0_lw % qm_lw
+test = sparse_qub % sparse_qub
+print(type(test.state))
+sparse_qub = q0 % q0 % q0 % q0 % qm
+test = sparse_qub % sparse_qub
+print(type(test.rho))

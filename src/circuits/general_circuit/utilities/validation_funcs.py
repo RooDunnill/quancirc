@@ -56,8 +56,6 @@ def qubit_array_validation(array) -> None:
         raise QubitArrayError(f"There must be atleast one qubit in the arry, not {len(array)} qubits")
     
 def rho_validation(state):
-    print(state)
-    print(type(state.rho))
     if sparse.issparse(state.rho):
         state.rho = sparse.csr_matrix(state.rho, dtype=np.complex128)
     elif isinstance(state.rho, (list, np.ndarray)):

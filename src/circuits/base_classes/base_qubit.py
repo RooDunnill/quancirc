@@ -96,7 +96,6 @@ class BaseQubit:
         if hasattr(self, "immutable") and name in self.immutable_attr:
             current_value = getattr(self, name, None)
             if name == "rho" or name == "state":
-                print(f"Dealing with attribute {name}")
                 if np.array_equal(dense_mat(current_value), dense_mat(value)):
                     object.__setattr__(self, name, value)
                     return
