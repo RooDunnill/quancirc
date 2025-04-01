@@ -21,6 +21,14 @@ def combine_gate_attr(self: "BaseGate", other: "BaseGate", op = "+") -> list:
             kwargs["skip_validation"] = True
         return kwargs
 
+def copy_gate_attr(self: "BaseGate") -> dict:
+    kwargs = {}
+    if hasattr(self, "name"):
+        kwargs["name"] = self.name
+    if hasattr(self, "skip_val") and self.skip_val == True:
+        kwargs["skip_validation"] = True
+    return kwargs
+
 class BaseGate:
     def __init__(self, **kwargs):
         self.skip_val = kwargs.get("skip_validation", False)
@@ -39,7 +47,7 @@ class BaseGate:
             return
         if hasattr(self, "immutable") and name in self.immutable_attr:
             current_value = getattr(self, name, None)
-            if name == "rho" or name == "state":
+            if name == "matrix":
                 if np.array_equal(dense_mat(current_value), dense_mat(value)):
                     object.__setattr__(self, name, value)
                     return
@@ -59,7 +67,7 @@ class BaseGate:
         if isinstance(other, (int, float)):
             new_matrix = self.matrix * other
             kwargs = {"matrix": new_matrix, "skip_validation": True}
-            kwargs.update(combine_gate_attr(self, other, op = "*"))
+            kwargs.update(copy_gate_attr(self))
             return self.__class__(**kwargs)
         raise QuantumStateError(f"The variable with which you are multiplying the Gate by cannot be of type {type(other)}, expected type int or type float")
 
@@ -76,7 +84,7 @@ class BaseGate:
         if isinstance(other, (int, float)):
             new_matrix = self.matrix / other
             kwargs = {"matrix": new_matrix, "skip_validation": True}
-            kwargs.update(combine_gate_attr(self, other, op = "*"))
+            kwargs.update(copy_gate_attr(self))
             return self.__class__(**kwargs)
         raise BaseGateError(f"The variable with which you are multiplying the Gate by cannot be of type {type(other)}, expected type int or type float")
 

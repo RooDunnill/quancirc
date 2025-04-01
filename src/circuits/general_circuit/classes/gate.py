@@ -19,7 +19,6 @@ class Gate(BaseGate):
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'gate')
         super().__init__(**kwargs)
-        self.matrix_type = kwargs.get("matrix_type", "dense")
         gate_validation(self)
         self.dim: int = self.matrix.shape[0]
         self.length = self.dim ** 2

@@ -41,8 +41,10 @@ class SymbGate(BaseGate):
         raise SymbGateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected type SymbGate, SymbQubit")
     
     def subs(self, substitution: dict) -> "SymbGate":
-        self.matrix = self.matrix.subs(substitution)
-        return self
+        new_matrix = self.matrix.subs(substitution)
+        kwargs = {"matrix": new_matrix}
+        kwargs.update(copy_gate_attr(self))
+        return SymbGate(**kwargs)
 
 
     

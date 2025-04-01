@@ -24,7 +24,6 @@ class Qubit(BaseQubit):                                           #creates the q
         self.weights: list = kwargs.get("weights", None)
         self.rho: list = kwargs.get("rho", None)
         self.state_type = None
-        self.index = kwargs.get("index", None)
         qubit_validation(self)
         self.rho_init()
         rho_validation(self)
@@ -43,7 +42,6 @@ class Qubit(BaseQubit):                                           #creates the q
         methods = ["debug", "partial_trace", "isolate_qubit", "decompose_qubit", "set_display_mode", "norm"]
         return [func for func in methods if callable(getattr(self, func, None)) and not func.startswith("__")]
 
-        
     def __str__(self):
         self.set_state_type()
         return super().__str__()
@@ -81,8 +79,6 @@ class Qubit(BaseQubit):                                           #creates the q
     
     def __matmul__(self: "Qubit", other: "Qubit") -> "Qubit":     
         """Matrix multiplication between two Qubit objects, returns a Qubit object"""
-        if self.class_type == "qubit_lw":
-            raise QuantumStateError(f"Lightweight States cannot be matrix multiplied with other quantum states")
         if isinstance(other, Qubit):
             rho_1 = convert_to_sparse(self.rho)
             rho_2 = convert_to_sparse(other.rho)

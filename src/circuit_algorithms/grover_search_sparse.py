@@ -5,6 +5,7 @@ from .algorithm_utilities.algorithm_errors import GroverSearchError
 from ..circuits.circuit_utilities.layout_funcs import top_probs, format_ket_notation
 from random import choices, randint
 from ..circuits.general_circuit import *
+from ..circuits.circuit_utilities.sparse_funcs import *
 
 from ..config import *
 
@@ -65,10 +66,12 @@ def iterate_alg(oracle_values, n, mode, it, verbose) -> Qubit:
     it_count = 0
     timer = Timer()
     print_func(f"Running FWHT algorithm:") if mode == "fast" else print(f"Running algorithm:")
-    had = Hadamard % Hadamard                  
+    had_start = Hadamard
+    had_start.matrix = sparse_mat(had_start.matrix)
+    had = had_start % had_start                
     print_func(f"Initialising {n} x {n} Hdamard")
     for i in range(n-2):    #creates the qubit and also the tensored hadamard for the given qubit size
-        had %= Hadamard              #if not fast then tensors up a hadamard to the correct size
+        had %= had_start              #if not fast then tensors up a hadamard to the correct size
         print(f"\r{i+2} x {i+2} Hadamard created", end="")    #allows to clear line without writing a custom print function in print_array
     print_func(f"\r",end="")
     print_func(f"\rHadamard and Quantum State created, time to create was: {timer.elapsed()[0]:.4f}")

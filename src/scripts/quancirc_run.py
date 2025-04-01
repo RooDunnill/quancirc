@@ -13,3 +13,4 @@ from ..circuit_algorithms.grover_search_sparse import *
 
 
 
+grover_search(8)

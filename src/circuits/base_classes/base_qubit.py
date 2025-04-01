@@ -60,8 +60,6 @@ def copy_qubit_attr(self: "BaseQubit") -> dict:
     return kwargs
 
 
-
-
 class BaseQubit:
     all_immutable_attr = ["class_type"]
     def __init__(self, **kwargs):
@@ -106,7 +104,6 @@ class BaseQubit:
             raise AttributeError(f"Cannot modify immutable object: {name}")
         object.__setattr__(self, name, value)
      
-        
     def set_state_type(self) -> None:
         """Checks that state type and corrects if needed, returns type None"""
         excluded_classes = ["lwqubit", "symbqubit"]
@@ -153,7 +150,7 @@ class BaseQubit:
         if isinstance(other, (int, float)):
             new_rho = self.rho * other
             kwargs = {"rho": new_rho, "skip_validation": True}
-            kwargs.update(combine_qubit_attr(self, other, op = "*"))
+            kwargs.update(copy_qubit_attr(self))
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
@@ -170,7 +167,7 @@ class BaseQubit:
         if isinstance(other, (int, float)):
             new_rho = self.rho / other
             kwargs = {"rho": new_rho, "skip_validation": True}
-            kwargs.update(combine_qubit_attr(self, other, op = "*"))
+            kwargs.update(copy_qubit_attr(self))
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
