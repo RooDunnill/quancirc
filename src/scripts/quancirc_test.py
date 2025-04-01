@@ -202,7 +202,7 @@ hugeeee_qubit = q0 % q0
 hugeeee_qubit_2 = qm % qm
 hugeeee_gate = X_Gate % X_Gate
 hugeeee_gate_2 = Hadamard % Hadamard
-for i in range(7):
+for i in range(6):
     hugeeee_qubit %= q0
     hugeeee_qubit_2 %= qm
     hugeeee_qubit @= hugeeee_qubit_2

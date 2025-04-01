@@ -32,6 +32,9 @@ class LwQubit(BaseQubit):
     
     def __dir__(self):
         return None
+    
+    def __matmul__(self: "LwQubit", other: "LwQubit") -> "LwQubit":
+        raise LwQuantumStateError(f"Cannot matrix multiply two Lw Quantum states together togther")
 
     def __mod__(self: "LwQubit", other: "LwQubit") -> "LwQubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
@@ -47,6 +50,68 @@ class LwQubit(BaseQubit):
             kwargs = {"state": new_vec}
             kwargs.update(combine_qubit_attr(self, other, op = "%"))
             return LwQubit(**kwargs)
+        raise LwQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+    
+    def __mul__(self: "LwQubit", other: int | float) -> "LwQubit":
+        if isinstance(other, (int, float)):
+            new_state = self.state * other
+            kwargs = {"state": new_state, "skip_validation": True}
+            kwargs.update(combine_qubit_attr(self, other, op = "*"))
+            return self.__class__(**kwargs)
+        raise LwQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
+
+    def __imul__(self: "LwQubit", other: float) -> "LwQubit":
+        if isinstance(other, (int, float)):
+            self.state *= other
+            return self
+        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
+    
+    def __truediv__(self: "LwQubit", other: int | float) -> "LwQubit":
+        if isinstance(other, (int, float)):
+            new_state = self.state / other
+            kwargs = {"state": new_state, "skip_validation": True}
+            kwargs.update(combine_qubit_attr(self, other, op = "*"))
+            return self.__class__(**kwargs)
+        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
+
+    def __itruediv__(self: "LwQubit", other: float) -> "LwQubit":
+        if isinstance(other, (int, float)):
+            self.state /= other
+            return self
+        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
+    
+    def __sub__(self: "LwQubit", other: "LwQubit") -> "LwQubit":
+        """Subtraction of two Qubit rho matrices, returns a Qubit object"""
+        if isinstance(other, LwQubit):
+            new_state = self.state - other.state
+            kwargs = {"state": new_state, "skip_validation": True}                #CAREFUL skip val here
+            kwargs.update(combine_qubit_attr(self, other, op = "-"))
+            return self.__class__(**kwargs)
+        raise LwQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+    
+    def __isub__(self: "LwQubit", other: "LwQubit") -> "LwQubit":
+        if isinstance(other, LwQubit):
+            if hasattr(self, "immutable"):
+                raise LwQuantumStateError(f"This operation is not valid for an immutable object")
+            self = self - other
+            return self
+        raise LwQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+    
+    def __add__(self: "LwQubit", other: "LwQubit") -> "LwQubit":
+        """Addition of two Qubit rho matrices, returns a Qubit object"""
+        if isinstance(other, LwQubit):
+            new_state = self.state + other.state
+            kwargs = {"state": new_state, "skip_validation": True}
+            kwargs.update(combine_qubit_attr(self, other, op = "+"))
+            return self.__class__(**kwargs)
+        raise LwQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+    
+    def __iadd__(self: "LwQubit", other: "LwQubit") -> "LwQubit":
+        if isinstance(other, LwQubit):
+            if hasattr(self, "immutable"):
+                raise LwQuantumStateError(f"This operation is not valid for an immutable object")
+            self = self + other
+            return self
         raise LwQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     """
     def partial_trace(self, size_a, size_c, **kwargs):

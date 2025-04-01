@@ -153,7 +153,7 @@ class BaseQubit:
     def __mul__(self: "BaseQubit", other: int | float) -> "BaseQubit":
         if isinstance(other, (int, float)):
             new_rho = self.rho * other
-            kwargs = {"rho": new_rho}
+            kwargs = {"rho": new_rho, "skip_validation": True}
             kwargs.update(combine_qubit_attr(self, other, op = "*"))
             return self.__class__(**kwargs)
         raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
@@ -167,17 +167,17 @@ class BaseQubit:
             return self
         raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
     
-    def __div__(self: "BaseQubit", other: int | float) -> "BaseQubit":
+    def __truediv__(self: "BaseQubit", other: int | float) -> "BaseQubit":
         if isinstance(other, (int, float)):
             new_rho = self.rho / other
-            kwargs = {"rho": new_rho}
+            kwargs = {"rho": new_rho, "skip_validation": True}
             kwargs.update(combine_qubit_attr(self, other, op = "*"))
             return self.__class__(**kwargs)
         raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
-    def __idiv__(self: "BaseQubit", other: float) -> "BaseQubit":
+    def __itruediv__(self: "BaseQubit", other: float) -> "BaseQubit":
         if isinstance(other, (int, float)):
-            self.rho *= other
+            self.rho /= other
             return self
         raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
     
