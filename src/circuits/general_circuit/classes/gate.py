@@ -11,23 +11,7 @@ from ...circuit_utilities.sparse_funcs import *
 __all__ = ["Gate", "X_Gate", "Y_Gate", "Z_Gate", "Hadamard", "Identity", "CNot", "CNot_flip",
            "S_Gate", "T_Gate", "Swap"]
 
-def combine_gate_attr(self: "Gate", other: "Gate", op = "+") -> list:
-        """Allows the returned objects to still return name too"""
-        
-        kwargs = {}
-        if hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
-            if op == "%":
-                new_name = f"{self.name}{other.name}"
-            elif op:
-                new_name = f"{self.name} {op} {other.name}"
-            if len(new_name) > name_limit:
-                new_name = new_name[len(new_name) - name_limit:]
-            kwargs["name"] = new_name
-        if hasattr(self, "skip_val") and self.skip_val == True:
-            kwargs["skip_validation"] = True
-        elif hasattr(other, "skip_val") and other.skip_val == True: 
-            kwargs["skip_validation"] = True
-        return kwargs
+
 
 class Gate(BaseGate):
     all_immutable_attr = ["class_type"]
@@ -40,7 +24,7 @@ class Gate(BaseGate):
         self.dim: int = self.matrix.shape[0]
         self.length = self.dim ** 2
         self.n: int =  int(np.log2(self.dim))
-        self.immutable = False
+        self._initialised = True
         
     @classmethod
     def __dir__(cls):
@@ -50,17 +34,9 @@ class Gate(BaseGate):
         methods = [None]
         return [func for func in methods if callable(getattr(self, func, None)) and not func.startswith("__")]
 
-    def __str__(self) -> str:
-        matrix_str = np.array2string(dense_mat(self.matrix), precision=p_prec, separator=', ', suppress_small=True)
-        return f"{self.name}\n{matrix_str}"
-      
-    def __setattr__(self, name, value):
-        if getattr(self, "immutable", False) and name in self.immutable_attr:
-            raise AttributeError(f"Cannot modify immutable object: {name}")
-        if name in self.all_immutable_attr:
-            raise AttributeError(f"Cannot modify immutable object: {name}")
+    def __setattr__(self: "Gate", name: str, value) -> None:
         super().__setattr__(name, value)
-
+      
     def __and__(self, other) -> "Gate":
         mat_1 = convert_to_sparse(self.matrix)
         mat_2 = convert_to_sparse(other.matrix)
@@ -98,25 +74,6 @@ class Gate(BaseGate):
             return Gate(**kwargs)
         else:
             raise GateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
-        
-    def __mul__(self: "Gate", other: int | float) -> "Gate":
-        if isinstance(other, (int, float)):
-            new_mat = self.matrix * other
-            kwargs = {"matrix": new_mat}
-            kwargs.update(combine_gate_attr(self, other, op = "*"))
-            return Gate(**kwargs)
-        raise GateError(f"The variable with which you are multiplying the Gate by cannot be of type {type(other)}, expected type int or type float")
-
-    def __rmul__(self: "Gate", other: int | float) -> "Gate":
-        return self.__mul__(other)
-    
-    def __imul__(self, other):
-        if isinstance(other, (int, float)):
-            new_mat = self.matrix * other
-            kwargs = {"matrix": new_mat}
-            kwargs.update(combine_gate_attr(self, other, op = "*"))
-            return Gate(**kwargs)
-        raise GateError(f"The variable with which you are multiplying the Gate by cannot be of type {type(other)}, expected type int or type float")
         
     def __matmul__(self, other) -> "Gate":
         mat_1 = convert_to_sparse(self.matrix)

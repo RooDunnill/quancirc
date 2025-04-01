@@ -113,7 +113,7 @@ class BaseQubit:
         if self.class_type in excluded_classes:
             return
         purity = (self.rho.dot(self.rho)).diagonal().sum().real if sparse.issparse(self.rho) else np.einsum('ij,ji', self.rho, self.rho).real  
-        if self.skip_val:
+        if self.skip_val == True:
             self.state_type = "Non-Unitary"
             self.set_display_mode("density")
         elif np.isclose(purity, 1.0, atol=1e-4):
@@ -155,7 +155,7 @@ class BaseQubit:
             kwargs = {"rho": new_rho, "skip_validation": True}
             kwargs.update(combine_qubit_attr(self, other, op = "*"))
             return self.__class__(**kwargs)
-        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
+        raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
     def __rmul__(self: "BaseQubit", other: int | float) -> "BaseQubit":
         return self.__mul__(other)
@@ -164,7 +164,7 @@ class BaseQubit:
         if isinstance(other, (int, float)):
             self.rho *= other
             return self
-        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
+        raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
     
     def __truediv__(self: "BaseQubit", other: int | float) -> "BaseQubit":
         if isinstance(other, (int, float)):
@@ -172,18 +172,23 @@ class BaseQubit:
             kwargs = {"rho": new_rho, "skip_validation": True}
             kwargs.update(combine_qubit_attr(self, other, op = "*"))
             return self.__class__(**kwargs)
-        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
+        raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
     def __itruediv__(self: "BaseQubit", other: float) -> "BaseQubit":
         if isinstance(other, (int, float)):
             self.rho /= other
             return self
-        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
+        raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
     
     def __sub__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         """Subtraction of two Qubit rho matrices, returns a Qubit object"""
         if isinstance(other, BaseQubit):
-            new_rho = self.rho - other.rho
+            rho_1 = convert_to_sparse(self.rho)
+            rho_2 = convert_to_sparse(other.rho)
+            if sparse.issparse(rho_1) and sparse.issparse(rho_2):
+                new_rho = sparse_mat(self.rho) - sparse_mat(other.rho)
+            else:
+                new_rho = dense_mat(self.rho) - dense_mat(other.rho)
             kwargs = {"rho": new_rho, "skip_validation": True}                #CAREFUL skip val here
             kwargs.update(combine_qubit_attr(self, other, op = "-"))
             return self.__class__(**kwargs)
@@ -200,11 +205,16 @@ class BaseQubit:
     def __add__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         """Addition of two Qubit rho matrices, returns a Qubit object"""
         if isinstance(other, BaseQubit):
-            new_rho = self.rho + other.rho 
+            rho_1 = convert_to_sparse(self.rho)
+            rho_2 = convert_to_sparse(other.rho)
+            if sparse.issparse(rho_1) and sparse.issparse(rho_2):
+                new_rho = sparse_mat(self.rho) + sparse_mat(other.rho)
+            else:
+                new_rho = dense_mat(self.rho) + dense_mat(other.rho)
             kwargs = {"rho": new_rho, "skip_validation": True}
             kwargs.update(combine_qubit_attr(self, other, op = "+"))
             return self.__class__(**kwargs)
-        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+        raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
     def __iadd__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         if isinstance(other, BaseQubit):
@@ -213,6 +223,14 @@ class BaseQubit:
             self = self + other
             return self
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+
+    def __imatmul__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+        if isinstance(other, BaseQubit):
+            if hasattr(self, "immutable") and self.immutable:
+                raise BaseQuantumStateError(f"This operation is not valid for an immutable object")
+            self = self @ other
+            return self
+        raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected types Qubit and Qubit")
 
     def __imod__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         if isinstance(other, BaseQubit):

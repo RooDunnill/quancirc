@@ -14,7 +14,7 @@ __all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi"]
 
 
 class Qubit(BaseQubit):                                           #creates the qubit class
-    immutable_attr = ["state", "dim", "length", "n", "rho", "name", "state_type", "immutable"]
+    immutable_attr = ["skip_val", "state", "dim", "length", "n", "rho", "name", "state_type", "immutable"]
     """The class to define and initialise Qubits and Quantum States"""
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -68,7 +68,7 @@ class Qubit(BaseQubit):                                           #creates the q
         if isinstance(other, Qubit):
             self_zero_count = self.rho.size - self.rho.count_nonzero() if sparse.issparse(self.rho) else count_zeros(self.rho)
             other_zero_count = other.rho.size - other.rho.count_nonzero() if sparse.issparse(other.rho) else count_zeros(other.rho)
-            zero_fraction = (count_zeros(self.rho) + count_zeros(other.rho))/(self.rho.size + other.rho.size)
+            zero_fraction = (self_zero_count + other_zero_count)/(self.rho.size + other.rho.size)
             if self.dim * other.dim > eig_threshold and zero_fraction > sparse_matrix_threshold:
                 new_rho = sparse.kron(sparse_mat(self.rho), sparse_mat(other.rho))
             else:

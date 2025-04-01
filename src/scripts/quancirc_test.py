@@ -222,8 +222,9 @@ for i in range(6):
     print(count_zeros(hugeeee_gate_2.matrix))
 print(Hadamard @ Hadamard.matrix)
 print(Hadamard @ q0_lw)
+had = Hadamard @ Hadamard
 for i in range(20):
-    Hadamard @= Hadamard
+    had @= Hadamard
 print(q0_symb + q1_symb)
 print(q0_symb + qgen_symb)
 print(qgen_symb + qgen_symb)
@@ -248,5 +249,6 @@ print(test_gate @ super_sparse_qub)
 print((Identity % Hadamard) @ (q0 % qp))
 print(Identity)
 print(Hadamard)
+print(q0.skip_val)
 print(q0)
 print(qp)
