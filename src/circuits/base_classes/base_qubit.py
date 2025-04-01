@@ -191,7 +191,7 @@ class BaseQubit:
     
     def __isub__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         if isinstance(other, BaseQubit):
-            if hasattr(self, "immutable"):
+            if hasattr(self, "immutable") and self.immutable:
                 raise BaseQuantumStateError(f"This operation is not valid for an immutable object")
             self = self - other
             return self
@@ -208,7 +208,7 @@ class BaseQubit:
     
     def __iadd__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         if isinstance(other, BaseQubit):
-            if hasattr(self, "immutable"):
+            if hasattr(self, "immutable") and self.immutable:
                 raise BaseQuantumStateError(f"This operation is not valid for an immutable object")
             self = self + other
             return self
@@ -216,7 +216,7 @@ class BaseQubit:
 
     def __imod__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         if isinstance(other, BaseQubit):
-            if hasattr(self, "immutable"):
+            if hasattr(self, "immutable") and self.immutable:
                 raise BaseQuantumStateError(f"This operation is not valid for an immutable object")
             self = self % other
             return self

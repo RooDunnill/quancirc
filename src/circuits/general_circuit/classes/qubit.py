@@ -66,14 +66,16 @@ class Qubit(BaseQubit):                                           #creates the q
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
         if isinstance(other, Qubit):
+            self_zero_count = self.rho.size - self.rho.count_nonzero() if sparse.issparse(self.rho) else count_zeros(self.rho)
+            other_zero_count = other.rho.size - other.rho.count_nonzero() if sparse.issparse(other.rho) else count_zeros(other.rho)
             zero_fraction = (count_zeros(self.rho) + count_zeros(other.rho))/(self.rho.size + other.rho.size)
             if self.dim * other.dim > eig_threshold and zero_fraction > sparse_matrix_threshold:
                 new_rho = sparse.kron(sparse_mat(self.rho), sparse_mat(other.rho))
-                
             else:
                 new_rho = np.kron(dense_mat(self.rho), dense_mat(other.rho))
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "%"))
+            print(type(new_rho))
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     

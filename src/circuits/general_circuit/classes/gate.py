@@ -85,15 +85,14 @@ class Gate(BaseGate):
         raise GateError(f"Cannot have types {type(self)} and {type(other)}, expected two Gate classes")
     
     def __mod__(self, other) -> "Gate":            #tensor product
-        mat_1 = convert_to_sparse(self.matrix)
-        mat_2 = convert_to_sparse(other.matrix)
         if isinstance(other, Gate):
-            if sparse.issparse(mat_1) or sparse.issparse(mat_2):
-                new_matrix = sparse.kron(sparse_array(mat_1), sparse_mat(mat_2))
+            self_zero_count = self.matrix.size - self.matrix.count_nonzero() if sparse.issparse(self.matrix) else count_zeros(self.matrix)
+            other_zero_count = other.matrix.size - other.matrix.count_nonzero() if sparse.issparse(other.matrix) else count_zeros(other.matrix)
+            zero_fraction = (self_zero_count + other_zero_count)/(self.matrix.size + other.matrix.size)
+            if self.dim * other.dim > eig_threshold and zero_fraction > sparse_matrix_threshold:
+                new_matrix = sparse.kron(sparse_array(self.matrix), sparse_mat(other.matrix))
             else:
-                mat_1 = dense_mat(self.matrix)
-                mat_2 = dense_mat(other.matrix)
-                new_matrix = np.kron(self.matrix, other.matrix)
+                new_matrix = np.kron(dense_mat(self.matrix), dense_mat(other.matrix))
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "%"))
             return Gate(**kwargs)

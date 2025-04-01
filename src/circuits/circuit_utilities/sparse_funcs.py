@@ -74,7 +74,7 @@ def sparse_array(array):
         return sparse.csr_array(array, dtype=np.complex128)
 
 def dense_mat(matrix):
-    if isinstance(matrix, sparse.spmatrix): 
+    if sparse.issparse(matrix):
         return np.asarray(matrix.todense(), dtype=np.complex128)
     elif isinstance(matrix, np.ndarray):
         return np.asarray(matrix, dtype=np.complex128)
