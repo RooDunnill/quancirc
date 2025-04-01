@@ -223,8 +223,8 @@ class Qubit(BaseQubit):                                           #creates the q
             if np.all(np.isclose(self.rho.data, 0.0, atol=1e-4)):
                 return np.zeros(self.rho.shape[0], dtype=np.complex128)
             N = self.rho.shape[0]
-            k = max(1, N - 2)
-            probs, states = np.linalg.eig(dense_mat(self.rho)) if k >= N - 1 else eigsh(self.rho, k=k, which="LM")
+            k = int(np.log(self.rho.shape[0]))
+            probs, states = np.linalg.eig(dense_mat(self.rho)) if N < eig_threshold else eigsh(self.rho, k=k, which="LM")
             probs = sparse.csr_matrix(probs, dtype=np.float64)
             states = sparse.csr_matrix(states, dtype=np.complex128)
         else:
