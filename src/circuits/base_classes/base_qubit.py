@@ -63,6 +63,7 @@ def copy_qubit_attr(self: "BaseQubit") -> dict:
 
 
 class BaseQubit:
+    all_immutable_attr = ["class_type"]
     def __init__(self, **kwargs):
         self.skip_val = kwargs.get("skip_validation", False)
         self.display_mode = kwargs.get("display_mode", "density")
@@ -85,6 +86,26 @@ class BaseQubit:
             return f"{self.name}:\n{state_str}"
         elif self.display_mode == "both":
             return f"{self.name}\nState:\n{state_str}\nRho:\n{rho_str}"
+        
+    def __setattr__(self: "BaseQubit", name: str, value) -> None:
+        if name == "immutable":
+            object.__setattr__(self, name, True)
+        if not hasattr(self, "_initialised"): 
+            object.__setattr__(self, name, value)
+            return
+        if hasattr(self, "immutable") and name in self.immutable_attr:
+            current_value = getattr(self, name, None)
+            if name == "rho" or name == "state":
+                print(f"Dealing with attribute {name}")
+                if np.array_equal(dense_mat(current_value), dense_mat(value)):
+                    object.__setattr__(self, name, value)
+                    return
+            elif current_value == value:
+                return
+            raise AttributeError(f"Cannot modify immutable object: {name}")
+        if name in self.all_immutable_attr:
+            raise AttributeError(f"Cannot modify immutable object: {name}")
+        object.__setattr__(self, name, value)
      
         
     def set_state_type(self) -> None:
@@ -129,20 +150,75 @@ class BaseQubit:
     def __deepcopy__(self: "BaseQubit") -> None:
         raise BaseQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem, its twice the sin to try to double copy them")
     
+    def __mul__(self: "BaseQubit", other: int | float) -> "BaseQubit":
+        if isinstance(other, (int, float)):
+            new_rho = self.rho * other
+            kwargs = {"rho": new_rho}
+            kwargs.update(combine_qubit_attr(self, other, op = "*"))
+            return self.__class__(**kwargs)
+        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
+
+    def __rmul__(self: "BaseQubit", other: int | float) -> "BaseQubit":
+        return self.__mul__(other)
+    
+    def __imul__(self: "BaseQubit", other: float) -> "BaseQubit":
+        if isinstance(other, (int, float)):
+            self.rho *= other
+            return self
+        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
+    
+    def __div__(self: "BaseQubit", other: int | float) -> "BaseQubit":
+        if isinstance(other, (int, float)):
+            new_rho = self.rho / other
+            kwargs = {"rho": new_rho}
+            kwargs.update(combine_qubit_attr(self, other, op = "*"))
+            return self.__class__(**kwargs)
+        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
+
+    def __idiv__(self: "BaseQubit", other: float) -> "BaseQubit":
+        if isinstance(other, (int, float)):
+            self.rho *= other
+            return self
+        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
+    
+    def __sub__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+        """Subtraction of two Qubit rho matrices, returns a Qubit object"""
+        if isinstance(other, BaseQubit):
+            new_rho = self.rho - other.rho
+            kwargs = {"rho": new_rho, "skip_validation": True}                #CAREFUL skip val here
+            kwargs.update(combine_qubit_attr(self, other, op = "-"))
+            return self.__class__(**kwargs)
+        raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+    
     def __isub__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         if isinstance(other, BaseQubit):
+            if hasattr(self, "immutable"):
+                raise BaseQuantumStateError(f"This operation is not valid for an immutable object")
             self = self - other
             return self
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
+    def __add__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+        """Addition of two Qubit rho matrices, returns a Qubit object"""
+        if isinstance(other, BaseQubit):
+            new_rho = self.rho + other.rho 
+            kwargs = {"rho": new_rho, "skip_validation": True}
+            kwargs.update(combine_qubit_attr(self, other, op = "+"))
+            return self.__class__(**kwargs)
+        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+    
     def __iadd__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         if isinstance(other, BaseQubit):
+            if hasattr(self, "immutable"):
+                raise BaseQuantumStateError(f"This operation is not valid for an immutable object")
             self = self + other
             return self
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
 
     def __imod__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         if isinstance(other, BaseQubit):
+            if hasattr(self, "immutable"):
+                raise BaseQuantumStateError(f"This operation is not valid for an immutable object")
             self = self % other
             return self
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected types Qubit and Qubit")

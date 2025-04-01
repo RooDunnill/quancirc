@@ -103,14 +103,17 @@ class QuantInfo:
             if state.n > 14:
                 raise QuantInfoError(f"Matrix too big")
             k = max(1, min(state.dim - 2, int(2 * np.log2(state.dim))))
-            eigenvalues, eigenvectors =  eigsh(state.rho, k=k, which="LM", ncv=k+2) if sparse.issparse(state.rho) else np.linalg.eig(state.rho)
+            if k >= state.dim - 1:
+                eigenvalues, eigenvectors =  np.linalg.eig(dense_mat(state.rho))
+            else:
+                eigenvalues, eigenvectors =  eigsh(state.rho, k=k, which="LM", ncv=k+2) if sparse.issparse(state.rho) else np.linalg.eig(state.rho)
             entropy = 0
             for ev in eigenvalues:
                 if ev > 0:    #prevents ev=0 which would create an infinity from the log2
                     entropy -= ev * np.log2(ev)
             if entropy < 1e-10:         #rounds the value if very very small
                 entropy = 0.0
-            return entropy.real
+            return entropy
         raise QuantInfo(f"State cannot be of type {type(state)}, must be of type Qubit")
     
     @staticmethod
@@ -192,8 +195,15 @@ class QuantInfo:
                 state_2.rho = sparse_mat(state_2.rho)
                 if state_1.rho.shape != state_2.rho.shape:
                     raise QuantInfoError(f"The shapes of the matrices must be the same, not {state_1.rho.shape} and {state_2.rho.shape}")
-                eigenvalues_1, eigenvectors_1 = eigs(state_1.rho, k=max(1, state_1.dim/2), which='LM')
-                eigenvalues_2, eigenvectors_2 = eigs(state_2.rho, k=max(1, state_2.dim/2), which='LM') 
+                k = int(max(1, state_1.dim/2))
+                if k >= state_1.dim - 1:
+                    eigenvalues_1, eigenvectors_1 =  np.linalg.eig(dense_mat(state_1.rho))
+                    eigenvalues_2, eigenvectors_2 =  np.linalg.eig(dense_mat(state_2.rho))
+                else:
+                    eigenvalues_1, eigenvectors_1 =  eigs(state_1.rho, k=k, which="LM", ncv=k+2)
+                    eigenvalues_2, eigenvectors_2 =  eigs(state_2.rho, k=k, which="LM", ncv=k+2)
+
+         
                 eigenvalues_1 = np.maximum(eigenvalues_1, 1e-4)
                 eigenvalues_2 = np.maximum(eigenvalues_2, 1e-4)
                 log_eigenvalues_1 = np.log(eigenvalues_1)

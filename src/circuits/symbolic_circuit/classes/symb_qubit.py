@@ -26,28 +26,13 @@ class SymbQubit(BaseQubit):
     def __str__(self):
         return f"{self.name}:\n{self.rho}"
     
+    def __setattr__(self: "SymbQubit", name: str, value) -> None:
+        super().__setattr__(name, value)
+    
     def subs(self, substitution: dict) -> "SymbQubit":
         new_rho = self.rho.subs(substitution)
         kwargs = {"rho": new_rho}
         return SymbQubit(**kwargs)
-
-    def __sub__(self: "SymbQubit", other: "SymbQubit") -> "SymbQubit":
-        """Subtraction of two SymbQubit rho matrices, returns a SymbQubit object"""
-        if isinstance(other, SymbQubit):
-            new_rho = self.rho - other.rho
-            kwargs = {"rho": new_rho, "skip_validation": True}             
-            return SymbQubit(**kwargs)
-        raise SymbQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
-    
-    def __add__(self: "SymbQubit", other: "SymbQubit") -> "SymbQubit":
-        """Addition of two SymbQubit rho matrices, returns a SymbQubit object"""
-        if isinstance(other, SymbQubit):
-            print(f"1st Rho: {self.rho}")
-            print(f"2nd Rho: {other.rho}")
-            new_rho = self.rho + other.rho
-            kwargs = {"rho": new_rho, "skip_validation": True}
-            return SymbQubit(**kwargs)
-        raise SymbQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
     def __matmul__(self: "SymbQubit", other: "SymbQubit") -> "SymbQubit":    
         """Matrix multiplication between two SymbQubit objects, returns a SymbQubit object"""
@@ -128,10 +113,16 @@ class SymbQubit(BaseQubit):
     
 
 qgen_symb = SymbQubit.gen()    
+qgen_symb.immutable = True
 q0_symb = SymbQubit.q0()
+q0_symb.immutable = True
 q1_symb = SymbQubit.q1()
+q1_symb.immutable = True
 qp_symb = SymbQubit.qp()
+qp_symb.immtable = True
 qm_symb = SymbQubit.qm()
+qm_symb.immutable = True
 qpi_symb = SymbQubit.qpi()
+qpi_symb.immutable = True
 qmi_symb = SymbQubit.qmi()
-
+qmi_symb.immutable = True

@@ -35,9 +35,8 @@ def symbolic_circuit_guide():
     mixed_state = SymbQubit(state=[[1,0],[0,1]], weights=[0.5,0.5])
     print(f"The mixed state: {mixed_state}")
     print(f"The mixed state multiplied by an X rotation gate of angle theta: {Rotation_x_symb @ mixed_state}")   #bit of a mess, doesnt actually do anything
-    gen_qubit = qg
-    print(f"Here is a general Qubit: {qg}")
-    print(f"You can set the values as such: {qg.subs({sp.symbols("alpha"):1})}")
+    print(f"Here is a general Qubit: {qgen_symb}")
+    print(f"You can set the values as such: {qgen_symb.subs({sp.symbols("alpha"):1})}")
     print(f"Lets tensor product two general qubits together to see what that looks like:")
     print(f"{SymbQubit.gen() % SymbQubit.gen()}")
 

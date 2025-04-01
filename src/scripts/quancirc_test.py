@@ -9,7 +9,7 @@ from ..crypto_protocols import otp
 from ..crypto_protocols import rsa_weak_key_gen
 from ..examples import *
 from ..circuits.circuit_utilities.sparse_funcs import *
-
+from ..scripts.quancirc_checks import *
 print(Hadamard % Hadamard)
 print(Hadamard_symb % Hadamard_symb)
 print(q0_lw % q0_lw)
@@ -198,13 +198,12 @@ print(f"Rel ent:{QuantInfo.quantum_relative_entropy(even_smaller_qub, even_small
 print(f"Discord:{QuantInfo.quantum_discord(even_smaller_qub, even_smaller_qub)}")
 print(f"Mutual Info:{QuantInfo.quantum_mutual_info(even_smaller_qub, even_smaller_qub)}")
 
-hugeeee_qubit = q0
-hugeeee_qubit_2 = qm
-hugeeee_gate = X_Gate
-hugeeee_gate_2 = Hadamard
-for i in range(8):
+hugeeee_qubit = q0 % q0
+hugeeee_qubit_2 = qm % qm
+hugeeee_gate = X_Gate % X_Gate
+hugeeee_gate_2 = Hadamard % Hadamard
+for i in range(7):
     hugeeee_qubit %= q0
-    
     hugeeee_qubit_2 %= qm
     hugeeee_qubit @= hugeeee_qubit_2
     hugeeee_gate %= X_Gate
@@ -237,11 +236,3 @@ print(qgen_symb % qgen_symb)
 print(q0_symb @ q1_symb)
 print(q0_symb @ qgen_symb)
 print(qgen_symb @ qgen_symb)
-q0_symb += q0_symb
-q0_symb -= q0_symb
-q0_symb %= q0_symb
-q0_symb @= q0_symb
-q0_symb += qgen_symb
-q0_symb -= qgen_symb
-q0_symb %= qgen_symb
-q0_symb @= qgen_symb

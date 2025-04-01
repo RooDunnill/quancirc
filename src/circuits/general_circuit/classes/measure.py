@@ -4,7 +4,7 @@ from ..utilities.circuit_errors import MeasureError
 from random import choices, randint
 from .qubit import *
 from ..utilities.validation_funcs import measure_validation
-from ...circuit_utilities.sparse_funcs import dense_mat
+from ...circuit_utilities.sparse_funcs import dense_mat, sparse_mat
 
 
 __all__ = ["Measure"]
@@ -50,8 +50,13 @@ class Measure:
         measurement = choices(range(len(probs)), weights=probs)[0]
         if povm:
             measurement_povm = povm[measurement]
-            post_measurement_density = np.dot(np.dot(measurement_povm, self.state.rho), np.conj(measurement_povm))
-            norm = np.trace(post_measurement_density)
+            if sparse.issparse(self.state.rho):
+                measurement_povm = sparse_mat(measurement_povm)
+                post_measurement_density = measurement_povm @ self.state.rho @ measurement_povm.conj().T
+                norm = post_measurement_density.diagonal().sum()
+            else:
+                post_measurement_density = np.dot(np.dot(measurement_povm, self.state.rho), np.conj(measurement_povm).T)
+                norm = np.trace(post_measurement_density)
             return Qubit(rho=(post_measurement_density / norm), state_type=self.state.state_type)
         else:
             post_measurement_vector = np.zeros((self.state.dim,1), dtype=np.complex128)

@@ -78,6 +78,8 @@ def dense_mat(matrix):
         return np.asarray(matrix.todense(), dtype=np.complex128)
     elif isinstance(matrix, np.ndarray):
         return np.asarray(matrix, dtype=np.complex128)
+    elif isinstance(matrix, list):
+        return np.array(matrix, dtype=np.complex128)
     raise SparseMatrixError(f"Expected sparse matrix or ndarray, got {type(matrix)}")
 
 def dense_array(array):
@@ -85,4 +87,6 @@ def dense_array(array):
         return np.asarray(array.todense(), dtype=np.complex128)
     elif isinstance(array, np.ndarray):
         return np.asarray(array, dtype=np.complex128).ravel()
+    elif isinstance(array, list):
+        return np.array(array, dtype=np.complex128).ravel()
     raise SparseMatrixError(f"Expected sparse matrix or ndarray, got {type(array)}")

@@ -15,12 +15,12 @@ __all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi"]
 
 
 class Qubit(BaseQubit):                                           #creates the qubit class
-    all_immutable_attr = ["class_type"]
     immutable_attr = ["state", "dim", "length", "n", "rho", "name", "state_type", "immutable"]
     """The class to define and initialise Qubits and Quantum States"""
     def __init__(self, *args, **kwargs) -> None:
-        object.__setattr__(self, 'class_type', 'qubit')
         super().__init__(**kwargs)
+        object.__setattr__(self, 'class_type', 'qubit')
+        
         self.matrix_type = kwargs.get("matrix_type", "dense")
         self.weights: list = kwargs.get("weights", None)
         self.rho: list = kwargs.get("rho", None)
@@ -33,6 +33,7 @@ class Qubit(BaseQubit):                                           #creates the q
         self.dim = self.rho.shape[0]
         self.length = self.dim ** 2
         self.n = int(np.log2(self.dim))
+        self._initialised = True
 
 
     @classmethod
@@ -60,17 +61,8 @@ class Qubit(BaseQubit):                                           #creates the q
                 self.rho = self.build_pure_rho()
 
     def __setattr__(self: "Qubit", name: str, value) -> None:
-        if getattr(self, "immutable", False) and name in self.immutable_attr:
-            current_value = getattr(self, name, None)
-            if name == "rho" or name == "state":
-                if np.array_equal(dense_mat(current_value), dense_mat(value)):
-                    return
-            elif current_value == value:
-                return
-            raise AttributeError(f"Cannot modify immutable object: {name}")
-        if name in self.all_immutable_attr:
-            raise AttributeError(f"Cannot modify immutable object: {name}")
         super().__setattr__(name, value)
+        
 
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
@@ -80,7 +72,6 @@ class Qubit(BaseQubit):                                           #creates the q
             if sparse.issparse(rho_1) or sparse.issparse(rho_2):
                 new_rho = sparse.kron(sparse_mat(rho_1), sparse_mat(rho_2))
             else:
-       
                 new_rho = np.kron(self.rho, other.rho)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "%"))
@@ -103,23 +94,6 @@ class Qubit(BaseQubit):                                           #creates the q
             return Qubit(**kwargs)
         raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
     
-    def __mul__(self: "Qubit", other: int | float) -> "Qubit":
-        if isinstance(other, (int, float)):
-            new_rho = self.rho * other
-            kwargs = {"rho": new_rho}
-            kwargs.update(combine_qubit_attr(self, other, op = "*"))
-            return Qubit(**kwargs)
-        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
-
-    def __rmul__(self: "Qubit", other: int | float) -> "Qubit":
-        return self.__mul__(other)
-    
-    def __imul__(self: "Qubit", other: float) -> "Qubit":
-        if isinstance(other, (int, float)):
-            self.rho *= other
-            return self
-        raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
-    
     def __or__(self: "Qubit", other: "Qubit") -> "Qubit":       #rho | gate
         """Non unitary matrix multiplication between a gate and a Qubit, used mostly for Quantum Information Calculations, returns a Qubit object"""
         if isinstance(other, Qubit):
@@ -132,24 +106,6 @@ class Qubit(BaseQubit):                                           #creates the q
             return Qubit(**kwargs)
         raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
 
-    def __sub__(self: "Qubit", other: "Qubit") -> "Qubit":
-        """Subtraction of two Qubit rho matrices, returns a Qubit object"""
-        if isinstance(other, Qubit):
-            new_rho = self.rho - other.rho
-            kwargs = {"rho": new_rho, "skip_validation": True}                #CAREFUL skip val here
-            kwargs.update(combine_qubit_attr(self, other, op = "-"))
-            return Qubit(**kwargs)
-        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
-    
-    def __add__(self: "Qubit", other: "Qubit") -> "Qubit":
-        """Addition of two Qubit rho matrices, returns a Qubit object"""
-        if isinstance(other, Qubit):
-            new_rho = self.rho + other.rho
-            kwargs = {"rho": new_rho, "skip_validation": True}
-            kwargs.update(combine_qubit_attr(self, other, op = "+"))
-            return Qubit(**kwargs)
-        raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
-    
     def __and__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Direct sum of two Qubit rho matrices, returns a Qubit object"""
         if isinstance(other, Qubit):
@@ -268,7 +224,7 @@ class Qubit(BaseQubit):                                           #creates the q
                 return np.zeros(self.rho.shape[0], dtype=np.complex128)
             N = self.rho.shape[0]
             k = max(1, N - 2)
-            probs, states = eigsh(self.rho, k=k, which="LM")
+            probs, states = np.linalg.eig(dense_mat(self.rho)) if k >= N - 1 else eigsh(self.rho, k=k, which="LM")
             probs = sparse.csr_matrix(probs, dtype=np.float64)
             states = sparse.csr_matrix(states, dtype=np.complex128)
         else:
@@ -299,7 +255,15 @@ class Qubit(BaseQubit):                                           #creates the q
             raise StatePreparationError(f"States and weights must be made up of types Qubit and types float")
         if len(states) != len(weights):
             raise StatePreparationError(f"The amount of states must match the amount of weights given, not {len(states)} and {len(weights)}")
-        new_rho = np.tensordot(weights, [state.rho for state in states], axes=1)
+        all_sparse = all(sparse.issparse(state.rho) for state in states)
+        if all_sparse:
+            new_rho = sparse.csr_matrix((states[0].rho.shape[0], states[0].rho.shape[1]))
+            for i, state in enumerate(states):
+                new_rho  += weights[i] * sparse_mat(state.rho)
+        else:
+            for state in states:
+                state.rho = dense_mat(state.rho)
+            new_rho = np.tensordot(weights, [state.rho for state in states], axes=1)
         kwargs = {"rho": new_rho}
         return Qubit(**kwargs)
         

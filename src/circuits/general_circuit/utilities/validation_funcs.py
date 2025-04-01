@@ -55,13 +55,14 @@ def qubit_array_validation(array) -> None:
         raise QubitArrayError(f"There must be atleast one qubit in the arry, not {len(array)} qubits")
     
 def rho_validation(state):
-    if sparse.issparse(state.rho) or isinstance(state.rho[0], sparse.spmatrix):
+    print(state)
+    print(type(state.rho))
+    if sparse.issparse(state.rho):
         state.rho = sparse.csr_matrix(state.rho, dtype=np.complex128)
     elif isinstance(state.rho, (list, np.ndarray)):
-        state.rho = dense_mat(np.array(state.rho, dtype=np.complex128))
+        state.rho = dense_mat(state.rho)
     else:
         raise StatePreparationError(f"The inputted self.rho cannot be of type {type(state.rho)}, expected type list or type np.ndarray")
-        
     if not state.skip_val:
         if sparse.issparse(state.rho):
             diff = state.rho - state.rho.getH()
@@ -76,7 +77,11 @@ def rho_validation(state):
             if not np.isclose(np.trace(state.rho), 1.0):
                 raise StatePreparationError(f"Density matrix must have a trace of 1, not of trace {np.trace(state.rho)}")
         if state.rho.shape != (1,1):
-            eigenvalues = eigsh(state.rho, k=max(1, state.rho.shape[0]-2), which="SA", return_eigenvectors=False) if sparse.issparse(state.rho) else np.linalg.eigvalsh(state.rho)
+            k = max(1, state.rho.shape[0]-2)
+            if state.rho.shape[0] < 9:
+                eigenvalues = np.linalg.eigvalsh(dense_mat(state.rho))
+            else:
+                eigenvalues = eigsh(state.rho, k=k, which="SA", return_eigenvectors=False) if sparse.issparse(state.rho) else np.linalg.eigvalsh(state.rho)
             if np.any(eigenvalues < -1e-4):
                 negative_indices = np.where(eigenvalues < 0)[0]
                 raise StatePreparationError(f"Density matrix is not positive semi-definite. "
