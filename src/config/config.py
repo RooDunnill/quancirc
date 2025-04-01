@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 start = time.time() 
 p_prec: int = 3
 linewid: int = 160
+eig_threshold:int = 1000 #Do not go below 2
 sparse_matrix_threshold: float = 0.9
 sparse_array_threshold: float = 0.9
 name_limit = 50

@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import sparse
 from scipy.sparse.linalg import eigsh, norm
+from ....config.config import eig_threshold
 from ...circuit_utilities.circuit_errors import *
 from ...circuit_utilities.sparse_funcs import *
 from .circuit_errors import *
@@ -77,8 +78,8 @@ def rho_validation(state):
             if not np.isclose(np.trace(state.rho), 1.0):
                 raise StatePreparationError(f"Density matrix must have a trace of 1, not of trace {np.trace(state.rho)}")
         if state.rho.shape != (1,1):
-            k = max(1, state.rho.shape[0]-2)
-            if state.rho.shape[0] < 9:
+            k = 1
+            if state.rho.shape[0] < eig_threshold:
                 eigenvalues = np.linalg.eigvalsh(dense_mat(state.rho))
             else:
                 eigenvalues = eigsh(state.rho, k=k, which="SA", return_eigenvectors=False) if sparse.issparse(state.rho) else np.linalg.eigvalsh(state.rho)

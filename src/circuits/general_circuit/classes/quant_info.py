@@ -102,8 +102,8 @@ class QuantInfo:
         if isinstance(state, Qubit):
             if state.n > 14:
                 raise QuantInfoError(f"Matrix too big")
-            k = max(1, min(state.dim - 2, int(2 * np.log2(state.dim))))
-            if k >= state.dim - 1:
+            k = state.n * 2
+            if state.dim < eig_threshold:
                 eigenvalues, eigenvectors =  np.linalg.eig(dense_mat(state.rho))
             else:
                 eigenvalues, eigenvectors =  eigsh(state.rho, k=k, which="LM", ncv=k+2) if sparse.issparse(state.rho) else np.linalg.eig(state.rho)
@@ -195,15 +195,14 @@ class QuantInfo:
                 state_2.rho = sparse_mat(state_2.rho)
                 if state_1.rho.shape != state_2.rho.shape:
                     raise QuantInfoError(f"The shapes of the matrices must be the same, not {state_1.rho.shape} and {state_2.rho.shape}")
-                k = int(max(1, state_1.dim/2))
-                if k >= state_1.dim - 1:
+                k = state_1.n * 2
+                if state_1.dim < eig_threshold:
                     eigenvalues_1, eigenvectors_1 =  np.linalg.eig(dense_mat(state_1.rho))
                     eigenvalues_2, eigenvectors_2 =  np.linalg.eig(dense_mat(state_2.rho))
                 else:
                     eigenvalues_1, eigenvectors_1 =  eigs(state_1.rho, k=k, which="LM", ncv=k+2)
                     eigenvalues_2, eigenvectors_2 =  eigs(state_2.rho, k=k, which="LM", ncv=k+2)
 
-         
                 eigenvalues_1 = np.maximum(eigenvalues_1, 1e-4)
                 eigenvalues_2 = np.maximum(eigenvalues_2, 1e-4)
                 log_eigenvalues_1 = np.log(eigenvalues_1)
