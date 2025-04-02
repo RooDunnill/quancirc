@@ -65,31 +65,23 @@ def iterate_alg(oracle_values, n, mode, it, verbose) -> Qubit:
     print_func = print if verbose else silent_print
     it_count = 0
     timer = Timer()
-    print_func(f"Running FWHT algorithm:") if mode == "fast" else print(f"Running algorithm:")
-    had_start = Hadamard
-    had_start.matrix = sparse_mat(had_start.matrix)
-    had = had_start % had_start                
-    print_func(f"Initialising {n} x {n} Hdamard")
-    for i in range(n-2):    #creates the qubit and also the tensored hadamard for the given qubit size
-        had %= had_start              #if not fast then tensors up a hadamard to the correct size
-        print(f"\r{i+2} x {i+2} Hadamard created", end="")    #allows to clear line without writing a custom print function in print_array
-    print_func(f"\r",end="")
+  
     print_func(f"\rHadamard and Quantum State created, time to create was: {timer.elapsed()[0]:.4f}")
     grovers_circuit = Circuit(q=n, verbose=False)
 
     print_func(f"\rApplying Initial Hadamard                                                                     ", end="")
-    grovers_circuit.apply_gate(Hadamard)
+    grovers_circuit.apply_fwht()
     while it_count < int(it):   #this is where the bulk of the computation actually occurs and is where the algorithm is actually applied
         print_func(f"\rIteration {it + 1}:                                                                        ", end="")
         print_func(f"\rIteration {it_count + 1}: Applying phase oracle                                            ", end="")
         grovers_circuit.state = phase_oracle(grovers_circuit.state, oracle_values)              #STEP 2   phase flips the given oracle values
         print_func(f"\rIteration {it_count + 1}: Applying first Hadamard                                         ", end="")
-        grovers_circuit.apply_gate(Hadamard)                                         #STEP 3 Applies the hadamard again
+        grovers_circuit.apply_fwht()                                      #STEP 3 Applies the hadamard again
         print_func(f"\rIteration {it_count + 1}: Flipping the Qubits phase except first Qubit                     ", end="")
         grovers_circuit.state.state *= -1           #inverts all of the phases of the qubit values             STEP 4a
         grovers_circuit.state.state[0] *= -1              #inverts back the first qubits phase                 STEP 4b
         print_func(f"\rIteration {it_count + 1}: Applying second Hadamard                                         ", end="")
-        grovers_circuit.apply_gate(Hadamard)
+        grovers_circuit.apply_fwht()
         it_count += 1                   #adds to the iteration counter
         print_func(f"\r                                                                                     Time elapsed:{timer.elapsed()[0]:.4f} secs", end="")
     print_func(f"\r",end="")

@@ -2,7 +2,7 @@ import numpy as np
 import scipy as sp
 from scipy import sparse
 from sympy.matrices.dense import MutableDenseMatrix
-from ..circuit_config import sparse_matrix_threshold, sparse_array_threshold, sparse_threshold
+from ..circuit_config import *
 from ..circuit_utilities.circuit_errors import SparseMatrixError
 
 def count_zeros(matrix):
@@ -29,7 +29,7 @@ def auto_choose(*matrices, **kwargs):
     if tensor == False:
         dim = matrices[0].shape[0]
     matrix_list = []
-    if zero_fraction >= sparse_matrix_threshold and dim > sparse_threshold:
+    if zero_fraction >= sparse_matrix_threshold and dim > sparse_threshold or dim > dense_limit:
         for mat in matrices:
             if sparse.issparse(mat):
                 matrix_list.append(mat)

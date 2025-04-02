@@ -4,13 +4,14 @@ import time
 import matplotlib.pyplot as plt
 
 start = time.time() 
-p_prec: int = 3
-linewid: int = 160
-eig_threshold: int = 1000 #Do not go below 2
-sparse_threshold: int = 1000
-sparse_matrix_threshold: float = 0.9
-sparse_array_threshold: float = 0.9
-name_limit = 50
+p_prec: int = 3                                      #printing precision in matrices
+linewid: int = 160                                   #width of the lines in the terminal
+eig_threshold: int = 1000       #Do not go below 2    will always use a dense matrix to compute the eigenvalues when dim of matrix is below this
+sparse_threshold: int = 1000                         #will always be dense when dim of matrix is below this
+dense_limit = 24000                                  #will always be sparse when dim of matrix exceeds this
+sparse_matrix_threshold: float = 0.9                 #fraction of non-zeros for the matrix to be able to convert to sparse
+sparse_array_threshold: float = 0.9                  #fraction of non-zeros for the array to be able to convert to sparse
+name_limit = 50                                      #the character limit of qubits and gates
 set_printoptions(precision=p_prec, suppress=True, floatmode="fixed")
 set_printoptions(linewidth=linewid)
 

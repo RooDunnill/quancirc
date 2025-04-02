@@ -7,6 +7,7 @@ from .gate import *
 from .quant_info import *
 from .measure import *
 from .qubit_array import *
+from ..utilities.fwht import *
 from ..utilities.validation_funcs import circuit_validation, kraus_validation
 from ...circuit_utilities.sparse_funcs import *
 from ...circuit_utilities.layout_funcs import *
@@ -128,6 +129,12 @@ class Circuit(BaseCircuit):
     def download_bits(self) -> Bit:
         """Returns the bits within the quantum circuit"""
         return self.bits
+    
+    def apply_fwht(self, verbose=True):
+        print(f"Applying the FWHT to the state") if self.verbose and verbose else None
+        self.state.rho = matrix_fwht(self.state.rho)
+        
+
 
     def apply_gate_on_array(self, gate: Gate, index, qubit=None, verbose=True):
         """Allows for the application of gates onto the array, can be applies to all the states or specific ones and can also be applied to individual qubits"""
@@ -318,7 +325,6 @@ class Circuit(BaseCircuit):
         """returns the shannon entropy of the state or qubit"""
         return QuantInfo.shannon_entropy(self.state[qubit]) if qubit else QuantInfo.shannon_entropy(self.state)
     
-    
     def single_kraus_generator(self, channel: str, prob: float) -> tuple[Gate, Gate] | tuple[Gate, Gate, Gate, Gate]:
         """Generates the kraus operators for the specific quantum channel"""
         K0 = Gate.Identity()
@@ -370,22 +376,6 @@ class Circuit(BaseCircuit):
             self.apply_channel_to_qubit(i, channel, prob)
         return self.state
 
-    def apply_state_wide_channel(self, channel: str, prob: float) -> Qubit:
-        """This doesn't work"""
-        if self.collapsed:
-            QuantumCircuitError(f"Cannot apply a quantum channel to a collapsed state")
-        old_index = self.state.index
-        old_name = self.state.name
-        kraus_ops = self.kraus_generator(channel, prob)
-        epsilon_rho = np.zeros((self.state.dim, self.state.dim), dtype=np.complex128)
-        epsilon = Qubit(rho=epsilon_rho, skip_validation=True)
-        self.state.skip_val = True
-        for k in kraus_ops:
-            k_applied = k @ self.state
-            epsilon += k_applied
-        kwargs = {"rho": epsilon.rho, "skip_validation": False, "name": f"{channel} channel applied to {old_name}", "index": old_index}
-        self.state = Qubit(**kwargs)
-        return self.state
 
     def debug(self, title: bool=True) -> None:
         """Lists some debug information and also calls the debug function in the Qubit class"""

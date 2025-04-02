@@ -10,6 +10,11 @@ from ..crypto_protocols import rsa_weak_key_gen
 from ..examples import *
 from ..examples.circuit_examples.generators_printer import *
 from ..circuit_algorithms.grover_search_sparse import *
+from ..circuits.general_circuit.utilities.fwht import *
 
 
+noise_circuit = Circuit(q=3)
 
+noise_circuit.apply_local_channel_to_state(channel="X", prob=0.5)
+
+noise_circuit.print_state()

@@ -125,6 +125,8 @@ class BaseQubit:
         """Builds a pure rho matrix, primarily in initiation of Qubit object, returns type sp.MatrixBase"""
         if isinstance(self.state, sp.MatrixBase):
             return self.state * self.state.H
+        elif len(self.state) > dense_limit:
+            return sparse_array(self.state) @ sparse_array(self.state.conj().T)
         elif isinstance(self.state, np.ndarray):
             return np.einsum("i,j", np.conj(self.state), self.state, optimize=True)
         
