@@ -180,12 +180,8 @@ class BaseQubit:
     def __sub__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         """Subtraction of two Qubit rho matrices, returns a Qubit object"""
         if isinstance(other, BaseQubit):
-            rho_1 = convert_to_sparse(self.rho)
-            rho_2 = convert_to_sparse(other.rho)
-            if sparse.issparse(rho_1) and sparse.issparse(rho_2):
-                new_rho = sparse_mat(self.rho) - sparse_mat(other.rho)
-            else:
-                new_rho = dense_mat(self.rho) - dense_mat(other.rho)
+            rho_1, rho_2 = auto_choose(self.rho, other.rho)
+            new_rho = rho_1 - rho_2
             kwargs = {"rho": new_rho, "skip_validation": True}                #CAREFUL skip val here
             kwargs.update(combine_qubit_attr(self, other, op = "-"))
             return self.__class__(**kwargs)
@@ -202,12 +198,8 @@ class BaseQubit:
     def __add__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         """Addition of two Qubit rho matrices, returns a Qubit object"""
         if isinstance(other, BaseQubit):
-            rho_1 = convert_to_sparse(self.rho)
-            rho_2 = convert_to_sparse(other.rho)
-            if sparse.issparse(rho_1) and sparse.issparse(rho_2):
-                new_rho = sparse_mat(self.rho) + sparse_mat(other.rho)
-            else:
-                new_rho = dense_mat(self.rho) + dense_mat(other.rho)
+            rho_1, rho_2 = auto_choose(self.rho, other.rho)
+            new_rho = rho_1 + rho_2
             kwargs = {"rho": new_rho, "skip_validation": True}
             kwargs.update(combine_qubit_attr(self, other, op = "+"))
             return self.__class__(**kwargs)

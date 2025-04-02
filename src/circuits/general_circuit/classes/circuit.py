@@ -61,11 +61,6 @@ class Circuit(BaseCircuit):
                    "shannon_entropy", "apply_channel_to_qubit", "apply_local_channel_to_qubit", "debug", "return_bits"
                    ,"download_qubit_array", "apply_gate_on_array", "get_array_info"]
         return methods
-    
-    def __getattr__(self, name: str) -> None:
-        """Prevents functions outside the directory from being called"""
-        if name not in self.__dir__():
-            raise QuantumCircuitError(f"function cannot be used currently")
             
     def __str__(self):
         return f"{self.state}\n{self.prob_distribution}" if self.prob_distribution is not None else f"{self.state}"
@@ -162,9 +157,7 @@ class Circuit(BaseCircuit):
         if qubit is not None:       
             if qubit in self.collapsed_qubits:
                 raise QuantumCircuitError(f"A gate cannot be applied to qubit {qubit}, as it has already been measured and collapsed")
-            self.state.rho = sparse_mat(self.state.rho)
-            gate_action = Gate(matrix=sparse_mat(gate.matrix))
-            gate = Gate.Identity(n=qubit, type="sparse") % gate_action % Gate.Identity(n=self.state.n - qubit - 1, type="sparse")
+            gate = Gate.Identity(n=qubit) % gate % Gate.Identity(n=self.state.n - qubit - 1)
             gate.name = f"{gate_name}{qubit}"
             self.state = gate @ self.state
             if self.verbose:

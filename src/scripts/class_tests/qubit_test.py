@@ -2,6 +2,7 @@ import numpy as np
 import sympy as sympy
 from sympy import pprint
 from ...circuits import *
+import random
 
 print(q0 + q0)
 print(q0 - q0)
@@ -68,6 +69,66 @@ print(type(test.rho))
 sparse_qub = q0_lw % q0_lw % q0_lw % q0_lw % qm_lw
 test = sparse_qub % sparse_qub
 print(type(test.state))
-sparse_qub = q0 % q0 % q0 % q0 % qm
+sparse_qub = q0 % q0 % q0 % q0 % q0 % q0
 test = sparse_qub % sparse_qub
 print(type(test.rho))
+
+test_1 = q0 @ q0
+print(test_1)
+print(type(test_1.rho))
+large_qub = Qubit.q0(n=10)
+test_2 = large_qub @ large_qub
+print(test_2)
+print(type(test_2.rho))
+large_qub = Qubit.q0(n=9)
+test_2 = large_qub @ large_qub
+print(test_2)
+print(type(test_2.rho))
+large_qub = Qubit.q0(n=8)
+test_2 = large_qub @ large_qub
+print(test_2)
+print(type(test_2.rho))
+large_qub = Qubit.q0(n=7)
+test_2 = large_qub @ large_qub
+print(test_2)
+print(type(test_2.rho))
+large_qub = Qubit.q0(n=3)
+test_2 = large_qub % large_qub
+print(test_2)
+print(type(test_2.rho))
+large_qub = Qubit.q0(n=4)
+test_2 = large_qub % large_qub
+print(test_2)
+print(type(test_2.rho))
+large_qub = Qubit.q0(n=5)
+test_2 = large_qub % large_qub
+print(test_2)
+print(type(test_2.rho))
+large_qub = Qubit.q0(n=6)
+test_2 = large_qub % large_qub
+print(test_2)
+print(type(test_2.rho))
+random_qubit_list = [q0, q1, qp, qm, qpi, qmi]
+test_qub = q0 % qp
+for _ in range(10):
+    rand_qub = random.choice(random_qubit_list)
+    test_qub %= rand_qub
+    print(f"modulus")
+    print(type(test_qub.rho))
+    test_qub @= test_qub
+    print(f"mat mul")
+    print(type(test_qub.rho))
+
+test_qub = q0 % q0
+for _ in range(10):
+    rand_qub = q0
+    test_qub %= rand_qub
+    print(f"modulus")
+    print(test_qub)
+    print(type(test_qub.rho))
+    test_qub @= test_qub
+    print(f"mat mul")
+    print(test_qub)
+    print(type(test_qub.rho))
+    if test_qub.rho[0,1] == 0:
+        print(f"success")

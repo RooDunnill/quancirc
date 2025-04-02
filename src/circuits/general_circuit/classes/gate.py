@@ -61,13 +61,11 @@ class Gate(BaseGate):
     
     def __mod__(self, other) -> "Gate":            #tensor product
         if isinstance(other, Gate):
-            self_zero_count = self.matrix.size - self.matrix.count_nonzero() if sparse.issparse(self.matrix) else count_zeros(self.matrix)
-            other_zero_count = other.matrix.size - other.matrix.count_nonzero() if sparse.issparse(other.matrix) else count_zeros(other.matrix)
-            zero_fraction = (self_zero_count + other_zero_count)/(self.matrix.size + other.matrix.size)
-            if self.dim * other.dim > eig_threshold and zero_fraction > sparse_matrix_threshold:
-                new_matrix = sparse.kron(sparse_array(self.matrix), sparse_mat(other.matrix))
+            mat_1, mat_2 = auto_choose(self.matrix, other.matrix, tensor=True)
+            if sparse.issparse(mat_1):
+                new_matrix = sparse.kron(mat_1 , mat_2)
             else:
-                new_matrix = np.kron(dense_mat(self.matrix), dense_mat(other.matrix))
+                new_matrix = np.kron(mat_1, mat_2)
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "%"))
             return Gate(**kwargs)
@@ -75,42 +73,36 @@ class Gate(BaseGate):
             raise GateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
         
     def __matmul__(self, other) -> "Gate":
-        mat_1 = convert_to_sparse(self.matrix)
         if isinstance(other, Gate):
-            mat_2 = convert_to_sparse(other.matrix)
-            if sparse.issparse(mat_1) or sparse.issparse(mat_2):
-                new_matrix = sparse_mat(mat_1) @ sparse_mat(mat_2)
+            mat_1, mat_2 = auto_choose(self.matrix, other.matrix)
+            if sparse.issparse(mat_1):
+                new_matrix = mat_1 @ mat_2
             else:
-                mat_1 = dense_mat(self.matrix)
-                mat_2 = dense_mat(other.matrix)
                 new_matrix = np.dot(mat_1, mat_2)
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "@"))
             return Gate(**kwargs)
         elif isinstance(other, (sparse.sparray, np.ndarray)):
-            mat_2 = other
-            if sparse.issparse(mat_1) and sparse.issparse(mat_2):
-                new_matrix = mat_1.dot(mat_2)
+            mat_1, mat_2 = auto_choose(self.matrix, other)
+            if sparse.issparse(mat_1):
+                new_matrix = mat_1 @ mat_2
             else:
-                mat_1 = dense_mat(self.matrix)
-                mat_2 = dense_mat(other)
                 new_matrix = np.dot(mat_1, mat_2)
             kwargs = {"matrix": new_matrix}
             kwargs.update(combine_gate_attr(self, other, op = "@"))
             return Gate(**kwargs)
         elif other.class_type == "qubit":
-            rho_2 = convert_to_sparse(other.rho)
-            if sparse.issparse(mat_1) and sparse.issparse(rho_2):
+            mat_1, rho_2 = auto_choose(self.matrix, other.rho)
+            if sparse.issparse(mat_1):
                 temp_rho = mat_1.dot(rho_2)
-                new_rho = temp_rho.dot(mat_1.conj().T)
+                new_rho = mat_1 @ rho_2 @ mat_1.conj().T
             else:
-                mat_1 = dense_mat(self.matrix)
-                rho_2 = dense_mat(other.rho)
                 new_rho = np.dot(np.dot(mat_1, rho_2), np.conj(mat_1.T))
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "@"))
             return other.__class__(**kwargs)
         elif other.class_type == "lwqubit":
+            mat_1 = convert_to_sparse(self.matrix)
             vec_2 = convert_to_sparse_array(other.state)
             if sparse.issparse(mat_1) and sparse.issparse(vec_2):
                 new_vec = mat_1 @ vec_2.reshape((-1, 1))

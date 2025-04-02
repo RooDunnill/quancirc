@@ -97,12 +97,8 @@ class BaseGate:
     def __sub__(self: "BaseGate", other: "BaseGate") -> "BaseGate":
         """Subtraction of two Qubit rho matrices, returns a Gate object"""
         if isinstance(other, BaseGate):
-            mat_1 = convert_to_sparse(self.matrix)
-            mat_2 = convert_to_sparse(other.matrix)
-            if sparse.issparse(mat_1) and sparse.issparse(mat_2):
-                new_matrix = sparse_mat(self.matrix) - sparse_mat(other.matrix)
-            else:
-                new_matrix = dense_mat(self.matrix) - dense_mat(other.matrix)
+            mat_1, mat_2 = auto_choose(self.matrix, other.matrix)
+            new_matrix = mat_1 - mat_2
             kwargs = {"matrix": new_matrix, "skip_validation": True}                #CAREFUL skip val here
             kwargs.update(combine_gate_attr(self, other, op = "-"))
             return self.__class__(**kwargs)
@@ -119,12 +115,8 @@ class BaseGate:
     def __add__(self: "BaseGate", other: "BaseGate") -> "BaseGate":
         """Addition of two Qubit rho matrices, returns a Qubit object"""
         if isinstance(other, BaseGate):
-            mat_1 = convert_to_sparse(self.matrix)
-            mat_2 = convert_to_sparse(other.matrix)
-            if sparse.issparse(mat_1) and sparse.issparse(mat_2):
-                new_matrix = sparse_mat(self.matrix) + sparse_mat(other.matrix)
-            else:
-                new_matrix = dense_mat(self.matrix) + dense_mat(other.matrix)
+            mat_1, mat_2 = auto_choose(self.matrix, other.matrix)
+            new_matrix = mat_1 + mat_2
             kwargs = {"matrix": new_matrix, "skip_validation": True}
             kwargs.update(combine_gate_attr(self, other, op = "+"))
             return self.__class__(**kwargs)

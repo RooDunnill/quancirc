@@ -64,26 +64,22 @@ class Qubit(BaseQubit):                                           #creates the q
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
         if isinstance(other, Qubit):
-            self_zero_count = self.rho.size - self.rho.count_nonzero() if sparse.issparse(self.rho) else count_zeros(self.rho)
-            other_zero_count = other.rho.size - other.rho.count_nonzero() if sparse.issparse(other.rho) else count_zeros(other.rho)
-            zero_fraction = (self_zero_count + other_zero_count)/(self.rho.size + other.rho.size)
-            if self.dim * other.dim > eig_threshold and zero_fraction > sparse_matrix_threshold:
-                new_rho = sparse.kron(sparse_mat(self.rho), sparse_mat(other.rho))
+            rho_1, rho_2 = auto_choose(self.rho, other.rho, tensor=True)
+            if sparse.issparse(rho_1):
+                new_rho = sparse.kron(rho_1, rho_2)
             else:
-                new_rho = np.kron(dense_mat(self.rho), dense_mat(other.rho))
+                new_rho = np.kron(rho_1, rho_2)
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, op = "%"))
-            print(type(new_rho))
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
     def __matmul__(self: "Qubit", other: "Qubit") -> "Qubit":     
         """Matrix multiplication between two Qubit objects, returns a Qubit object"""
         if isinstance(other, Qubit):
-            rho_1 = convert_to_sparse(self.rho)
-            rho_2 = convert_to_sparse(other.rho)
-            if sparse.issparse(rho_1) or sparse.issparse(rho_2):
-                new_rho = sparse_mat(rho_1) @ sparse_mat(rho_2)   #swapped indice order for the transpose
+            rho_1, rho_2 = auto_choose(self.rho, other.rho)
+            if sparse.issparse(rho_1):
+                new_rho = rho_1 @ rho_2   #swapped indice order for the transpose
             else:
                 new_rho = np.dot(rho_1, rho_2)
             kwargs = {"rho": new_rho, "skip_validation": True}
@@ -140,6 +136,7 @@ class Qubit(BaseQubit):                                           #creates the q
             raise QuantumStateError(f"self.rho cannot be of type {type(self.rho)}, must be of type sp.spmatrix or type np.ndarray")
         rho_A, replaced_qubit, rho_B = self.decompose_state(index)
         if replaced_qubit.dim == new_state.dim:
+            rho_A.rho, replaced_qubit.rho, rho_B.rho = auto_choose(rho_A.rho, replaced_qubit.rho, rho_B.rho, tensor=True)
             new_state = rho_A % new_state % rho_B
             if new_state.dim == self.dim:
                 self.rho = new_state.rho
