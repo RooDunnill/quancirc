@@ -18,7 +18,7 @@ def identity_gate(cls, **kwargs):
             new_mat = eye_array(dim, dtype=np.complex128)
         else:
             raise GateError(f"mat_type cannot be {mat_type}, expected either 'sparse' or 'dense'")
-        return cls(name="I", matrix=new_mat)
+        return cls(name="I" * n, matrix=new_mat)
     
 def rotation_x_gate(cls, theta):
     """Rotates a qubit around the x axis"""
