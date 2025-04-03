@@ -157,6 +157,7 @@ class Circuit(BaseCircuit):
                     print(f"Applying {gate.name} of size {gate.n} x {gate.n} to the qubit number {index} to the whole state")
         raise QuantumCircuitError(f"index cannot be of type {type(index)}, expected type int or type None")
         
+        
     def apply_gate(self, gate: Gate, qubit=None) -> None:
         """applies a gate to the quantum state when in normal mode"""
         gate_name = gate.name
