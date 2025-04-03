@@ -13,6 +13,9 @@ class QubitArray:
         self.length = len(self)
         qubit_array_validation(self)
 
+    def __str__(self):
+        return "\n".join([str(qubit) for qubit in self.qubit_array])
+
     def __len__(self):
         return len(self.qubit_array)
 

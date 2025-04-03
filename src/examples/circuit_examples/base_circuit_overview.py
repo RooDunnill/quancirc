@@ -84,6 +84,27 @@ def base_circuit_guide():
     demo_circuit_2.print_state()
     print(f"As we can see here, it has measured the state (idk what it is when you run it) and collapsed it down")
     print(f"This is done by partially tracing out the qubit you want, measuring it and then retensoring it back into the state")
+    print(f"We can also apply povms to measure a state in a different basis to the computational basis:")
+    povms = [[[0.5,0.5],[0.5,0.5]],[[0.5,-0.5],[-0.5,0.5]]]
+    povm_circuit = Circuit(q=1)
+    povm_circuit.measure_state(povm=povms)
+    povm_circuit.print_state()
+    print(f"As you can see, using these two povms for the Hadamard basis, we have been able to measure either the |+> or |-> basis")
+
+
+    print("CHAPTER 5:ARRAY MODE".center(linewid, '^'))
+    print(f"When you are in need of many individual qubits, that is where we use the array mode circuit. This allows for many instances of the normal circuit,")
+    print(f"But mostly aimed for you to use to create many one qubit states")
+    print(f"First we must create an instance of the object QubitArray to store the Qubits in:")
+    demo_array = QubitArray(q=4)
+    print(f"We can view all of the qubits and their rho matrices by just printing the object:\n{demo_array}")
+    print(f"For us to be able to use the array, we must first upload it onto the circuit as such:")
+    demo_array_circuit = Circuit(mode="array")
+    demo_array_circuit.upload_qubit_array(demo_array)
+    print(f"Now the array is within the circuit and we can now act upon it, heres an example of applying a Hadamard to each qubit on the array individually:")
+    demo_array_circuit.apply_gate_on_array(Hadamard, index=0)
+    demo_array_circuit.apply_gate_on_array(Hadamard, index=1)
+    demo_array_circuit.apply_gate_on_array(Hadamard, index=2)
 
 if __name__ == "__main__":
     base_circuit_guide()

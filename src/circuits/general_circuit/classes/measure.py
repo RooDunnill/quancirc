@@ -5,7 +5,7 @@ from random import choices, randint
 from .qubit import *
 from ..utilities.validation_funcs import measure_validation
 from ...circuit_utilities.sparse_funcs import dense_mat, sparse_mat
-
+from ...base_classes.base_qubit import copy_qubit_attr
 
 __all__ = ["Measure"]
 
@@ -57,11 +57,13 @@ class Measure:
             else:
                 post_measurement_density = np.dot(np.dot(measurement_povm, self.state.rho), np.conj(measurement_povm).T)
                 norm = np.trace(post_measurement_density)
-            return Qubit(rho=(post_measurement_density / norm), state_type=self.state.state_type)
+            kwargs = {"rho": post_measurement_density / norm}
+            kwargs.update(copy_qubit_attr(self))
+            return Qubit(**kwargs)
         else:
             post_measurement_vector = np.zeros((self.state.dim,1), dtype=np.complex128)
             post_measurement_vector[measurement] = 1
             post_measurement_density = np.outer(post_measurement_vector, post_measurement_vector.conj())
-            return Qubit(rho=post_measurement_density, state_type=self.state.state_type)
-
-    
+            kwargs = {"rho": post_measurement_density}
+            kwargs.update(copy_qubit_attr(self))
+            return Qubit(**kwargs)
