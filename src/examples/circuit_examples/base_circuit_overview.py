@@ -105,6 +105,7 @@ def base_circuit_guide():
     demo_array_circuit.apply_gate_on_array(Hadamard, index=0)
     demo_array_circuit.apply_gate_on_array(Hadamard, index=1)
     demo_array_circuit.apply_gate_on_array(Hadamard, index=2)
-
+    print(f"We can now apply a Hadamard to every state in one line as such:")
+    demo_array_circuit.apply_gate_on_array(Hadamard)
 if __name__ == "__main__":
     base_circuit_guide()
