@@ -22,6 +22,7 @@ print(partial_test[1])
 print(partial_test[2])
 print(partial_test[3])
 qubit_list = partial_test[:]
+print(qubit_list)
 print(qubit_list[0])
 print(qubit_list[1])
 print(qubit_list[2])

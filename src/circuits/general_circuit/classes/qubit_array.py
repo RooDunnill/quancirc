@@ -37,18 +37,18 @@ class QubitArray:
             if delete:
                 self.qubit_array = self.qubit_array[:length]
 
-    def add_qubit(self, qub: Qubit):
-        self.qubit_array.append(qub)
+    def add_state(self, state: Qubit):
+        self.qubit_array.append(state)
 
-    def insert_qubit(self, qub: Qubit, index):
-        self.qubit_array.insert(index, qub)    
+    def insert_state(self, state: Qubit, index):
+        self.qubit_array.insert(index, state)    
     
-    def remove_qubit(self, index):
+    def remove_state(self, index):
         del self.qubit_array[index]
 
-    def pull_qubit(self, index):
-        pulled_qubit = self.qubit_array.pop(index)
-        return pulled_qubit
+    def pull_state(self, index):
+        pulled_state = self.qubit_array.pop(index)
+        return pulled_state
     
     def qubit_info(self, index):
         if len(self.qubit_array[index].state) == 2:
@@ -61,7 +61,7 @@ class QubitArray:
             size_list.append(i.n)
         return size_list
     
-    def pop_first_qubit(self):
+    def pop_first_state(self):
         return self.qubit_array.pop(0)
     
     def validate_array(self):

@@ -14,8 +14,8 @@ class BaseCircuit:
             raise BaseQuantumCircuitError(f"The display mode must be set in 'vector', 'density' or 'both'")
         self.state.display_mode = mode
 
-    def print_state(self, qubit=None) -> None:
-        print(self.state[qubit]) if qubit else print(self.state)
+    def print_state(self, index=0, qubit=None) -> None:
+        print(self.qubit_array[index][qubit]) if qubit else print(self.qubit_array[index])
 
-    def return_state(self, qubit=None) -> BaseQubit:
-        return self.state[qubit] if qubit else  self.state
+    def return_state(self, index=0, qubit=None) -> BaseQubit:
+        return self.qubit_array[index][qubit] if qubit else  self.qubit_array[index]

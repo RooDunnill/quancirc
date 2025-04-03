@@ -120,8 +120,13 @@ class Qubit(BaseQubit):                                           #creates the q
     
     def __getitem__(self: "Qubit", index: int | slice):
         """Allows for a single Qubit to be returned from an index of a multi Qubit state, returns Qubit object"""
-        if isinstance(index, slice):
-            return [self[i] for i in range(self.n)]
+        if index == slice(None, None, None):
+            return self
+        elif isinstance(index, slice):
+            start, stop, step = index.indices(self.n)
+            selected_qubits = [start, stop]
+            get_qubit = self.isolate_qubit(selected_qubits)
+            return get_qubit
         elif isinstance(index, int):
             get_qubit = self.isolate_qubit(index)
             if get_qubit is None:
@@ -167,13 +172,15 @@ class Qubit(BaseQubit):                                           #creates the q
         kwargs.update(copy_qubit_attr(self))
         return Qubit(**kwargs)
 
-    def isolate_qubit(self: "Qubit", qubit_index: int) -> "Qubit":
+    def isolate_qubit(self: "Qubit", qubit_index: int | list) -> "Qubit":
         """Used primarily in __getitem__ to return a single Qubit from a multiqubit state, returns a Qubit object"""
         if qubit_index is not None:
             if qubit_index > self.n - 1:
                 raise QuantumStateError(f"The chosen qubit {qubit_index}, must be no more than the number of qubits in the state: {self.n}")
             if isinstance(qubit_index, int):
                 isolated_rho = self.partial_trace(qubit_index, self.n - qubit_index - 1)
+            elif isinstance(qubit_index, list):
+                isolated_rho = self.partial_trace(qubit_index[0], self.n - qubit_index[1] - 1)
             else:
                 raise QuantumStateError(f"Inputted qubit cannot be of type {type(qubit_index)}, expected int") 
             return isolated_rho
