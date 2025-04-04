@@ -118,7 +118,7 @@ class Circuit(BaseCircuit):
             print(f"Listing the probabilities:\n{format_ket_notation(self.prob_distribution)}")
         return self.prob_distribution
     
-    def measure_state(self, index: int | range | list=0, qubit=None, basis=None, povm=None) -> None:
+    def measure_states(self, index: int | range | list=0, qubit=None, basis=None, povm=None) -> None:
         if isinstance(index, range):
             indices = list(index) 
         elif isinstance(index, int): 

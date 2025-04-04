@@ -103,7 +103,7 @@ test_circuit.apply_gate(Identity, qubit=0)
 test_circuit.apply_gate(Hadamard, qubit=1)
 
 test_circuit.list_probs()
-test_circuit.measure_state()
+test_circuit.measure_states()
 print(test_circuit)
 
 test_circuit = Circuit(states=1, q=2)
@@ -111,7 +111,7 @@ test_circuit.apply_gate(Identity, qubit=0)
 test_circuit.apply_gate(Hadamard, qubit=1)
 
 test_circuit.list_probs()
-test_circuit.measure_state(qubit=1)
+test_circuit.measure_states(qubit=1)
 print(test_circuit)
 
 attr_test_0 = q0
@@ -216,7 +216,7 @@ test_circuit.apply_gate(Identity, qubit=0)
 test_circuit.apply_gate(Hadamard, qubit=1)
 
 test_circuit.list_probs()
-test_circuit.measure_state()
+test_circuit.measure_states()
 print(test_circuit)
 qubs = 6
 test_circuit = Circuit(q=qubs)

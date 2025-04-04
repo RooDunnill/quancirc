@@ -40,7 +40,7 @@ def enc(key: str, verbose=True):
         print(f"Creating string of qubits to send") if verbose else None
         qubit_string = QubitArray(q=len(key) // 2)
         print(f"Starting the circuit in array mode") if verbose else None
-        bb84_circ = Circuit(mode="array", verbose=verbose)
+        bb84_circ = Circuit(states=0, q=1, verbose=verbose)
         print(f"Uploading qubit array to the circuit") if verbose else None
         bb84_circ.upload_qubit_array(qubit_string)
         key_list = split_2b_chunks(key)
@@ -49,12 +49,12 @@ def enc(key: str, verbose=True):
             if bits == "00":
                 pass
             elif bits == "01":
-                bb84_circ.apply_gate_on_array(X_Gate, index)
+                bb84_circ.apply_gate(X_Gate, index=index, qubit=0)
             elif bits == "10":
-                bb84_circ.apply_gate_on_array(Hadamard, index)
+                bb84_circ.apply_gate(Hadamard, index=index, qubit=0)
             elif bits == "11":
-                bb84_circ.apply_gate_on_array(X_Gate, index)
-                bb84_circ.apply_gate_on_array(Hadamard, index)
+                bb84_circ.apply_gate(X_Gate, index=index, qubit=0)
+                bb84_circ.apply_gate(Hadamard, index=index, qubit=0)
             else:
                 raise BB84Error(f"This section of the key {bits} is not a valid input")
         print(f"Qubits now encoded") if verbose else None
@@ -65,16 +65,16 @@ def measure(Qubit_array, verbose=True):
     if not isinstance(Qubit_array, QubitArray):
         raise BB84Error(f"Qubit array cannot be of type {type(Qubit_array)}, expected type QubitArray")
     print(f"Starting the circuit in array mode") if verbose else None
-    bb84_circ_rec = Circuit(mode="array", verbose=verbose)
+    bb84_circ_rec = Circuit(states=0,q=0, verbose=verbose)
     print(f"Uploading received qubit array to the circuit") if verbose else None
     bb84_circ_rec.upload_qubit_array(Qubit_array)
     print(f"Generating basis measurements") if verbose else None
     basis_key = n_length_bit_key(len(Qubit_array))
     for i in range(len(Qubit_array)):
         if int(basis_key[i]) == 0:
-            bb84_circ_rec.measure_states_on_array(index=i, basis="Z")
+            bb84_circ_rec.measure_states(index=i, basis="Z")
         elif int(basis_key[i]) == 1:
-            bb84_circ_rec.measure_states_on_array(index=i, basis="X")
+            bb84_circ_rec.measure_states(index=i, basis="X")
         else:
             raise BB84Error(f"{basis_key[i]} is not a valid element of the basis key, can only be 0 or 1")
     print(f"Returning bits off of the circuit") if verbose else None
