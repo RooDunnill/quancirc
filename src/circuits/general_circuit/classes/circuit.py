@@ -20,7 +20,7 @@ class Circuit(BaseCircuit):
     """The main circuit in the program, allows for sparse and dense manipulation of 'full' qubits in rho form"""
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'circuit')
-        self.states = kwargs.get("states", 0)
+        self.states = kwargs.get("states", 1)
         self.qubit_num = kwargs.get("q", 1)
         self.bit_num = kwargs.get("b", 1)
         self.verbose = kwargs.get("verbose", True)
@@ -118,7 +118,7 @@ class Circuit(BaseCircuit):
             print(f"Listing the probabilities:\n{format_ket_notation(self.prob_distribution)}")
         return self.prob_distribution
     
-    def measure_state(self, index=0, qubit=None, basis=None, povm=None) -> None:
+    def measure_state(self, index: int | range | list=0, qubit=None, basis=None, povm=None) -> None:
         if isinstance(index, range):
             indices = list(index) 
         elif isinstance(index, int): 
@@ -161,25 +161,25 @@ class Circuit(BaseCircuit):
     
     def purity(self, index=0, qubit: Qubit=None) -> float:
         """returns the purity of the state or qubit"""
-        purity = QuantInfo.purity(self.qubit_array[index][qubit]) if qubit else QuantInfo.purity(self.qubit_array[index][qubit])
+        purity = QuantInfo.purity(self.qubit_array[index][qubit]) if qubit else QuantInfo.purity(self.qubit_array[index])
         if self.verbose:
             print(f"Purity of the qubit {qubit} is {purity}") if qubit else print(f"Purity of the state is {purity}")
         return purity
     
-    def linear_entropy(self, qubit: Qubit=None) -> float:
+    def linear_entropy(self, index=0, qubit: Qubit=None) -> float:
         """returns the linear entropy of the state or qubit"""
-        linear_entropy = QuantInfo.linear_entropy(self.state[qubit]) if qubit else QuantInfo.linear_entropy(self.state)
+        linear_entropy = QuantInfo.linear_entropy(self.qubit_array[index][qubit]) if qubit else QuantInfo.linear_entropy(self.qubit_array[index])
         if self.verbose:
             print(f"Linear Entropy of the qubit {qubit} is {linear_entropy}") if qubit else print(f"Linear Entropy of the state is {linear_entropy}")
         return linear_entropy
     
-    def vn_entropy(self, qubit: Qubit=None) -> float:
+    def vn_entropy(self, index=0, qubit: Qubit=None) -> float:
         """returns the von neumann entropy of the state or qubit"""
-        return QuantInfo.vn_entropy(self.state[qubit]) if qubit else QuantInfo.vn_entropy(self.state)
+        return QuantInfo.vn_entropy(self.qubit_array[index][qubit]) if qubit else QuantInfo.vn_entropy(self.qubit_array[index])
     
-    def shannon_entropy(self, qubit: Qubit=None) -> float:
+    def shannon_entropy(self, index=0, qubit: Qubit=None) -> float:
         """returns the shannon entropy of the state or qubit"""
-        return QuantInfo.shannon_entropy(self.state[qubit]) if qubit else QuantInfo.shannon_entropy(self.state)
+        return QuantInfo.shannon_entropy(self.qubit_array[index][qubit]) if qubit else QuantInfo.shannon_entropy(self.qubit_array[index])
     
     def single_kraus_generator(self, channel: str, prob: float) -> tuple[Gate, Gate] | tuple[Gate, Gate, Gate, Gate]:
         """Generates the kraus operators for the specific quantum channel"""
@@ -204,11 +204,15 @@ class Circuit(BaseCircuit):
         K1 *= np.sqrt(prob)
         return K0, K1
     
-    def apply_channel_to_qubit(self, qubit: int, channel: str, prob: float) -> Qubit:
+    def apply_channel_to_qubit(self, index: int | range | list, qubit: int, channel: str, prob: float) -> Qubit:
         """Applies a channel to a specific qubit"""
-        if self.collapsed:
-            QuantumCircuitError(f"Cannot apply a quantum channel to a collapsed state")
-        qubit_state = self.state[qubit]
+        if isinstance(index, range):
+            indices = list(index) 
+        elif isinstance(index, int): 
+            indices = [index]  
+        elif isinstance(index, list): 
+            indices = index
+        qubit_state = self.qubit_array[index][qubit]
         old_name = qubit_state.name
         kraus_ops = self.single_kraus_generator(channel, prob)
         kraus_validation(kraus_ops)
@@ -220,26 +224,23 @@ class Circuit(BaseCircuit):
             epsilon += k_applied
         kwargs = {"rho": epsilon.rho, "skip_validation": False, "name": f"{channel} channel applied to {old_name}"}
         qubit_state = Qubit(**kwargs)
-        self.state[qubit] = qubit_state
-        return self.state
+        self.qubit_array[index][qubit] = qubit_state
+        return self.qubit_array
 
-    def apply_local_channel_to_state(self, channel: str, prob: float) -> Qubit:
+    def apply_local_channel_to_state(self, index: int | range | list, channel: str, prob: float) -> Qubit:
         """Applies a channel to an entire state"""
         for i in range(self.qubit_num):
-            self.apply_channel_to_qubit(i, channel, prob)
-        return self.state
+            self.apply_channel_to_qubit(index, i, channel, prob)
+        return self.qubit_array
 
-    def debug(self, title: bool=True) -> None:
+    def debug(self, index: int=0, title: bool=True) -> None:
         """Lists some debug information and also calls the debug function in the Qubit class"""
         print("-" * linewid)
         print(f"CIRCUIT DEBUG")
-        print(f"Circuit Depth: {self.depth}")
         print(f"Number of Qubits: {self.qubit_num}")
         print(f"Number of Bits: {self.bit_num}")
-        print(f"Collapsed State: {self.collapsed}")
-        print(f"Collapsed Qubits: {self.collapsed_qubits}")
         print(f"")
         print(f"\nCircuit State Debug Information:")
         print("-" * (int(linewid/2)))
-        self.state.debug(title=False)
+        self.qubit_array[index].debug(title=False)
         print("-" * linewid)
