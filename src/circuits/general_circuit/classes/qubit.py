@@ -120,11 +120,9 @@ class Qubit(BaseQubit):                                           #creates the q
     
     def __getitem__(self: "Qubit", index: int | slice):
         """Allows for a single Qubit to be returned from an index of a multi Qubit state, returns Qubit object"""
-        if index == slice(None, None, None):
-            return self
-        elif isinstance(index, slice):
+        if isinstance(index, slice):
             start, stop, step = index.indices(self.n)
-            selected_qubits = [start, stop]
+            selected_qubits = [start, stop - 1]
             get_qubit = self.isolate_qubit(selected_qubits)
             return get_qubit
         elif isinstance(index, int):
@@ -135,11 +133,16 @@ class Qubit(BaseQubit):                                           #creates the q
             return get_qubit
         raise QuantumStateError(f"Index cannot be of type {type(index)}, expected type int or slice")
     
-    def __setitem__(self: "Qubit", index: int, new_state: "Qubit") -> None:
+    def __setitem__(self: "Qubit", index: int | slice, new_state: "Qubit") -> None:
         """Sets a sinlge Qubit to the inputted Qubit, then tensors the state back into the multistate, returns None type"""
         if not isinstance(self.rho, (sparse.spmatrix, np.ndarray)):
             raise QuantumStateError(f"self.rho cannot be of type {type(self.rho)}, must be of type sp.spmatrix or type np.ndarray")
-        rho_A, replaced_qubit, rho_B = self.decompose_state(index)
+        if isinstance(index, int):
+            rho_A, replaced_qubit, rho_B = self.decompose_state(index)
+        elif isinstance(index, slice):
+            start, stop, step = index.indices(self.n)
+            selected_qubits = [start, stop - 1]
+            rho_A, replaced_qubit, rho_B = self.decompose_state(selected_qubits)
         if replaced_qubit.dim == new_state.dim:
             rho_A.rho, replaced_qubit.rho, rho_B.rho = auto_choose(rho_A.rho, replaced_qubit.rho, rho_B.rho, tensor=True)
             new_state = rho_A % new_state % rho_B
@@ -175,27 +178,36 @@ class Qubit(BaseQubit):                                           #creates the q
     def isolate_qubit(self: "Qubit", qubit_index: int | list) -> "Qubit":
         """Used primarily in __getitem__ to return a single Qubit from a multiqubit state, returns a Qubit object"""
         if qubit_index is not None:
-            if qubit_index > self.n - 1:
-                raise QuantumStateError(f"The chosen qubit {qubit_index}, must be no more than the number of qubits in the state: {self.n}")
             if isinstance(qubit_index, int):
+                if qubit_index > self.n - 1:
+                    raise QuantumStateError(f"The chosen qubit {qubit_index}, must be no more than the number of qubits in the state: {self.n}")
                 isolated_rho = self.partial_trace(qubit_index, self.n - qubit_index - 1)
             elif isinstance(qubit_index, list):
+                if max(qubit_index) > self.n - 1:
+                    raise QuantumStateError(f"The chosen qubit {qubit_index}, must be no more than the number of qubits in the state: {self.n}")
                 isolated_rho = self.partial_trace(qubit_index[0], self.n - qubit_index[1] - 1)
             else:
                 raise QuantumStateError(f"Inputted qubit cannot be of type {type(qubit_index)}, expected int") 
             return isolated_rho
         raise QuantumStateError(f"Must provide a qubit_index value of type: int")
         
-    def decompose_state(self: "Qubit", qubit_index: int) -> tuple["Qubit", "Qubit", "Qubit"]:
+    def decompose_state(self: "Qubit", qubit_index: int | list) -> tuple["Qubit", "Qubit", "Qubit"]:
         """Used primarily in __setitem__ to 'pull out' the Qubit to be replaced, returns three Qubit objects that can be recombined"""
-        if qubit_index is None or not isinstance(qubit_index, int):
-            raise QuantumStateError(f"Inputted qubit cannot be of type {type(qubit_index)}, expected int") 
+        if qubit_index is None:
+            raise QuantumStateError(f"Must have an inputted qubit value, expected type int or type list") 
         if qubit_index > self.n - 1:
             raise QuantumStateError(f"The chosen qubit {qubit_index}, must be no more than the number of qubits in the state: {self.n}")
-        A_rho = self.partial_trace(0, self.n - qubit_index)
-        B_rho = self.partial_trace(qubit_index + 1,0)
-        isolated_rho = self.partial_trace(qubit_index, self.n - qubit_index - 1)
-        return A_rho, isolated_rho, B_rho
+        if isinstance(qubit_index, int):
+            A_rho = self.partial_trace(0, self.n - qubit_index)
+            B_rho = self.partial_trace(qubit_index + 1,0)
+            isolated_rho = self.partial_trace(qubit_index, self.n - qubit_index - 1)
+            return A_rho, isolated_rho, B_rho
+        elif isinstance(qubit_index, list) and len(list) == 2:
+            A_rho = self.partial_trace(0, self.n - qubit_index[0])
+            B_rho = self.partial_trace(qubit_index[1] + 1,0)
+            isolated_rho = self.partial_trace(qubit_index[0], self.n - qubit_index[1] - 1)
+            return A_rho, isolated_rho, B_rho
+        raise QuantumStateError(f"qubit_index cannot be of type {type(qubit_index)}, expected either type int or type list of length 2")
     
     def norm(self: "Qubit") -> None:
         """Normalises a rho matrix, returns type None"""

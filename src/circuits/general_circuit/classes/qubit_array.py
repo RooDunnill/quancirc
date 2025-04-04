@@ -20,7 +20,9 @@ class QubitArray:
         return len(self.qubit_array)
 
     def __getitem__(self, index: int):
-        return self.qubit_array[index]
+        if isinstance(index, int):
+            return self.qubit_array[index]
+        raise QubitArrayError(f"index cannot be of type {type(index)}, expected type int")
     
     def __setitem__(self, index: int, qub: Qubit):
         if isinstance(qub, Qubit):
