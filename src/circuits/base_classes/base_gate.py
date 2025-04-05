@@ -29,6 +29,8 @@ def copy_gate_attr(self: "BaseGate") -> dict:
         kwargs["skip_validation"] = True
     return kwargs
 
+
+@log_all_methods
 class BaseGate:
     def __init__(self, **kwargs):
         self.skip_val = kwargs.get("skip_validation", False)

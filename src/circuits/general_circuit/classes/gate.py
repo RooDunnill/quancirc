@@ -12,7 +12,7 @@ __all__ = ["Gate", "X_Gate", "Y_Gate", "Z_Gate", "Hadamard", "Identity", "CNot",
            "S_Gate", "T_Gate", "Swap"]
 
 
-
+@log_all_methods
 class Gate(BaseGate):
     all_immutable_attr = ["class_type"]
     immutable_attr = ["name", "matrix", "lenght", "n", "dim", "immutable"]

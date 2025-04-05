@@ -17,6 +17,7 @@ from ..utilities.circuit_errors import QuantumCircuitError
 
 __all__ = ["Circuit"]
         
+@log_all_methods
 class Circuit(BaseCircuit):
     """The main circuit in the program, allows for sparse and dense manipulation of 'full' qubits in rho form"""
     def __init__(self, **kwargs):

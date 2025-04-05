@@ -3,7 +3,7 @@ from .base_class_utilities.base_class_errors import BaseQuantumCircuitError
 from .base_qubit import *
 from .base_gate import *
 
-
+@log_all_methods
 class BaseCircuit:
     def __init__(self, **kwargs):
         self.name = kwargs.get("name", "Quantum Circuit")

@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-import scipy as sp
 from scipy import sparse
 from scipy.sparse.linalg import eigsh
 from ...base_classes.base_qubit import *
@@ -13,7 +12,7 @@ from ...base_classes.base_qubit import copy_qubit_attr, combine_qubit_attr
 
 __all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi"]
 
-
+@log_all_methods
 class Qubit(BaseQubit):                                           #creates the qubit class
     immutable_attr = ["skip_val", "state", "dim", "length", "n", "rho", "name", "state_type", "immutable"]
     """The class to define and initialise Qubits and Quantum States"""

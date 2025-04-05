@@ -1,7 +1,8 @@
+import logging
+import sympy as sp
 from .base_class_utilities.base_class_errors import BaseQuantumStateError, BaseStatePreparationError
 from ..circuit_config import *
 from ..circuit_utilities.sparse_funcs import *
-import sympy as sp
 
 __all__ = ["BaseQubit"]
 
@@ -60,6 +61,7 @@ def copy_qubit_attr(self: "BaseQubit") -> dict:
     return kwargs
 
 
+@log_all_methods
 class BaseQubit:
     all_immutable_attr = ["class_type"]
     def __init__(self, **kwargs):
@@ -181,6 +183,7 @@ class BaseQubit:
     
     def __sub__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         """Subtraction of two Qubit rho matrices, returns a Qubit object"""
+        logging.debug(f"Subtracting rho matrices")
         if isinstance(other, BaseQubit):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
             new_rho = rho_1 - rho_2
@@ -190,6 +193,7 @@ class BaseQubit:
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
     def __isub__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+        logging.debug(f"Iteratively subtracting rho matrices")
         if isinstance(other, BaseQubit):
             if hasattr(self, "immutable") and self.immutable:
                 raise BaseQuantumStateError(f"This operation is not valid for an immutable object")
@@ -199,6 +203,7 @@ class BaseQubit:
     
     def __add__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         """Addition of two Qubit rho matrices, returns a Qubit object"""
+        logging.debug(f"Adding rho matrices")
         if isinstance(other, BaseQubit):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
             new_rho = rho_1 + rho_2
@@ -208,6 +213,7 @@ class BaseQubit:
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
     def __iadd__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+        logging.debug(f"Iteratively adding rho matrices")
         if isinstance(other, BaseQubit):
             if hasattr(self, "immutable") and self.immutable:
                 raise BaseQuantumStateError(f"This operation is not valid for an immutable object")
@@ -216,6 +222,7 @@ class BaseQubit:
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
 
     def __imatmul__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+        logging.debug(f"Iteratively matrix multiplying Qubits")
         if isinstance(other, BaseQubit):
             if hasattr(self, "immutable") and self.immutable:
                 raise BaseQuantumStateError(f"This operation is not valid for an immutable object")
@@ -224,6 +231,7 @@ class BaseQubit:
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected types Qubit and Qubit")
 
     def __imod__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+        logging.debug(f"Iteratively tensoring Qubits")
         if isinstance(other, BaseQubit):
             if hasattr(self, "immutable") and self.immutable:
                 raise BaseQuantumStateError(f"This operation is not valid for an immutable object")

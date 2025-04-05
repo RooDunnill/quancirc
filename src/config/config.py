@@ -3,6 +3,7 @@ import logging
 import atexit
 import time
 import matplotlib.pyplot as plt
+from functools import wraps
 
 start = time.time() 
 p_prec: int = 3                                      #printing precision in matrices
@@ -13,12 +14,27 @@ dense_limit = 24000                                  #will always be sparse when
 sparse_matrix_threshold: float = 0.9                 #fraction of non-zeros for the matrix to be able to convert to sparse
 sparse_array_threshold: float = 0.9                  #fraction of non-zeros for the array to be able to convert to sparse
 name_limit = 50                                      #the character limit of qubits and gates
-logging_level = logging.DEBUG                        #chooses the detail for logging, use DEBUG for everything, INFO to avoid degubbing logs and CRITICAL to turn off
+logging_level = logging.INFO                        #chooses the detail for logging, use DEBUG for everything, INFO to avoid degubbing logs and CRITICAL to turn off
 set_printoptions(precision=p_prec, suppress=True, floatmode="fixed")
 set_printoptions(linewidth=linewid)
-logging.getLogger("matplotlib").setLevel(logging.WARNING)
+logging.getLogger("matplotlib").setLevel(logging.INFO)
 
 logging.basicConfig(level=logging_level, format="%(asctime)s - %(levelname)s - %(message)s")
+
+def log_function_call(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        logging.debug(f"Called function: {func.__name__}")
+        return func(*args, **kwargs)
+    return wrapper
+
+def log_all_methods(cls):
+    for attr_name in dir(cls):
+        attr = getattr(cls, attr_name)
+        if callable(attr) and not attr_name.startswith("__"):
+            setattr(cls, attr_name, log_function_call(attr))
+    return cls
+
 def startup_printout():
     print("#" * linewid)
     print(f"Welcome to Quancirc, this program is mostly a collection of all of my current interests. Some of the highlights include:")
