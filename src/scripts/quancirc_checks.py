@@ -28,9 +28,9 @@ print(qubit_list[1])
 print(qubit_list[2])
 print(qubit_list[3])
 partial_test = q0 % q1 % q0
-print(partial_test.decompose_state(0))
-print(partial_test.decompose_state(1))
-print(partial_test.decompose_state(2))
+print(partial_test.isolate_qubit(0, con=True))
+print(partial_test.isolate_qubit(1, con=True))
+print(partial_test.isolate_qubit(2, con=True))
 print(f"\n\n\n\n\n\n")
 set_test = q1 % q1 % q1
 set_test.debug()
