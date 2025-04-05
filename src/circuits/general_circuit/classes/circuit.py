@@ -1,4 +1,5 @@
 import numpy as np
+import logging
 from ...circuit_config import *
 from ...base_classes.base_circuit import *
 from .qubit import *
@@ -19,6 +20,8 @@ __all__ = ["Circuit"]
 class Circuit(BaseCircuit):
     """The main circuit in the program, allows for sparse and dense manipulation of 'full' qubits in rho form"""
     def __init__(self, **kwargs):
+        logging.debug(f"Initiating Circuit")
+        super().__init__(**kwargs)
         object.__setattr__(self, 'class_type', 'circuit')
         self.states = kwargs.get("states", 1)
         self.qubit_num = kwargs.get("q", 1)
@@ -31,6 +34,7 @@ class Circuit(BaseCircuit):
 
     def init_circuit(self) -> tuple[Qubit, Bit]:
         """initialises the Quantum State and Bits for the circuit and prints initiation messages"""
+        logging.debug(f"Generating circuit original QubitArray")
         if self.states == 0:
             return []
         gen_qubits = QubitArray(q=self.states, qubit_size=self.qubit_num)
@@ -38,13 +42,15 @@ class Circuit(BaseCircuit):
 
             
     def __str__(self):
+        logging.info
         return f"{self.qubit_array}\n{self.prob_distribution}" if self.prob_distribution is not None else f"{self.qubit_array}"
     
     def __getitem__(self, index: int) -> list:
         """Gets the qubit of that index  of the qubit array and returns"""
         if index < len(self.qubit_array):
             if self.verbose:
-                print(f"Retreiving qubit {index} from the qubit array:")
+                print(f"Retreiving index {index} from the qubit array:")
+            logging.debug(f"Retreiving index {index} of the Qubit Array")
             return self.qubit_array[index]
         else:
             raise QuantumCircuitError(f"Cannot get a qubit from index {index}, when the array length is {len(self.qubit_array)}")
@@ -54,6 +60,7 @@ class Circuit(BaseCircuit):
         """Sets the qubit of that index on the qubit array with whatever val you enter"""
         if index < len(self.qubit_array):
             if isinstance(qub, Qubit):
+                logging.debug(f"Setting {qub.name} as index {index} in the qubit_array of the circuit")
                 self.qubit_array[index] = qub
             else:
                 raise QuantumCircuitError(f"The inputted value cannot be of type {type(qub)}, expected type Qubit")
@@ -63,21 +70,25 @@ class Circuit(BaseCircuit):
     
     def upload_qubit_array(self, qubit_arr: QubitArray) -> None:
         """Places the list of qubits within the object QubitArray into the circuit for gates and measurements to act upon them"""
-        print(f"Uploading qubit array...") if self.verbose else None
+        logging.debug(f"Placing the qubit array in instance of class QubitArray upon the qubit_array of the circuit")
+        logging.info(f"Uploading qubit array...") if self.verbose else None
         self.qubit_array.extend(qubit_arr.qubit_array)
-        print(f"Upload Complete") if self.verbose else None
+        logging.info(f"Upload Complete") if self.verbose else None
 
     def download_qubit_array(self, index=None) -> QubitArray:
         """Removes the qubit list from the circuit and creates a new QubitArray object"""
         if isinstance(index, int):
+            logging.info(f"Downloading Qubit array at index {index}...") if self.verbose else None
             qubit_array= QubitArray(array=self.qubit_array[index])
             self.qubit_array.pop(index)
+            logging.debug(f"Removing Quantum state at index {index} from the array")
+            logging.info(f"Download of index {index} complete!") if self.verbose else None
             return qubit_array
         if index is None:
-            print(f"Downloading qubit array...") if self.verbose else None
+            logging.info(f"Downloading qubit array...") if self.verbose else None
             qubit_array = QubitArray(array=self.qubit_array)
             self.qubit_array = None
-            print(f"Download Complete") if self.verbose else None
+            logging.info(f"Download Complete") if self.verbose else None
             return qubit_array
         else:
             raise QuantumCircuitError(f"There is no qubit array to download currently in the circuit")
@@ -87,7 +98,7 @@ class Circuit(BaseCircuit):
         return self.bits
     
     def apply_fwht(self, index=0, verbose=True):
-        print(f"Applying the FWHT to the state") if self.verbose and verbose else None
+        logging.info(f"Applying the FWHT to the state") if self.verbose and verbose else None
         self.qubit_array[index].rho = matrix_fwht(self.qubit_array[index].rho)
         
     def apply_gate(self, gate: Gate, index: int | range | list=0, qubit=None) -> None:
@@ -104,18 +115,15 @@ class Circuit(BaseCircuit):
                 gate = Gate.Identity(n=qubit) % gate % Gate.Identity(n=self.qubit_array[i].n - qubit - 1)
                 gate.name = f"{gate_name}{qubit}"
                 self.qubit_array[i] = gate @ self.qubit_array[i]
-                if self.verbose:
-                    print(f"Applying {gate.name} to qubit {qubit}")
+                logging.info(f"Applying {gate.name} to qubit {qubit}") if self.verbose else None
             elif qubit is None:
-                if self.verbose:
-                    print(f"Applying {gate.name} of size {gate.n} x {gate.n} to the circuit")
+                logging.info(f"Applying {gate.name} of size {gate.n} x {gate.n} to the circuit") if self.verbose else None
                 self.qubit_array[i] = gate @ self.qubit_array[i]
             
     def list_probs(self, index: int=0, qubit=None, povm=None) -> np.ndarray:
         """lists the probabilities of the given state, can be applied to individual qubits"""
         self.prob_distribution = Measure(self.qubit_array[index] if qubit is None else self.qubit_array[index][qubit]).list_probs(povm)
-        if self.verbose:
-            print(f"Listing the probabilities:\n{format_ket_notation(self.prob_distribution)}")
+        logging.info(f"Listing the probabilities:\n{format_ket_notation(self.prob_distribution)}") if self.verbose else None
         return self.prob_distribution
     
     def measure_states(self, index: int | range | list=0, qubit=None, basis=None, povm=None) -> None:
@@ -127,12 +135,12 @@ class Circuit(BaseCircuit):
             indices = index
         for i in indices:
             if basis == "Z":
-                print(f"Measuring in the Z basis") if self.verbose else None
+                logging.info(f"Measuring in the Z basis") if self.verbose else None
             elif basis == "X":
-                print(f"Measuring in the X basis") if self.verbose else None
+                logging.info(f"Measuring in the X basis") if self.verbose else None
                 self.apply_gate(Hadamard, index=i, qubit=qubit)
             elif basis == "Y":
-                print(f"Measuring in the Y basis") if self.verbose else None
+                logging.info(f"Measuring in the Y basis") if self.verbose else None
                 self.apply_gate(Gate.Rotation_Y(np.pi/2), index=i, qubit=qubit)
 
             if qubit is not None:
@@ -140,37 +148,25 @@ class Circuit(BaseCircuit):
                 self.qubit_array[i][qubit] = measurement
                 measured_state = np.argmax(np.diag(self.qubit_array[i].rho))
                 self.bits.add_bits(str(measured_state % 2))
-                if self.verbose:
-                    measurement.set_display_mode("density")
-                    print(f"Measured the state {measurement} of qubit {qubit}")
+                logging.info(f"Measured the state {measurement} of qubit {qubit}") if self.verbose else None
             else:
                 measurement = Measure(state=self.qubit_array[i]).measure_state(povm)
                 self.qubit_array[i] = measurement
                 measured_state = np.argmax(np.diag(self.qubit_array[i].rho))
                 self.bits.add_bits(str(measured_state % 2))
-                if self.verbose:
-                    print(f"Measured the state {measurement} of the whole system")
+                logging.info(f"Measured the state {measurement} of the whole system") if self.verbose else None
     
-
-
-    
-        
     def get_info(self, index=0) -> float:
         return QuantInfo.state_info(self.qubit_array[index])
-    
     
     def purity(self, index=0, qubit: Qubit=None) -> float:
         """returns the purity of the state or qubit"""
         purity = QuantInfo.purity(self.qubit_array[index][qubit]) if qubit else QuantInfo.purity(self.qubit_array[index])
-        if self.verbose:
-            print(f"Purity of the qubit {qubit} is {purity}") if qubit else print(f"Purity of the state is {purity}")
         return purity
     
     def linear_entropy(self, index=0, qubit: Qubit=None) -> float:
         """returns the linear entropy of the state or qubit"""
         linear_entropy = QuantInfo.linear_entropy(self.qubit_array[index][qubit]) if qubit else QuantInfo.linear_entropy(self.qubit_array[index])
-        if self.verbose:
-            print(f"Linear Entropy of the qubit {qubit} is {linear_entropy}") if qubit else print(f"Linear Entropy of the state is {linear_entropy}")
         return linear_entropy
     
     def vn_entropy(self, index=0, qubit: Qubit=None) -> float:
@@ -235,12 +231,12 @@ class Circuit(BaseCircuit):
 
     def debug(self, index: int=0, title: bool=True) -> None:
         """Lists some debug information and also calls the debug function in the Qubit class"""
-        print("-" * linewid)
-        print(f"CIRCUIT DEBUG")
-        print(f"Number of Qubits: {self.qubit_num}")
-        print(f"Number of Bits: {self.bit_num}")
-        print(f"")
-        print(f"\nCircuit State Debug Information:")
-        print("-" * (int(linewid/2)))
+        logging.info("-" * linewid)
+        logging.info(f"CIRCUIT DEBUG")
+        logging.info(f"Number of Qubits: {self.qubit_num}")
+        logging.info(f"Number of Bits: {self.bit_num}")
+        logging.info(f"")
+        logging.info(f"\nCircuit State Debug Information:")
+        logging.info("-" * (int(linewid/2)))
         self.qubit_array[index].debug(title=False)
-        print("-" * linewid)
+        logging.info("-" * linewid)

@@ -115,6 +115,8 @@ class Qubit(BaseQubit):                                           #creates the q
         """Checks if two Qubit object rho matrices are identical, returns bool type"""
         if isinstance(other, Qubit):
             if self.rho is not None and other.rho is not None:
+                self.rho = dense_mat(self.rho)
+                other.rho = dense_mat(other.rho)
                 return np.allclose(self.rho, other.rho, atol=1e-4)
             raise QuantumStateError(f"The inputted objects must have attr: self.rho and other.rho")
         raise QuantumStateError(f"Cannot have types {type(self)} and {type(other)}, expected two Qubit classes")

@@ -26,8 +26,9 @@ test_2.print_state()
 print("\n")
 print(test_2.qubit_array)
 print(len(qubit_array))
-test_2.measure_state(1)
+test_2.measure_states(index=1)
 
 
 test_qub = Qubit.q0(n=4)
 print(test_qub[0:3])
+test_qub.debug()

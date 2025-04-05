@@ -233,20 +233,20 @@ class BaseQubit:
 
     def debug(self: "BaseQubit", title=True) -> None:
         """Prints out lots of information on the Qubits core properties primarily for debug purposes, returns type None"""
-        print(f"\n")
+        logging.info(f"\n")
         if title:
-            print("-" * linewid)
-            print(f"QUBIT DEBUG")
+            logging.info("-" * linewid)
+            logging.info(f"QUBIT DEBUG")
         if self.rho is not None:
-            print(f"self.rho.shape: {self.rho.shape}")
-            print(f"self.rho type: {type(self.rho)}")
-            print(f"self.rho:\n {self.rho}")
-            print(f"self.n: {self.n}")
+            logging.info(f"self.rho.shape: {self.rho.shape}")
+            logging.info(f"self.rho type: {type(self.rho)}")
+            logging.info(f"self.rho:\n {self.rho}")
+            logging.info(f"self.n: {self.n}")
             for i in range(self.n):
-                print(f"Qubit {i}: {self[i]}")
-        print(f"self.state:\n {self.build_state_from_rho()}") if self.rho is not None else print(f"self.state:\n {self.state}")
-        print(f"state_type: {self.state_type}")
-        print(f"All attributes and variables of the Qubit object:")
-        print(vars(self))
+                logging.info(f"Qubit {i}: {self[i]}")
+        logging.info(f"self.state:\n {self.build_state_from_rho()}") if self.rho is not None else print(f"self.state:\n {self.state}")
+        logging.info(f"state_type: {self.state_type}")
+        logging.info(f"All attributes and variables of the Qubit object:")
+        logging.info(vars(self))
         if title:
-            print("-" * linewid)
+            logging.info("-" * linewid)

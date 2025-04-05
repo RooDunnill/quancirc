@@ -5,6 +5,8 @@ from .base_gate import *
 
 
 class BaseCircuit:
+    def __init__(self, **kwargs):
+        self.name = kwargs.get("name", "Quantum Circuit")
 
 
 
