@@ -14,7 +14,7 @@ __all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi"]
 
 @log_all_methods
 class Qubit(BaseQubit):                                           #creates the qubit class
-    immutable_attr = ["skip_val", "state", "dim", "length", "n", "rho", "name", "state_type", "immutable"]
+    immutable_attr = ["skip_val", "state", "dim", "length", "n", "rho", "id", "state_type", "immutable", "print_history"]
     """The class to define and initialise Qubits and Quantum States"""
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -67,14 +67,17 @@ class Qubit(BaseQubit):                                           #creates the q
                 new_rho = sparse.kron(rho_1, rho_2)
             else:
                 new_rho = np.kron(rho_1, rho_2)
-            kwargs = {"rho": new_rho}
+            if self.history == []:
+                kwargs = {"rho": new_rho, "history": [f"{self.id} tensored with {other.id}"]}
+            else:
+                kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, kwargs))
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
     def __matmul__(self: "Qubit", other: "Qubit") -> "Qubit":     
         """Matrix multiplication between two Qubit objects, returns a Qubit object"""
-        self.log_history(f"Matrix multiplied with {other.id}")
+        self.log_history(f"Matrix multiplied with State {other.id}")
         if isinstance(other, Qubit):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
             if sparse.issparse(rho_1):

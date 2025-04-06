@@ -6,6 +6,7 @@ from ..circuit_utilities.sparse_funcs import *
 
 __all__ = ["BaseQubit"]
 
+premade_qubit_ids = ["|0>", "|1>", "|+>", "|->", "|i>", "|-i>"]
 
 def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", kwargs: dict=None) -> dict:
         """Allows the returned objects to still return name and info too"""
@@ -21,26 +22,28 @@ def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", kwargs: dict=None)
 
         if hasattr(self, "skip_val") and self.skip_val == True:
             kwargs["skip_val"] = True
-        elif hasattr(other, "skip_val") and other.skip_val == True: 
+        elif hasattr(other, "skip_val") and other.skip_val == True:
             kwargs["skip_val"] = True
-        if hasattr(self, "history"):
-            kwargs["history"] = self.history
-        premade_qubit_ids = ["|0>", "|1>", "|+>", "|->", "|i>", "|-i>"]
         if hasattr(self, "id") and self.id not in premade_qubit_ids:
+            if hasattr(self, "history"):
+                kwargs["history"] = self.history
             kwargs["id"] = self.id
+        if self.class_type=="gate" and hasattr(other, "id") and other.id not in premade_qubit_ids:
+            if hasattr(other, "history"):
+                kwargs["history"] = other.history
+            kwargs["id"] = other.id
         logging.debug(f"Carrying over kwargs: {kwargs}")
         return kwargs
 
 def copy_qubit_attr(self: "BaseQubit", kwargs: dict=None) -> dict:
     kwargs = {} if kwargs==None else kwargs
-    if "id" not in kwargs and hasattr(self, "id"):
+    if "id" not in kwargs and hasattr(self, "id") and self.id not in premade_qubit_ids:
         kwargs["id"] = self.id
-    if "history" not in kwargs and hasattr(self, "history"):
-        kwargs["history"] = self.history
+        if "history" not in kwargs and hasattr(self, "history"):
+            kwargs["history"] = self.history
     if "display_mode" not in kwargs and hasattr(self, "display_mode"):
         kwargs["display_mode"] = self.display_mode
     if "skip_val" not in kwargs and hasattr(self, "skip_val"):
-        print("testttttttttttttttt")
         kwargs["skip_val"] = self.skip_val
     logging.debug(f"Carrying over kwargs: {kwargs}")
     return kwargs
@@ -57,15 +60,16 @@ class BaseQubit:
             logging.debug(f"Creating a new qubit with ID {BaseQubit.qubit_counter}")
             self.id = BaseQubit.qubit_counter
             BaseQubit.qubit_counter += 1
+        self.history = kwargs.get("history", [])
         self.skip_val = kwargs.get("skip_val", False)
         self.display_mode = kwargs.get("display_mode", "density")
-        self.history = kwargs.get("history", [])
         self.state = kwargs.get("state", None)
         self.rho: list = kwargs.get("rho", None)
 
     def log_history(self, message):
         if isinstance(message, str):
-            self.history.append(message)
+            if self.id not in premade_qubit_ids:
+                self.history.append(message)
         else:
             raise BaseQuantumStateError(f"message cannot be of type {type(message)}, expected type str")
         
@@ -152,6 +156,7 @@ class BaseQubit:
         raise BaseQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem, its twice the sin to try to double copy them")
     
     def __mul__(self: "BaseQubit", other: int | float) -> "BaseQubit":
+        self.log_history(f"Multiplied by {other}")
         if isinstance(other, (int, float)):
             new_rho = self.rho * other
             kwargs = {"rho": new_rho, "skip_val": True}
@@ -163,12 +168,14 @@ class BaseQubit:
         return self.__mul__(other)
     
     def __imul__(self: "BaseQubit", other: float) -> "BaseQubit":
+        self.log_history(f"Multipled by {other}")
         if isinstance(other, (int, float)):
             self.rho *= other
             return self
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
     
     def __truediv__(self: "BaseQubit", other: int | float) -> "BaseQubit":
+        self.log_history(f"Divided by {other}")
         if isinstance(other, (int, float)):
             new_rho = self.rho / other
             kwargs = {"rho": new_rho, "skip_val": True}
@@ -177,6 +184,7 @@ class BaseQubit:
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
     def __itruediv__(self: "BaseQubit", other: float) -> "BaseQubit":
+        self.log_history(f"Divided by {other}")
         if isinstance(other, (int, float)):
             self.rho /= other
             return self
@@ -184,6 +192,7 @@ class BaseQubit:
     
     def __sub__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         """Subtraction of two Qubit rho matrices, returns a Qubit object"""
+        self.log_history(f"Subtracted by State {other.id}")
         logging.debug(f"Subtracting rho matrices")
         if isinstance(other, BaseQubit):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
@@ -194,6 +203,7 @@ class BaseQubit:
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
     def __isub__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+        self.log_history(f"Subtracted by State {other.id}")
         logging.debug(f"Iteratively subtracting rho matrices")
         if isinstance(other, BaseQubit):
             if hasattr(self, "immutable") and self.immutable:
@@ -204,6 +214,7 @@ class BaseQubit:
     
     def __add__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         """Addition of two Qubit rho matrices, returns a Qubit object"""
+        self.log_history(f"Added to State {other.id}")
         logging.debug(f"Adding rho matrices")
         if isinstance(other, BaseQubit):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
@@ -214,6 +225,7 @@ class BaseQubit:
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
     def __iadd__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+        self.log_history(f"Added to State {other.id}")
         logging.debug(f"Iteratively adding rho matrices")
         if isinstance(other, BaseQubit):
             if hasattr(self, "immutable") and self.immutable:
@@ -223,6 +235,7 @@ class BaseQubit:
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
 
     def __imatmul__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+        self.log_history(f"Matrix Multiplied with State {other.id}")
         logging.debug(f"Iteratively matrix multiplying Qubits")
         if isinstance(other, BaseQubit):
             if hasattr(self, "immutable") and self.immutable:
@@ -232,6 +245,7 @@ class BaseQubit:
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected types Qubit and Qubit")
 
     def __imod__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+        self.log_history(f"Tensored with State {other.id}")
         logging.debug(f"Iteratively tensoring Qubits")
         if isinstance(other, BaseQubit):
             if hasattr(self, "immutable") and self.immutable:

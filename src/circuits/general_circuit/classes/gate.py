@@ -94,12 +94,13 @@ class Gate(BaseGate):
         elif other.class_type == "qubit":
             mat_1, rho_2 = auto_choose(self.matrix, other.rho)
             if sparse.issparse(mat_1):
-                temp_rho = mat_1.dot(rho_2)
                 new_rho = mat_1 @ rho_2 @ mat_1.conj().T
             else:
                 new_rho = np.dot(np.dot(mat_1, rho_2), np.conj(mat_1.T))
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, kwargs))
+            if "history" in kwargs:
+                kwargs["history"].append(f"Applied {self.name} Gate")
             return other.__class__(**kwargs)
         elif other.class_type == "lwqubit":
             mat_1 = convert_to_sparse(self.matrix)

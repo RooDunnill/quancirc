@@ -16,9 +16,13 @@ from ..circuits.general_circuit.utilities.fwht import *
 
 
 
-test_qubit = q0 % q1 % q0
+test_qubit = q0 % q1
 print(test_qubit)
-test_qubit_2 = q0 % q1
-print(test_qubit_2)
-print(test_qubit[1])
-print(test_qubit * 2)
+print(test_qubit * 3)
+test_qubit.print_history()
+q0.print_history()
+test_qubit_gate = (Hadamard % Identity) @ test_qubit
+print(test_qubit_gate)
+test_qubit_gate.print_history()
+print(q0 * 2)
+q0.print_history()
