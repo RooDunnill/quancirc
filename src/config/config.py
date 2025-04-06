@@ -17,9 +17,22 @@ name_limit = 50                                      #the character limit of qub
 logging_level = logging.INFO                        #chooses the detail for logging, use DEBUG for everything, INFO to avoid degubbing logs and CRITICAL to turn off
 set_printoptions(precision=p_prec, suppress=True, floatmode="fixed")
 set_printoptions(linewidth=linewid)
-logging.getLogger("matplotlib").setLevel(logging.INFO)
+logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
-logging.basicConfig(level=logging_level, format="%(asctime)s - %(levelname)s - %(message)s")
+def custom_format(record):
+    if record.levelno == logging.INFO:
+        return "%(message)s"
+    else:
+        return "[%(levelname)s] %(asctime)s - %(message)s"
+
+class SimpleFormatter(logging.Formatter):
+    def format(self, record):
+        self._style._fmt = custom_format(record)
+        return super().format(record)
+
+# Setup
+logging.basicConfig(level=logging_level, format="%(message)s")
+logging.getLogger().handlers[0].setFormatter(SimpleFormatter())
 
 def log_function_call(func):
     @wraps(func)

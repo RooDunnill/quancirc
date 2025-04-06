@@ -19,8 +19,6 @@ class Qubit(BaseQubit):                                           #creates the q
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(**kwargs)
         object.__setattr__(self, 'class_type', 'qubit')
-        
-        self.matrix_type = kwargs.get("matrix_type", "dense")
         self.weights: list = kwargs.get("weights", None)
         self.rho: list = kwargs.get("rho", None)
         self.state_type = None

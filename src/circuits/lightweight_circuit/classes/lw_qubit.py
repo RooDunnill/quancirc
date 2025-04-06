@@ -13,13 +13,17 @@ from ...circuit_config import *
 
 __all__ = ["LwQubit", "q0_lw", "q1_lw", "qp_lw", "qm_lw", "qpi_lw", "qmi_lw"]
 
-class LwQubit(BaseQubit): 
+class LwQubit: 
     """A lightweight variant of the Qubit class, which utilises 1D arrays and sparse matrices to make a faster quantum state
         at the forfeit of always being pure"""
     def __init__(self, **kwargs):
         object.__setattr__(self, "class_type", "lwqubit")
         object.__setattr__(self, "state_type", "Pure")
-        super().__init__(**kwargs)
+        self.skip_val = kwargs.get("skip_validation", False)
+        self.display_mode = kwargs.get("display_mode", "density")
+        self.name: str = kwargs.get("name","|\u03C8>")
+        self.state = kwargs.get("state", None)
+        self.index = None
         self.matrix_type = kwargs.get("matrix_type", "dense")
         self.index = kwargs.get("index", None)
         lw_qubit_validation(self)
