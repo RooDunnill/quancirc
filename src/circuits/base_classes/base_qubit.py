@@ -1,5 +1,6 @@
 import logging
 import sympy as sp
+import copy
 from .base_class_utilities.base_class_errors import BaseQuantumStateError, BaseStatePreparationError
 from ..circuit_config import *
 from ..circuit_utilities.sparse_funcs import *
@@ -26,12 +27,12 @@ def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", kwargs: dict=None)
             kwargs["skip_val"] = True
         if hasattr(self, "id") and self.id not in premade_qubit_ids:
             if hasattr(self, "history"):
-                kwargs["history"] = self.history
-            kwargs["id"] = self.id
+                kwargs["history"] = copy.deepcopy(self.history)
+            kwargs["id"] = copy.deepcopy(self.id)
         if self.class_type=="gate" and hasattr(other, "id") and other.id not in premade_qubit_ids:
             if hasattr(other, "history"):
-                kwargs["history"] = other.history
-            kwargs["id"] = other.id
+                kwargs["history"] = copy.deepcopy(other.history)
+            kwargs["id"] = copy.deepcopy(other.id)
         logging.debug(f"Carrying over kwargs: {kwargs}")
         return kwargs
 
@@ -156,11 +157,11 @@ class BaseQubit:
         raise BaseQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem, its twice the sin to try to double copy them")
     
     def __mul__(self: "BaseQubit", other: int | float) -> "BaseQubit":
-        self.log_history(f"Multiplied by {other}")
         if isinstance(other, (int, float)):
             new_rho = self.rho * other
             kwargs = {"rho": new_rho, "skip_val": True}
             kwargs.update(copy_qubit_attr(self, kwargs))
+            kwargs["history"].append(f"Multipled by {other}") if "history" in kwargs else None
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
@@ -175,11 +176,11 @@ class BaseQubit:
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
     
     def __truediv__(self: "BaseQubit", other: int | float) -> "BaseQubit":
-        self.log_history(f"Divided by {other}")
         if isinstance(other, (int, float)):
             new_rho = self.rho / other
             kwargs = {"rho": new_rho, "skip_val": True}
             kwargs.update(copy_qubit_attr(self, kwargs))
+            kwargs["history"].append(f"Divided by {other}") if "history" in kwargs else None
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
@@ -192,13 +193,13 @@ class BaseQubit:
     
     def __sub__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         """Subtraction of two Qubit rho matrices, returns a Qubit object"""
-        self.log_history(f"Subtracted by State {other.id}")
         logging.debug(f"Subtracting rho matrices")
         if isinstance(other, BaseQubit):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
             new_rho = rho_1 - rho_2
             kwargs = {"rho": new_rho, "skip_val": True}                #CAREFUL skip val here
             kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs["history"].append(f"Subtracted by State {other.id}") if "history" in kwargs else None
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
@@ -214,13 +215,13 @@ class BaseQubit:
     
     def __add__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
         """Addition of two Qubit rho matrices, returns a Qubit object"""
-        self.log_history(f"Added to State {other.id}")
         logging.debug(f"Adding rho matrices")
         if isinstance(other, BaseQubit):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
             new_rho = rho_1 + rho_2
             kwargs = {"rho": new_rho, "skip_val": True}
             kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs["history"].append(f"Added to State {other.id}") if "history" in kwargs else None
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     

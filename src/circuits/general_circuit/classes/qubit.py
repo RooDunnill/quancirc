@@ -45,9 +45,6 @@ class Qubit(BaseQubit):                                           #creates the q
 
     def rho_init(self) -> None:
         """Builds and checks the rho attribute during __init__, returns type None"""
-        if self.rho is None and self.state is None:
-            self.rho = np.eye(1)
-            self.skip_val = True
         if self.rho is None:
             if self.weights is not None:
                 self.rho = self.build_mixed_rho()
@@ -56,11 +53,9 @@ class Qubit(BaseQubit):                                           #creates the q
 
     def __setattr__(self: "Qubit", name: str, value) -> None:
         super().__setattr__(name, value)
-        
 
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
-        self.log_history(f"Tensored with state {other.id}")
         if isinstance(other, Qubit):
             rho_1, rho_2 = auto_choose(self.rho, other.rho, tensor=True)
             if sparse.issparse(rho_1):
@@ -72,12 +67,12 @@ class Qubit(BaseQubit):                                           #creates the q
             else:
                 kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs["history"].append(f"Tensored with state {other.id}") if "history" in kwargs and self.history != [] else None
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
     def __matmul__(self: "Qubit", other: "Qubit") -> "Qubit":     
         """Matrix multiplication between two Qubit objects, returns a Qubit object"""
-        self.log_history(f"Matrix multiplied with State {other.id}")
         if isinstance(other, Qubit):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
             if sparse.issparse(rho_1):
@@ -86,6 +81,7 @@ class Qubit(BaseQubit):                                           #creates the q
                 new_rho = np.dot(rho_1, rho_2)
             kwargs = {"rho": new_rho, "skip_val": True}
             kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs["history"].append(f"Matrix multipled with State {other.id}") if "history" in kwargs else None
             return Qubit(**kwargs)
         raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
     
@@ -103,13 +99,13 @@ class Qubit(BaseQubit):                                           #creates the q
 
     def __and__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Direct sum of two Qubit rho matrices, returns a Qubit object"""
-        self.log_history(f"Direct summed with state {other.id}")
         if isinstance(other, Qubit):
             self.rho = dense_mat(self.rho)
             other.rho = dense_mat(other.rho)
             new_rho = np.block([[self.rho, np.zeros_like(other.rho)], [np.zeros_like(self.rho), other.rho]])
             kwargs = {"rho": new_rho}
             kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs["history"].append(f"Direct summed with State {other.id}") if "history" in kwargs else None
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
