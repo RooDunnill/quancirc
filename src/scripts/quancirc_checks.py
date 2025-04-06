@@ -125,9 +125,9 @@ print(type(attr_sum))
 print(attr_sum)
 index_test = q0 % q0 % q0
 test = index_test[0]
-print(test.index)
+
 test2 = test % q0
-print(test2.index)
+
 
 test_qub = q0 * 2
 print(test_qub)

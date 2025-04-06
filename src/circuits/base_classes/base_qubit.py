@@ -11,11 +11,6 @@ def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", op: str = None) ->
         """Allows the returned objects to still return name and info too"""
         kwargs = {}
         if isinstance(self, BaseQubit) and isinstance(other, BaseQubit):
-            if isinstance(self.index, int) != isinstance(other.index, int):
-                if isinstance(self.index, int):
-                    kwargs["index"] = self.index
-                else:
-                    kwargs["index"] = other.index
             if hasattr(self, "display_mode") and hasattr(other, "display_mode"):
                 if self.display_mode == "both" or other.display_mode == "both":
                     kwargs["display_mode"] = "both"
@@ -23,9 +18,7 @@ def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", op: str = None) ->
                     kwargs["display_mode"] = "density"
                 else:
                     kwargs["display_mode"] = "vector"
-        elif isinstance(other, BaseQubit):
-            if hasattr(other, "index"):
-                kwargs["index"] = other.index
+
         if hasattr(self, "skip_val") and self.skip_val == True:
             kwargs["skip_validation"] = True
         elif hasattr(other, "skip_val") and other.skip_val == True: 
@@ -40,16 +33,14 @@ def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", op: str = None) ->
 
 def copy_qubit_attr(self: "BaseQubit") -> dict:
     kwargs = {}
-    if hasattr(self, "id"):
+    if "id" not in kwargs and hasattr(self, "id"):
         kwargs["id"] = self.id
-    if hasattr(self, "history"):
+    if "history" not in kwargs and hasattr(self, "history"):
         kwargs["history"] = self.history
-    if hasattr(self, "display_mode"):
+    if "display_mode" not in kwargs and hasattr(self, "display_mode"):
         kwargs["display_mode"] = self.display_mode
-    if hasattr(self, "skip_val") and self.skip_val == True:
+    if hasattr(self, "skip_val"):
         kwargs["skip_validation"] = True
-    if hasattr(self, "index"):
-        kwargs["index"] = self.index
     logging.debug(f"Carrying over kwargs: {kwargs}")
     return kwargs
 
@@ -69,7 +60,6 @@ class BaseQubit:
         self.history = kwargs.get("history", [])
         self.state = kwargs.get("state", None)
         self.rho: list = kwargs.get("rho", None)
-        self.index = None
 
     def log_history(self, message):
         if isinstance(message, str):

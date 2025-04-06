@@ -173,7 +173,7 @@ class Qubit(BaseQubit):                                           #creates the q
         else:
             new_rho = np.trace(rho.reshape(dim_a, dim_b * dim_c, dim_a, dim_b * dim_c), axis1=0, axis2=2)
             new_rho = np.trace(new_rho.reshape(dim_b, dim_c, dim_b, dim_c), axis1=1, axis2=3)
-        kwargs = {"rho": new_rho}
+        kwargs = {"rho": new_rho, "id": None, "history": "Traced out Qubit of {self.id}"}
         kwargs.update(copy_qubit_attr(self))
         return Qubit(**kwargs)
 

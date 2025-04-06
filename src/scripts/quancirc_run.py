@@ -20,3 +20,5 @@ test_qubit = q0 % q1 % q0
 print(test_qubit)
 test_qubit_2 = q0 % q1
 print(test_qubit_2)
+print(test_qubit[1])
+print(test_qubit * 2)
