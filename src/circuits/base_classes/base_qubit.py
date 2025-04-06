@@ -54,6 +54,7 @@ def copy_qubit_attr(self: "BaseQubit", kwargs: dict=None) -> dict:
 class BaseQubit:
     qubit_counter = 0
     all_immutable_attr = ["class_type"]
+
     def __init__(self, **kwargs):
         logging.debug(f"Creating a BaseQubit instance with kwargs {kwargs}")
         self.id = kwargs.get("id", None)
@@ -66,6 +67,7 @@ class BaseQubit:
         self.display_mode = kwargs.get("display_mode", "density")
         self.state = kwargs.get("state", None)
         self.rho: list = kwargs.get("rho", None)
+        self.state_type = None
 
     def log_history(self, message):
         if isinstance(message, str):

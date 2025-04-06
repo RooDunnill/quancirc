@@ -17,7 +17,9 @@ from ..circuits.general_circuit.utilities.fwht import *
 
 
 test_qubit = q0 % q1
+test_qubit_2 = qm % qp % q0
 test_qubit = test_qubit % qm
 test_qubit = test_qubit * 2
 test_qubit[0] * 2
+test_qubit = test_qubit @ test_qubit_2
 test_qubit.print_history()

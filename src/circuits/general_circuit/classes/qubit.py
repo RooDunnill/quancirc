@@ -20,7 +20,6 @@ class Qubit(BaseQubit):                                           #creates the q
         super().__init__(**kwargs)
         object.__setattr__(self, 'class_type', 'qubit')
         self.weights: list = kwargs.get("weights", None)
-        self.state_type = None
         qubit_validation(self)
         self.rho_init()
         rho_validation(self)

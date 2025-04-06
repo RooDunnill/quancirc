@@ -37,7 +37,10 @@ logging.getLogger().handlers[0].setFormatter(SimpleFormatter())
 def log_function_call(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        logging.debug(f"Called function: {func.__name__}")
+        if func.__name__ == "__setattr__":
+            logging.debug(f"Calling function: {func.__name__} setting attribute {args[1]}")
+        else:
+            logging.debug(f"Called function: {func.__name__}")
         return func(*args, **kwargs)
     return wrapper
 
