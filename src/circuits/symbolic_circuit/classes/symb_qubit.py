@@ -14,6 +14,7 @@ class SymbQubit(BaseQuantState):
         object.__setattr__(self, 'class_type', 'symbqubit')
         object.__setattr__(self, "state_type", "Symbolic")
         super().__init__(**kwargs)
+        self.display_mode = kwargs.get("display_mode", "density")
         self.rho = sp.Matrix(self.rho) if self.rho is not None else None
         self.state = sp.Matrix(self.state) if self.state is not None else None
         self.weights = kwargs.get("weights", None)

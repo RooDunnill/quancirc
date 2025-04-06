@@ -26,7 +26,8 @@ class Qutrit(BaseQuantState):
     
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(**kwargs)
-        object.__setattr__(self, 'class_type', 'Qutrit')
+        object.__setattr__(self, 'class_type', 'qutrit')
+        self.display_mode = kwargs.get("display_mode", "ind_qub")
         self.weights: list = kwargs.get("weights", None)
         qutrit_validation(self)
         self.rho_init()

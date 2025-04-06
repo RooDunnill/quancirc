@@ -118,11 +118,14 @@ def gate_validation(gate) -> None:
             gate_check = gate_adjoint.dot(gate.matrix)
             diag_elements = gate_check.diagonal()  
             if not np.all(np.isclose(np.abs(diag_elements), 1.0, atol=1e-4)):
+                logging.critical(f"Gate:\n{gate.matrix}")
+                logging.critical(f"Gate Check:\n{gate_check}")
                 raise GateError(f"This gate is not unitary {gate.matrix}")
         else:
             gate_check = np.dot(np.conj(gate.matrix.T), gate.matrix)
             if not np.all(np.isclose(np.diag(gate_check),1.0, atol=1e-4)):
-                logging.critical(f"Gate Check: {gate_check}")
+                logging.critical(f"Gate:\n{gate.matrix}")
+                logging.critical(f"Gate Check:\n{gate_check}")
                 raise GateError(f"This gate is not unitary {gate.matrix}")
         logging.debug(f"Ending detailed Gate validation of {gate.name}")
     logging.debug(f"Ending Gate validation of {gate.name}")

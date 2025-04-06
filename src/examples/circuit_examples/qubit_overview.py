@@ -41,6 +41,11 @@ def qubit_overview():
     demo_display_qub.set_display_mode("both")
     print(f"And for max detail we can set it as seen to obtain:")
     print(demo_display_qub)
+    print(f"The final and newest print mode is 'ind_qub', standing for individual qubit, and ironically is most used for qutrits")
+    print(f"This allows for each qubit/qutrit to be printed on their own, which for qutrits especially is useful as at only 3 qutrits,")
+    print(f"The printout gets really large")
+    demo_display_qub.set_display_mode("ind_qub")
+    print("\n")
 
 
     print(f"Matrix Multiplication".center(linewid, "-"))
@@ -75,6 +80,8 @@ def qubit_overview():
     print(f"Direct Sum:")
     print(demo_qubit_4_1 & demo_qubit_4_2)
     print(f"Sum examples of uses are subtraction for Trace Distance calculations or multiplication for Mixed state creation")
+    print("\n")
+
 
     print(f"Creating Mixed States".center(linewid, "-"))
     print(f"There are several ways to make mixed states, the first way is by defining a qubit instance as mixed:")
@@ -90,6 +97,7 @@ def qubit_overview():
     print(f"To create multi-qubit systems from pre-existing states")
     print(f"As you can also see in the print, the type 'Mixed' is shown when these are printed too, and if say by using a channel, a state goes from pure to mixed,")
     print(f"That will be updated accordingly. Mixed states can only be printed in 'density' mode")
+    print("\n")
 
     print(f"Indexing and isolating Qubits".center(linewid, "-"))
     print(f"When we have large quantum states, sometimes we would like to look at individual qubits")
@@ -110,6 +118,7 @@ def qubit_overview():
     print(f"As you can see, we applied the Hadamard gate to just one of the qubits and then put it back into the state")
     print(f"Now if we print the whole state, we will see that it has changed:")
     print(demo_qubit_6)
+    print("\n")
 
     print(f"General Information".center(linewid, "-"))
     print(f"If you ever need debugging information for your quantum state, you can call the method debug() to display all the attributes of the state and other useful information")

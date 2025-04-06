@@ -65,7 +65,7 @@ class BaseQuantState(ABC):
             BaseQuantState.qubit_counter += 1
         self.history = kwargs.get("history", [])
         self.skip_val = kwargs.get("skip_val", False)
-        self.display_mode = kwargs.get("display_mode", "density")
+        
         self.state = kwargs.get("state", None)
         self.rho: list = kwargs.get("rho", None)
         self.state_type = None
@@ -87,7 +87,9 @@ class BaseQuantState(ABC):
         rho = dense_mat(self.rho)
         rho_str = np.array2string(rho, precision=p_prec, separator=', ', suppress_small=True)
         if self.display_mode == "density":
-            return f"Q{self.id}:\n{self.state_type}\n{rho_str}" 
+            return f"Q{self.id}:\n{self.state_type}\n{rho_str}"
+        elif self.display_mode == "ind_qub":
+            return '\n'.join([f"Q{self.id} ({i}):\n{self[i].rho}" for i in range(self.n)])
         state_print = self.build_state_from_rho()
         if isinstance(state_print, tuple):
             raise BaseStatePreparationError(f"The state vector of a pure state cannot be a tuple")
@@ -144,7 +146,7 @@ class BaseQuantState(ABC):
         
     def set_display_mode(self: "BaseQuantState", mode: str) -> None:
         """Sets the display mode between the three options, returns type None"""
-        if mode not in ["vector", "density", "both"]:
+        if mode not in ["vector", "density", "both", "ind_qub"]:
             raise BaseQuantumStateError(f"The display mode must be set in 'vector', 'density' or 'both'")
         non_vector_state_types = ["Mixed", "Non-Unitary"]
         if self.state_type in non_vector_state_types and mode != "density":

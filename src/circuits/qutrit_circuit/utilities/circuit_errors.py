@@ -11,3 +11,9 @@ class QutritStatePreparationError(QC_error):
     def __init__(self, message="Invalid State Preparation Operation"):
         self.message = message
         super().__init__(self.message)
+
+class QutritGateError(QC_error):
+    """Error related to quantum qutrit gates and their operations"""
+    def __init__(self, message="Invalid qutrit gate operation"):
+        self.message = message
+        super().__init__(self.message)

@@ -21,6 +21,7 @@ class Qubit(BaseQuantState):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(**kwargs)
         object.__setattr__(self, 'class_type', 'qubit')
+        self.display_mode = kwargs.get("display_mode", "density")
         self.weights: list = kwargs.get("weights", None)
         qubit_validation(self)
         self.rho_init()

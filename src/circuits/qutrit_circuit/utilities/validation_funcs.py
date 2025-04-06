@@ -81,3 +81,42 @@ def rho_validation(state):
                 raise QutritStatePreparationError(f"Density matrix is not positive semi-definite. "
                                     f"Negative eigenvalues found at indices {negative_indices}")
         logging.debug(f"Ending rho matrix validation")
+
+
+def gate_validation(gate) -> None:
+    logging.debug(f"Starting Gate validation of {gate.name}")
+    if not isinstance(gate.name, str):
+        raise QutritQutritGateError(f"self.name cannot be of type: {type(gate.name)}, expected type str")
+    if gate.matrix is None:
+        raise QutritGateError(f"Gates can only be initialised if they are provided with a matrix")
+    if sparse.issparse(gate.matrix) or isinstance(gate.matrix[0], sparse.spmatrix):
+        gate.matrix = sparse.csr_matrix(gate.matrix, dtype=np.complex128)
+        logging.debug(f"Redefining Gate matrix as a sparse csr matrix")
+    elif isinstance(gate.matrix, (list, np.ndarray)):
+        gate.matrix = np.array(gate.matrix, dtype=np.complex128)
+        logging.debug(f"Redefining Gate matrix as a numpy array")
+    else:
+        raise QutritGateError(f"The gate cannot be of type: {type(gate.matrix)}, expected type list or np.ndarray")
+    
+    if gate.skip_val == False:
+        logging.debug(f"Starting detailed Gate validation of {gate.name}")
+        if np.size(gate.matrix) != 1:
+            if gate.matrix.shape[0] != gate.matrix.shape[1]:
+                raise QutritGateError(f"All gates must be of a square shape. This gate has shape {gate.matrix.shape[0]} x {gate.matrix.shape[1]}")
+        if sparse.issparse(gate.matrix):
+            gate_adjoint = gate.matrix.T
+            gate_check = gate_adjoint.dot(gate.matrix)
+            diag_elements = gate_check.diagonal()  
+            if not np.all(np.isclose(np.abs(diag_elements), 1.0, atol=1e-4)):
+                logging.critical(f"Gate:\n{gate.matrix}")
+                logging.critical(f"Gate Check:\n{gate_check}")
+                raise QutritGateError(f"This gate is not unitary {gate.matrix}")
+        else:
+            gate_check = np.dot(np.conj(gate.matrix.T), gate.matrix)
+            if not np.all(np.isclose(np.diag(gate_check),1.0, atol=1e-4)):
+                logging.critical(f"Gate:\n{gate.matrix}")
+                logging.critical(f"Gate Check:\n{gate_check}")
+                raise QutritGateError(f"This gate is not unitary {gate.matrix}")
+        logging.debug(f"Ending detailed Gate validation of {gate.name}")
+    logging.debug(f"Ending Gate validation of {gate.name}")
+        

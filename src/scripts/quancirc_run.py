@@ -29,3 +29,8 @@ test_qubit_2 = q0 % q1 % qp
 test_qubit_2.print_history()
 print(test_qubit_2 * 10)
 test_qubit_2.print_history()
+print(test_qutrit_2 @ test_qutrit_2)
+test_qubit_2.set_display_mode("ind_qub")
+print(test_qubit_2)
+test_gate = QutritGate.gm1(np.pi/2)
+print(test_gate @ test_qutrit)

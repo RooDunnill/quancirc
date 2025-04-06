@@ -14,7 +14,7 @@ dense_limit: int = 24000                                  #will always be sparse
 sparse_matrix_threshold: float = 0.9                 #fraction of non-zeros for the matrix to be able to convert to sparse
 sparse_array_threshold: float = 0.9                  #fraction of non-zeros for the array to be able to convert to sparse
 name_limit: int = 50                                      #the character limit of qubits and gates
-logging_level = logging.DEBUG                        #chooses the detail for logging, use DEBUG for everything, INFO to avoid degubbing logs and CRITICAL to turn off
+logging_level = logging.INFO                         #chooses the detail for logging, use DEBUG for everything, INFO to avoid degubbing logs and CRITICAL to turn off
 set_printoptions(precision=p_prec, suppress=True, floatmode="fixed")
 set_printoptions(linewidth=linewid)
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
