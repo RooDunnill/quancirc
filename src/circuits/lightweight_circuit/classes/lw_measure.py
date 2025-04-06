@@ -6,7 +6,7 @@ from .lw_qubit import *
 from ..utilities.validation_funcs import lw_measure_validation
 from ...circuit_utilities.sparse_funcs import dense_mat
 from ...circuit_utilities.layout_funcs import *
-from ...general_circuit.classes.qubit import copy_qubit_attr
+from ...general_circuit.classes.qubit import copy_quant_state_attr
 
 __all__ = ["LwMeasure"]
 
@@ -36,7 +36,7 @@ class LwMeasure:
             post_measurement_vector = np.zeros((self.state.dim), dtype=np.complex128)
             post_measurement_vector[measurement] = 1
             kwargs = {"state": post_measurement_vector}
-            kwargs.update(copy_qubit_attr(self))
+            kwargs.update(copy_quant_state_attr(self))
             self.collapsed = True
             return LwQubit(**kwargs)
 

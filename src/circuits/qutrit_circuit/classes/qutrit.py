@@ -5,6 +5,7 @@ from scipy.sparse.linalg import eigsh
 from ...base_classes.base_quant_state import *
 from ..static_methods.qutrit_methods import *
 from ...circuit_utilities.sparse_funcs import *
+from ..utilities.validation_funcs import qutrit_validation, rho_validation
 from ...circuit_config import *
 from ..utilities.circuit_errors import QutritStateError, QutritStatePreparationError
 from ...base_classes.base_quant_state import copy_quant_state_attr, combine_quant_state_attr
@@ -27,7 +28,9 @@ class Qutrit(BaseQuantState):
         super().__init__(**kwargs)
         object.__setattr__(self, 'class_type', 'Qutrit')
         self.weights: list = kwargs.get("weights", None)
+        qutrit_validation(self)
         self.rho_init()
+        rho_validation(self)
         self.set_state_type()
         self.dim = self.rho.shape[0]
         self.length = self.dim ** 2

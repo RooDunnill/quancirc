@@ -40,13 +40,13 @@ def combine_quant_state_attr(self: "BaseQuantState", other: "BaseQuantState", kw
 def copy_quant_state_attr(self: "BaseQuantState", kwargs: dict=None) -> dict:
     kwargs = {} if kwargs==None else kwargs
     if "id" not in kwargs and hasattr(self, "id") and isinstance(self.id, int):
-        kwargs["id"] = self.id
+        kwargs["id"] = copy.deepcopy(self.id)
         if "history" not in kwargs and hasattr(self, "history"):
-            kwargs["history"] = self.history
+            kwargs["history"] = copy.deepcopy(self.history)
     if "display_mode" not in kwargs and hasattr(self, "display_mode"):
-        kwargs["display_mode"] = self.display_mode
-    if "skip_val" not in kwargs and hasattr(self, "skip_val"):
-        kwargs["skip_val"] = self.skip_val
+        kwargs["display_mode"] = copy.deepcopy(self.display_mode)
+    if "skip_val" not in kwargs and hasattr(self, "skip_val") and self.skip_val == True:
+        kwargs["skip_val"] = True   #avoids deepcopy
     logging.debug(f"Carrying over kwargs: {kwargs}")
     return kwargs
 
@@ -84,11 +84,11 @@ class BaseQuantState(ABC):
             logging.info(f"- {entry}")
 
     def __str__(self: "BaseQuantState") -> str:
-        rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
+        rho = dense_mat(self.rho)
         rho_str = np.array2string(rho, precision=p_prec, separator=', ', suppress_small=True)
         if self.display_mode == "density":
             return f"Q{self.id}:\n{self.state_type}\n{rho_str}" 
-        state_print = self.build_state_from_rho() if self.class_type == "qubit" else self.state
+        state_print = self.build_state_from_rho()
         if isinstance(state_print, tuple):
             raise BaseStatePreparationError(f"The state vector of a pure state cannot be a tuple")
         state_str = np.array2string(dense_mat(state_print), precision=p_prec, separator=', ', suppress_small=True)

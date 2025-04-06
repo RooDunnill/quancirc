@@ -16,4 +16,16 @@ from ..circuits.general_circuit.utilities.fwht import *
 
 
 
-test_qutrit = Qutrit()
+test_qutrit = Qutrit(state=[1,0,0])
+print(test_qutrit)
+print(qt1 % qt2)
+test_qutrit_2 = qt0 % qt1 % qt2
+print(test_qutrit_2[1])
+print(test_qutrit_2[0:2])
+test_qutrit_2.print_history()
+print(test_qutrit_2 * 10)
+test_qutrit_2.print_history()
+test_qubit_2 = q0 % q1 % qp
+test_qubit_2.print_history()
+print(test_qubit_2 * 10)
+test_qubit_2.print_history()
