@@ -60,7 +60,7 @@ class Qubit(BaseQubit):                                           #creates the q
 
     def __mod__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Tensor product among two Qubit objects, returns a Qubit object"""
-        self.log_history(f"Tensored with state {other.name}")
+        self.log_history(f"Tensored with state {other.id}")
         if isinstance(other, Qubit):
             rho_1, rho_2 = auto_choose(self.rho, other.rho, tensor=True)
             if sparse.issparse(rho_1):
@@ -74,7 +74,7 @@ class Qubit(BaseQubit):                                           #creates the q
     
     def __matmul__(self: "Qubit", other: "Qubit") -> "Qubit":     
         """Matrix multiplication between two Qubit objects, returns a Qubit object"""
-        self.log_history(f"Matrix multiplied with {other.name}")
+        self.log_history(f"Matrix multiplied with {other.id}")
         if isinstance(other, Qubit):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
             if sparse.issparse(rho_1):
@@ -100,7 +100,7 @@ class Qubit(BaseQubit):                                           #creates the q
 
     def __and__(self: "Qubit", other: "Qubit") -> "Qubit":
         """Direct sum of two Qubit rho matrices, returns a Qubit object"""
-        self.log_history(f"Direct summed with state {other.name}")
+        self.log_history(f"Direct summed with state {other.id}")
         if isinstance(other, Qubit):
             self.rho = dense_mat(self.rho)
             other.rho = dense_mat(other.rho)

@@ -209,7 +209,6 @@ class Circuit(BaseCircuit):
         elif isinstance(index, list): 
             indices = index
         qubit_state = self.qubit_array[index][qubit]
-        old_name = qubit_state.name
         kraus_ops = self.single_kraus_generator(channel, prob)
         kraus_validation(kraus_ops)
         epsilon_rho = np.zeros((2, 2), dtype=np.complex128)
@@ -218,7 +217,7 @@ class Circuit(BaseCircuit):
         for k in kraus_ops:
             k_applied = k @ qubit_state
             epsilon += k_applied
-        kwargs = {"rho": epsilon.rho, "skip_validation": False, "name": f"{channel} channel applied to {old_name}"}
+        kwargs = {"rho": epsilon.rho, "skip_validation": False}
         qubit_state = Qubit(**kwargs)
         self.qubit_array[index][qubit] = qubit_state
         return self.qubit_array

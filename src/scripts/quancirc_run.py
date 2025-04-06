@@ -16,7 +16,7 @@ from ..circuits.general_circuit.utilities.fwht import *
 
 
 
-test_qubit = q0 % q1 % qm % qp
-print(test_qubit[0:2])
-print(test_qubit[1:3])
-print(test_qubit[2:4])
+test_qubit = q0 % q1 % q0
+print(test_qubit)
+test_qubit_2 = q0 % q1
+print(test_qubit_2)

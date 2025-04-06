@@ -26,7 +26,7 @@ class QuantInfo:
     @staticmethod
     def qubit_info(qub: Qubit, title=True) -> str:
         logging.info("-" * linewid)
-        logging.info(f"Qubit {qub.name} OVERVIEW") if qub.name else logging.info(f"Qubit Overview")
+        logging.info(f"Qubit {qub.id} OVERVIEW")
         logging.info(f"Purity of qubit: {QuantInfo.purity(qub):.{p_prec}f}")
         logging.info(f"Linear Entropy of qubit: {QuantInfo.linear_entropy(qub):.{p_prec}f}")
         logging.info(f"Von Neumann entropy of qubit: {QuantInfo.vn_entropy(qub):.{p_prec}f}")
@@ -61,16 +61,13 @@ class QuantInfo:
     def two_state_info(state_1: Qubit, state_2: Qubit) -> str:
         logging.info("-" * linewid)
         logging.info(f"QUANTUM INFORMATION OF TWO STATES OVERVIEW")
-        logging.info(f"\nIndividual Info for {state_1.name}:") if state_1.name else logging.info(f"\nIndividual Info for State 1:")
+        logging.info(f"\nIndividual Info for {state_1.id}:")
         logging.info("-" * int(linewid/2))
         QuantInfo.state_info(state_1, title=False)
-        logging.info(f"\nIndividual Info for {state_2.name}:") if state_2.name else logging.info(f"\nIndividual Info for State 2:")
+        logging.info(f"\nIndividual Info for {state_2.id}:")
         logging.info("-" * int(linewid/2))
         QuantInfo.state_info(state_2, title=False)
-        if state_1.name and state_2.name:
-            logging.info(f"\nInfo for the states {state_1.name} and {state_2.name} together:")
-        else:
-            logging.info(f"\nInfo for State 1 and State 2 together:")
+        logging.info(f"\nInfo for the states {state_1.id} and {state_2.id} together:")
         logging.info("-" * int(linewid/2))
         logging.info(f"Fidelity: {QuantInfo.fidelity(state_1, state_2):.{p_prec}f}")
         logging.info(f"Trace Distance: {QuantInfo.trace_distance(state_1, state_2):.{p_prec}f}")

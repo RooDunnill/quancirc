@@ -9,7 +9,7 @@ from .circuit_errors import *
 
 def qubit_validation(state) -> None:
     """Checks if a density matrix is valid in __init__, returns type None"""
-    logging.debug(f"Running Qubit validation of {state.name}")
+    logging.debug(f"Running Qubit validation of {state.id}")
     if state.state is not None:
         if isinstance(state.state, (list, np.ndarray)):
             state.state = np.array(state.state, dtype=np.complex128)
@@ -30,9 +30,7 @@ def qubit_validation(state) -> None:
         raise StatePreparationError(f"The inputted self.skip_val cannot be of type {type(state.skip_val)}, expected type bool")
     
     if not state.skip_val:
-        logging.debug(f"Starting detailed Qubit validation of {state.name}")
-        if not isinstance(state.name, str):
-            raise StatePreparationError(f"The inputted self.name cannot be of type {type(state.name)}, expected type str")
+        logging.debug(f"Starting detailed Qubit validation of {state.id}")
         if not isinstance(state.display_mode, str):
             raise StatePreparationError(f"The inputted self.display_mode cannot be of type {type(state.display_mode)}, expected type str")
         if state.weights is not None:
@@ -46,8 +44,8 @@ def qubit_validation(state) -> None:
             sum_check = np.dot(state.state , np.conj(state.state))
             if not np.isclose(sum_check, 1.0, atol=1e-4):
                 raise StatePreparationError(f"The absolute square of the elements of the state must sum to 1, not to {sum_check}")
-        logging.debug(f"Finished detailed Qubit validation of {state.name}")
-    logging.debug(f"Finished Qubit validation of {state.name}")
+        logging.debug(f"Finished detailed Qubit validation of {state.id}")
+    logging.debug(f"Finished Qubit validation of {state.id}")
             
 def qubit_array_validation(array) -> None:
     logging.debug(f"Starting QubitArray validation of {array.name}")

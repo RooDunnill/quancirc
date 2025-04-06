@@ -24,7 +24,7 @@ class SymbQubit(BaseQubit):
 
 
     def __str__(self):
-        return f"{self.name}:\n{self.rho}"
+        return f"{self.id}:\n{self.rho}"
     
     def __setattr__(self: "SymbQubit", name: str, value) -> None:
         super().__setattr__(name, value)

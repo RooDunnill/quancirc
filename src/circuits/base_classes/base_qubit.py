@@ -10,22 +10,6 @@ __all__ = ["BaseQubit"]
 def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", op: str = None) -> dict:
         """Allows the returned objects to still return name and info too"""
         kwargs = {}
-        if hasattr(self, "name") and hasattr(other, "name"):   #takes the name of the two objects and combines them accordingly
-            if op == "%":
-                self_name_size = int(np.log2(self.dim))
-                other_name_size = int(np.log2(other.dim))
-                new_name = f"|{self.name[1:self_name_size+1]}{other.name[1:other_name_size+1]}>"
-                kwargs["name"] = new_name
-            elif op == "@":
-                new_name = f"{self.name} {other.name}"
-                kwargs["name"] = new_name
-            elif op:
-                new_name = f"{self.name} {op} {other.name}"
-            else:
-                new_name = f"{self.name}"
-            if len(new_name) > name_limit:
-                new_name = new_name[len(new_name) - name_limit:]
-            kwargs["name"] = new_name
         if isinstance(self, BaseQubit) and isinstance(other, BaseQubit):
             if isinstance(self.index, int) != isinstance(other.index, int):
                 if isinstance(self.index, int):
@@ -48,6 +32,10 @@ def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", op: str = None) ->
             kwargs["skip_validation"] = True
         if hasattr(self, "history"):
             kwargs["history"] = self.history
+        premade_qubit_ids = ["|0>", "|1>", "|+>", "|->", "|i>", "|-i>"]
+        if hasattr(self, "id") and self.id not in premade_qubit_ids:
+            kwargs["id"] = self.id
+        logging.debug(f"Carrying over kwargs: {kwargs}")
         return kwargs
 
 def copy_qubit_attr(self: "BaseQubit") -> dict:
@@ -56,14 +44,13 @@ def copy_qubit_attr(self: "BaseQubit") -> dict:
         kwargs["id"] = self.id
     if hasattr(self, "history"):
         kwargs["history"] = self.history
-    if hasattr(self, "name"):
-        kwargs["name"] = self.name
     if hasattr(self, "display_mode"):
         kwargs["display_mode"] = self.display_mode
     if hasattr(self, "skip_val") and self.skip_val == True:
         kwargs["skip_validation"] = True
     if hasattr(self, "index"):
         kwargs["index"] = self.index
+    logging.debug(f"Carrying over kwargs: {kwargs}")
     return kwargs
 
 
@@ -74,11 +61,11 @@ class BaseQubit:
     def __init__(self, **kwargs):
         self.id = kwargs.get("id", None)
         if self.id is None:
+            logging.debug(f"Creating a new qubit with ID {BaseQubit.qubit_counter}")
             self.id = BaseQubit.qubit_counter
             BaseQubit.qubit_counter += 1
         self.skip_val = kwargs.get("skip_validation", False)
         self.display_mode = kwargs.get("display_mode", "density")
-        self.name: str = kwargs.get("name","|\u03C8>")
         self.history = kwargs.get("history", [])
         self.state = kwargs.get("state", None)
         self.rho: list = kwargs.get("rho", None)
@@ -91,25 +78,23 @@ class BaseQubit:
             raise BaseQuantumStateError(f"message cannot be of type {type(message)}, expected type str")
         
     def print_history(self):
-        logging.info(f"Qubit {self.name} History")
+        logging.info(f"Qubit {self.id} History")
         for entry in self.history:
             logging.info(f"- {entry}")
 
     def __str__(self: "BaseQubit") -> str:
         rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
         rho_str = np.array2string(rho, precision=p_prec, separator=', ', suppress_small=True)
-        if not self.name:
-            self.name = f"{self.state_type} {self.class_type}"
         if self.display_mode == "density":
-            return f"Q{self.id} {self.state_type} {self.name}\n{rho_str}" 
+            return f"Q{self.id}:\n{self.state_type}\n{rho_str}" 
         state_print = self.build_state_from_rho() if self.class_type == "qubit" else self.state
         if isinstance(state_print, tuple):
             raise BaseStatePreparationError(f"The state vector of a pure state cannot be a tuple")
         state_str = np.array2string(dense_mat(state_print), precision=p_prec, separator=', ', suppress_small=True)
         if self.display_mode == "vector":
-            return f"Q{self.id} {self.name}:\n{state_str}"
+            return f"Q{self.id}:\n{state_str}"
         elif self.display_mode == "both":
-            return f"Q{self.id} {self.name}\nState:\n{state_str}\nRho:\n{rho_str}"
+            return f"Q{self.id}:\nState:\n{state_str}\nRho:\n{rho_str}"
         
     def __setattr__(self: "BaseQubit", name: str, value) -> None:
         if name == "immutable":
