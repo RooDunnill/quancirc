@@ -9,7 +9,6 @@ class BaseCircuit:
         self.name = kwargs.get("name", "Quantum Circuit")
 
 
-
     def set_display_mode(self, mode: str) -> None:
         """Sets the display mode between the three options, returns type None"""
         if mode not in ["vector", "density", "both"]:

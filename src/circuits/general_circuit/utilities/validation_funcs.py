@@ -31,8 +31,6 @@ def qubit_validation(state) -> None:
     
     if state.skip_val == False:
         logging.debug(f"Starting detailed Qubit validation of {state.id}")
-        if not isinstance(state.display_mode, str):
-            raise StatePreparationError(f"The inputted self.display_mode cannot be of type {type(state.display_mode)}, expected type str")
         if state.weights is not None:
             if not np.isrealobj(state.weights):
                 raise StatePreparationError(f"self.weights must be made up of real numbers as it is the probabilities of specific states")

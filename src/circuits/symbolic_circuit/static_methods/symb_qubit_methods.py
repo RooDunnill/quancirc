@@ -12,14 +12,12 @@ def gen_state(cls, **kwargs):
 def q0_state(cls, **kwargs):
     """The |0> Qubit"""
     q0_vector = sp.Matrix([1,0])
-    q0_name = f"|0>"
-    return cls(id=q0_name, state=q0_vector)
+    return cls(id="|0>", state=q0_vector)
 
 def q1_state(cls, **kwargs):
     """The |1> Qubit"""
     q1_vector = sp.Matrix([0,1])
-    q1_name = f"|1>"
-    return cls(id=q1_name, state=q1_vector)
+    return cls(id="|1>", state=q1_vector)
 
 def qp_state(cls):
     """The |+> Qubit"""
