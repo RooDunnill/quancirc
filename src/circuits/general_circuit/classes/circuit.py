@@ -43,14 +43,13 @@ class Circuit(BaseCircuit):
 
             
     def __str__(self):
-        logging.info
         return f"{self.qubit_array}\n{self.prob_distribution}" if self.prob_distribution is not None else f"{self.qubit_array}"
     
     def __getitem__(self, index: int) -> list:
         """Gets the qubit of that index  of the qubit array and returns"""
         if index < len(self.qubit_array):
             if self.verbose:
-                print(f"Retreiving index {index} from the qubit array:")
+                logging.info(f"Retreiving index {index} from the qubit array:")
             logging.debug(f"Retreiving index {index} of the Qubit Array")
             return self.qubit_array[index]
         else:

@@ -15,20 +15,8 @@ from ..circuits.general_circuit.utilities.fwht import *
 
 
 
-test = Circuit(states=2, q=2)
-test.apply_gate(Hadamard, qubit=0)
-test.apply_gate(Hadamard, index=1, qubit=1)
-qubit_array = QubitArray(q=4)
-test_2 = Circuit()
-print(test_2.qubit_array)
-test_2.upload_qubit_array(qubit_array)
-test_2.print_state()
-print("\n")
-print(test_2.qubit_array)
-print(len(qubit_array))
-test_2.measure_states(index=1)
 
-
-test_qub = Qubit.q0(n=4)
-print(test_qub[0:3])
-test_qub.debug()
+test_qubit = q0 % q1 % qm % qp
+print(test_qubit[0:2])
+print(test_qubit[1:3])
+print(test_qubit[2:4])

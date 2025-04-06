@@ -46,10 +46,16 @@ def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", op: str = None) ->
             kwargs["skip_validation"] = True
         elif hasattr(other, "skip_val") and other.skip_val == True: 
             kwargs["skip_validation"] = True
+        if hasattr(self, "history"):
+            kwargs["history"] = self.history
         return kwargs
 
 def copy_qubit_attr(self: "BaseQubit") -> dict:
     kwargs = {}
+    if hasattr(self, "id"):
+        kwargs["id"] = self.id
+    if hasattr(self, "history"):
+        kwargs["history"] = self.history
     if hasattr(self, "name"):
         kwargs["name"] = self.name
     if hasattr(self, "display_mode"):
@@ -63,13 +69,31 @@ def copy_qubit_attr(self: "BaseQubit") -> dict:
 
 @log_all_methods
 class BaseQubit:
+    qubit_counter = 0
     all_immutable_attr = ["class_type"]
     def __init__(self, **kwargs):
+        self.id = kwargs.get("id", None)
+        if self.id is None:
+            self.id = BaseQubit.qubit_counter
+            BaseQubit.qubit_counter += 1
         self.skip_val = kwargs.get("skip_validation", False)
         self.display_mode = kwargs.get("display_mode", "density")
         self.name: str = kwargs.get("name","|\u03C8>")
+        self.history = kwargs.get("history", [])
         self.state = kwargs.get("state", None)
+        self.rho: list = kwargs.get("rho", None)
         self.index = None
+
+    def log_history(self, message):
+        if isinstance(message, str):
+            self.history.append(message)
+        else:
+            raise BaseQuantumStateError(f"message cannot be of type {type(message)}, expected type str")
+        
+    def print_history(self):
+        logging.info(f"Qubit {self.name} History")
+        for entry in self.history:
+            logging.info(f"- {entry}")
 
     def __str__(self: "BaseQubit") -> str:
         rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
@@ -77,15 +101,15 @@ class BaseQubit:
         if not self.name:
             self.name = f"{self.state_type} {self.class_type}"
         if self.display_mode == "density":
-            return f"{self.state_type} {self.name}\n{rho_str}" 
+            return f"Q{self.id} {self.state_type} {self.name}\n{rho_str}" 
         state_print = self.build_state_from_rho() if self.class_type == "qubit" else self.state
         if isinstance(state_print, tuple):
             raise BaseStatePreparationError(f"The state vector of a pure state cannot be a tuple")
         state_str = np.array2string(dense_mat(state_print), precision=p_prec, separator=', ', suppress_small=True)
         if self.display_mode == "vector":
-            return f"{self.name}:\n{state_str}"
+            return f"Q{self.id} {self.name}:\n{state_str}"
         elif self.display_mode == "both":
-            return f"{self.name}\nState:\n{state_str}\nRho:\n{rho_str}"
+            return f"Q{self.id} {self.name}\nState:\n{state_str}\nRho:\n{rho_str}"
         
     def __setattr__(self: "BaseQubit", name: str, value) -> None:
         if name == "immutable":
