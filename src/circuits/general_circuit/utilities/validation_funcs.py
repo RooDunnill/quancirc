@@ -29,7 +29,7 @@ def qubit_validation(state) -> None:
     if not isinstance(state.skip_val, bool):
         raise StatePreparationError(f"The inputted self.skip_val cannot be of type {type(state.skip_val)}, expected type bool")
     
-    if not state.skip_val:
+    if state.skip_val == False:
         logging.debug(f"Starting detailed Qubit validation of {state.id}")
         if not isinstance(state.display_mode, str):
             raise StatePreparationError(f"The inputted self.display_mode cannot be of type {type(state.display_mode)}, expected type str")
@@ -68,7 +68,7 @@ def rho_validation(state):
         state.rho = dense_mat(state.rho)
     else:
         raise StatePreparationError(f"The inputted self.rho cannot be of type {type(state.rho)}, expected type list or type np.ndarray")
-    if not state.skip_val:
+    if state.skip_val == False:
         logging.debug(f"Starting detailed rho matrix validation")
         if sparse.issparse(state.rho):
             diff = state.rho - state.rho.getH()
@@ -110,7 +110,7 @@ def gate_validation(gate) -> None:
     else:
         raise GateError(f"The gate cannot be of type: {type(gate.matrix)}, expected type list or np.ndarray")
     
-    if not gate.skip_val:
+    if gate.skip_val == False:
         logging.debug(f"Starting detailed Gate validation of {gate.name}")
         if np.size(gate.matrix) != 1:
             if gate.matrix.shape[0] != gate.matrix.shape[1]:

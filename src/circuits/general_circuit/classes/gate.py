@@ -99,7 +99,7 @@ class Gate(BaseGate):
             else:
                 new_rho = np.dot(np.dot(mat_1, rho_2), np.conj(mat_1.T))
             kwargs = {"rho": new_rho}
-            kwargs.update(combine_qubit_attr(self, other, op = "@"))
+            kwargs.update(combine_qubit_attr(self, other, kwargs))
             return other.__class__(**kwargs)
         elif other.class_type == "lwqubit":
             mat_1 = convert_to_sparse(self.matrix)
@@ -111,7 +111,7 @@ class Gate(BaseGate):
                 vec_2 = dense_mat(other.state)
                 new_vec = np.dot(mat_1, vec_2)
             kwargs = {"state":new_vec}
-            kwargs.update(combine_qubit_attr(self, other, op = "@"))
+            kwargs.update(combine_qubit_attr(self, other, kwargs))
             return other.__class__(**kwargs)
         raise GateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
 

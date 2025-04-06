@@ -7,9 +7,9 @@ from ..circuit_utilities.sparse_funcs import *
 __all__ = ["BaseQubit"]
 
 
-def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", op: str = None) -> dict:
+def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", kwargs: dict=None) -> dict:
         """Allows the returned objects to still return name and info too"""
-        kwargs = {}
+        kwargs = {} if kwargs==None else kwargs
         if isinstance(self, BaseQubit) and isinstance(other, BaseQubit):
             if hasattr(self, "display_mode") and hasattr(other, "display_mode"):
                 if self.display_mode == "both" or other.display_mode == "both":
@@ -20,9 +20,9 @@ def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", op: str = None) ->
                     kwargs["display_mode"] = "vector"
 
         if hasattr(self, "skip_val") and self.skip_val == True:
-            kwargs["skip_validation"] = True
+            kwargs["skip_val"] = True
         elif hasattr(other, "skip_val") and other.skip_val == True: 
-            kwargs["skip_validation"] = True
+            kwargs["skip_val"] = True
         if hasattr(self, "history"):
             kwargs["history"] = self.history
         premade_qubit_ids = ["|0>", "|1>", "|+>", "|->", "|i>", "|-i>"]
@@ -31,16 +31,17 @@ def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", op: str = None) ->
         logging.debug(f"Carrying over kwargs: {kwargs}")
         return kwargs
 
-def copy_qubit_attr(self: "BaseQubit") -> dict:
-    kwargs = {}
+def copy_qubit_attr(self: "BaseQubit", kwargs: dict=None) -> dict:
+    kwargs = {} if kwargs==None else kwargs
     if "id" not in kwargs and hasattr(self, "id"):
         kwargs["id"] = self.id
     if "history" not in kwargs and hasattr(self, "history"):
         kwargs["history"] = self.history
     if "display_mode" not in kwargs and hasattr(self, "display_mode"):
         kwargs["display_mode"] = self.display_mode
-    if hasattr(self, "skip_val"):
-        kwargs["skip_validation"] = True
+    if "skip_val" not in kwargs and hasattr(self, "skip_val"):
+        print("testttttttttttttttt")
+        kwargs["skip_val"] = self.skip_val
     logging.debug(f"Carrying over kwargs: {kwargs}")
     return kwargs
 
@@ -50,12 +51,13 @@ class BaseQubit:
     qubit_counter = 0
     all_immutable_attr = ["class_type"]
     def __init__(self, **kwargs):
+        logging.debug(f"Creating a BaseQubit instance with kwargs {kwargs}")
         self.id = kwargs.get("id", None)
         if self.id is None:
             logging.debug(f"Creating a new qubit with ID {BaseQubit.qubit_counter}")
             self.id = BaseQubit.qubit_counter
             BaseQubit.qubit_counter += 1
-        self.skip_val = kwargs.get("skip_validation", False)
+        self.skip_val = kwargs.get("skip_val", False)
         self.display_mode = kwargs.get("display_mode", "density")
         self.history = kwargs.get("history", [])
         self.state = kwargs.get("state", None)
@@ -152,8 +154,8 @@ class BaseQubit:
     def __mul__(self: "BaseQubit", other: int | float) -> "BaseQubit":
         if isinstance(other, (int, float)):
             new_rho = self.rho * other
-            kwargs = {"rho": new_rho, "skip_validation": True}
-            kwargs.update(copy_qubit_attr(self))
+            kwargs = {"rho": new_rho, "skip_val": True}
+            kwargs.update(copy_qubit_attr(self, kwargs))
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
@@ -169,8 +171,8 @@ class BaseQubit:
     def __truediv__(self: "BaseQubit", other: int | float) -> "BaseQubit":
         if isinstance(other, (int, float)):
             new_rho = self.rho / other
-            kwargs = {"rho": new_rho, "skip_validation": True}
-            kwargs.update(copy_qubit_attr(self))
+            kwargs = {"rho": new_rho, "skip_val": True}
+            kwargs.update(copy_qubit_attr(self, kwargs))
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
@@ -186,8 +188,8 @@ class BaseQubit:
         if isinstance(other, BaseQubit):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
             new_rho = rho_1 - rho_2
-            kwargs = {"rho": new_rho, "skip_validation": True}                #CAREFUL skip val here
-            kwargs.update(combine_qubit_attr(self, other, op = "-"))
+            kwargs = {"rho": new_rho, "skip_val": True}                #CAREFUL skip val here
+            kwargs.update(combine_qubit_attr(self, other, kwargs))
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
@@ -206,8 +208,8 @@ class BaseQubit:
         if isinstance(other, BaseQubit):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
             new_rho = rho_1 + rho_2
-            kwargs = {"rho": new_rho, "skip_validation": True}
-            kwargs.update(combine_qubit_attr(self, other, op = "+"))
+            kwargs = {"rho": new_rho, "skip_val": True}
+            kwargs.update(combine_qubit_attr(self, other, kwargs))
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     

@@ -14,7 +14,7 @@ dense_limit = 24000                                  #will always be sparse when
 sparse_matrix_threshold: float = 0.9                 #fraction of non-zeros for the matrix to be able to convert to sparse
 sparse_array_threshold: float = 0.9                  #fraction of non-zeros for the array to be able to convert to sparse
 name_limit = 50                                      #the character limit of qubits and gates
-logging_level = logging.DEBUG                        #chooses the detail for logging, use DEBUG for everything, INFO to avoid degubbing logs and CRITICAL to turn off
+logging_level = logging.INFO                        #chooses the detail for logging, use DEBUG for everything, INFO to avoid degubbing logs and CRITICAL to turn off
 set_printoptions(precision=p_prec, suppress=True, floatmode="fixed")
 set_printoptions(linewidth=linewid)
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
@@ -42,9 +42,9 @@ def log_function_call(func):
     return wrapper
 
 def log_all_methods(cls):
-    for attr_name in dir(cls):
+    for attr_name, attr in cls.__dict__.items():
         attr = getattr(cls, attr_name)
-        if callable(attr) and not attr_name.startswith("__"):
+        if callable(attr):
             setattr(cls, attr_name, log_function_call(attr))
     return cls
 

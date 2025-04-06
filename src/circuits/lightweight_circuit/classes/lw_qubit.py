@@ -52,7 +52,7 @@ class LwQubit:
                 vec_2 = other.state
                 new_vec = np.kron(vec_1, vec_2)
             kwargs = {"state": new_vec}
-            kwargs.update(combine_qubit_attr(self, other, op = "%"))
+            kwargs.update(combine_qubit_attr(self, other, kwargs))
             return LwQubit(**kwargs)
         raise LwQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
@@ -60,7 +60,7 @@ class LwQubit:
         if isinstance(other, (int, float)):
             new_state = self.state * other
             kwargs = {"state": new_state, "skip_validation": True}
-            kwargs.update(combine_qubit_attr(self, other, op = "*"))
+            kwargs.update(combine_qubit_attr(self, other, kwargs))
             return self.__class__(**kwargs)
         raise LwQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
@@ -74,7 +74,7 @@ class LwQubit:
         if isinstance(other, (int, float)):
             new_state = self.state / other
             kwargs = {"state": new_state, "skip_validation": True}
-            kwargs.update(combine_qubit_attr(self, other, op = "*"))
+            kwargs.update(combine_qubit_attr(self, other, kwargs))
             return self.__class__(**kwargs)
         raise QuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
@@ -89,7 +89,7 @@ class LwQubit:
         if isinstance(other, LwQubit):
             new_state = self.state - other.state
             kwargs = {"state": new_state, "skip_validation": True}                #CAREFUL skip val here
-            kwargs.update(combine_qubit_attr(self, other, op = "-"))
+            kwargs.update(combine_qubit_attr(self, other, kwargs))
             return self.__class__(**kwargs)
         raise LwQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     
@@ -106,7 +106,7 @@ class LwQubit:
         if isinstance(other, LwQubit):
             new_state = self.state + other.state
             kwargs = {"state": new_state, "skip_validation": True}
-            kwargs.update(combine_qubit_attr(self, other, op = "+"))
+            kwargs.update(combine_qubit_attr(self, other, kwargs))
             return self.__class__(**kwargs)
         raise LwQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
     

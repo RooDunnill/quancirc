@@ -212,12 +212,12 @@ class Circuit(BaseCircuit):
         kraus_ops = self.single_kraus_generator(channel, prob)
         kraus_validation(kraus_ops)
         epsilon_rho = np.zeros((2, 2), dtype=np.complex128)
-        epsilon = Qubit(rho=epsilon_rho, skip_validation=True)
+        epsilon = Qubit(rho=epsilon_rho, skip_val=True)
         qubit_state.skip_val = True
         for k in kraus_ops:
             k_applied = k @ qubit_state
             epsilon += k_applied
-        kwargs = {"rho": epsilon.rho, "skip_validation": False}
+        kwargs = {"rho": epsilon.rho, "skip_val": False}
         qubit_state = Qubit(**kwargs)
         self.qubit_array[index][qubit] = qubit_state
         return self.qubit_array
