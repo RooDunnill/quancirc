@@ -1,4 +1,5 @@
 import numpy as np
+from abc import ABC
 from ..circuit_config import *
 from  ..circuit_utilities.sparse_funcs import *
 from .base_class_utilities.base_class_errors import BaseGateError
@@ -31,7 +32,7 @@ def copy_gate_attr(self: "BaseGate") -> dict:
 
 
 @log_all_methods
-class BaseGate:
+class BaseGate(ABC):
     def __init__(self, **kwargs):
         self.skip_val = kwargs.get("skip_validation", False)
         self.name = kwargs.get("name", "QG")
@@ -98,52 +99,52 @@ class BaseGate:
     
     def __sub__(self: "BaseGate", other: "BaseGate") -> "BaseGate":
         """Subtraction of two Qubit rho matrices, returns a Gate object"""
-        if isinstance(other, BaseGate):
+        if isinstance(other, self.__class__):
             mat_1, mat_2 = auto_choose(self.matrix, other.matrix)
             new_matrix = mat_1 - mat_2
             kwargs = {"matrix": new_matrix, "skip_validation": True}                #CAREFUL skip val here
             kwargs.update(combine_gate_attr(self, other, op = "-"))
             return self.__class__(**kwargs)
-        raise BaseGateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+        raise BaseGateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gates of the same types")
     
     def __isub__(self: "BaseGate", other: "BaseGate") -> "BaseGate":
-        if isinstance(other, BaseGate):
+        if isinstance(other, self.__class__):
             if hasattr(self, "immutable") and self.immutable:
                 raise BaseGateError(f"This operation is not valid for an immutable object")
             self = self - other
             return self
-        raise BaseGateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+        raise BaseGateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gates of the same types")
     
     def __add__(self: "BaseGate", other: "BaseGate") -> "BaseGate":
         """Addition of two Qubit rho matrices, returns a Qubit object"""
-        if isinstance(other, BaseGate):
+        if isinstance(other, self.__class__):
             mat_1, mat_2 = auto_choose(self.matrix, other.matrix)
             new_matrix = mat_1 + mat_2
             kwargs = {"matrix": new_matrix, "skip_validation": True}
             kwargs.update(combine_gate_attr(self, other, op = "+"))
             return self.__class__(**kwargs)
-        raise BaseGateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+        raise BaseGateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gates of the same types")
     
     def __iadd__(self: "BaseGate", other: "BaseGate") -> "BaseGate":
-        if isinstance(other, BaseGate):
+        if isinstance(other, self.__class__):
             if hasattr(self, "immutable") and self.immutable:
                 raise BaseGateError(f"This operation is not valid for an immutable object")
             self = self + other
             return self
-        raise BaseGateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
+        raise BaseGateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gates of the same types")
 
     def __imatmul__(self: "BaseGate", other: "BaseGate") -> "BaseGate":
-        if isinstance(other, BaseGate):
+        if isinstance(other, self.__class__):
             if hasattr(self, "immutable") and self.immutable == True:
                 raise BaseGateError(f"This operation is not valid for an immutable object")
             self = self @ other
             return self
-        raise BaseGateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected types Gate and Gate")
+        raise BaseGateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gates of the same types")
 
     def __imod__(self: "BaseGate", other: "BaseGate") -> "BaseGate":
-        if isinstance(other, BaseGate):
+        if isinstance(other, self.__class__):
             if hasattr(self, "immutable") and self.immutable == True:
                 raise BaseGateError(f"This operation is not valid for an immutable object")
             self = self % other
             return self
-        raise BaseGateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected types Gate and Gate")
+        raise BaseGateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gates of the same types")

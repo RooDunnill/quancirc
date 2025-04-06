@@ -2,18 +2,18 @@ from __future__ import annotations
 import numpy as np
 from scipy import sparse
 from scipy.sparse.linalg import eigsh
-from ...base_classes.base_qubit import *
+from ...base_classes.base_quant_state import *
 from ...circuit_utilities.sparse_funcs import *
 from ..utilities.circuit_errors import QuantumStateError, StatePreparationError
 from ..static_methods.qubit_methods import *
 from ...circuit_config import *
 from ..utilities.validation_funcs import qubit_validation, rho_validation
-from ...base_classes.base_qubit import copy_qubit_attr, combine_qubit_attr
+from ...base_classes.base_quant_state import copy_qubit_attr, combine_qubit_attr
 
 __all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi"]
 
 @log_all_methods
-class Qubit(BaseQubit):                                     
+class Qubit(BaseQuantState):                                     
     """The class to define and initialise Qubits and Quantum States"""
     
     immutable_attr = ["skip_val", "state", "dim", "length", "n", "rho", "id", "state_type", "immutable", "print_history"]
@@ -73,7 +73,7 @@ class Qubit(BaseQubit):
             self.rho = dense_mat(self.rho)
             other.rho = dense_mat(other.rho)
             new_rho = np.block([[self.rho, np.zeros_like(other.rho)], [np.zeros_like(self.rho), other.rho]])
-            kwargs = {"rho": new_rho}
+            kwargs = {"rho": new_rho, "skip_val": True}
             kwargs.update(combine_qubit_attr(self, other, kwargs))
             kwargs["history"].append(f"Direct summed with State {other.id}") if "history" in kwargs else None
             return Qubit(**kwargs)

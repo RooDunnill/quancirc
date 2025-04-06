@@ -2,7 +2,7 @@ import numpy as np
 from ...base_classes.base_gate import *
 from ..utilities.circuit_errors import GateError
 from ..static_methods.gate_methods import *
-from ...base_classes.base_qubit import combine_qubit_attr
+from ...base_classes.base_quant_state import combine_qubit_attr
 from ...circuit_config import *
 from ..utilities.validation_funcs import gate_validation
 from ...circuit_utilities.sparse_funcs import *

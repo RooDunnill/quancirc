@@ -1,6 +1,6 @@
 import numpy as np
 from ...base_classes.base_gate import *
-from ...base_classes.base_qubit import combine_qubit_attr
+from ...base_classes.base_quant_state import combine_qubit_attr
 from ..utilities.circuit_errors import SymbGateError
 from ...circuit_config import *
 import sympy as sp

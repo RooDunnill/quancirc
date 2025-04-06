@@ -1,6 +1,6 @@
 import numpy as np
-from ...base_classes.base_qubit import *
-from ...base_classes.base_qubit import combine_qubit_attr, copy_qubit_attr
+from ...base_classes.base_quant_state import *
+from ...base_classes.base_quant_state import combine_qubit_attr, copy_qubit_attr
 from ..utilities.circuit_errors import SymbQuantumStateError, SymbStatePreparationError
 from ...circuit_config import *
 import sympy as sp
@@ -9,7 +9,7 @@ from ..static_methods.symb_qubit_methods import *
 __all__ = ["SymbQubit", "q0_symb", "q1_symb", "qp_symb", "qm_symb", "qpi_symb", "qmi_symb", "qgen_symb"]
 
 
-class SymbQubit(BaseQubit):
+class SymbQubit(BaseQuantState):
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'symbqubit')
         object.__setattr__(self, "state_type", "Symbolic")

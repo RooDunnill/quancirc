@@ -1,7 +1,7 @@
 import numpy as np
 from ..circuit_config import *
 from .circuit_errors import QC_error
-from ..base_classes.base_qubit import BaseQubit
+from ..base_classes.base_quant_state import BaseQubit
 
 def binary_entropy(prob: float) -> float:
     """Used to calculate the binary entropy of two probabilities"""

@@ -1,5 +1,5 @@
 import numpy as np
-from ...base_classes.base_qubit import *
+from ...base_classes.base_quant_state import *
 from ...general_circuit.classes.qubit import *
 from ...general_circuit.classes.qubit import combine_qubit_attr
 from ...circuit_utilities.circuit_errors import *

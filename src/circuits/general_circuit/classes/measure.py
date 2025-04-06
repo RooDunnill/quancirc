@@ -5,7 +5,7 @@ from random import choices, randint
 from .qubit import *
 from ..utilities.validation_funcs import measure_validation
 from ...circuit_utilities.sparse_funcs import dense_mat, sparse_mat
-from ...base_classes.base_qubit import copy_qubit_attr
+from ...base_classes.base_quant_state import copy_qubit_attr
 
 __all__ = ["Measure"]
 

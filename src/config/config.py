@@ -14,7 +14,7 @@ dense_limit = 24000                                  #will always be sparse when
 sparse_matrix_threshold: float = 0.9                 #fraction of non-zeros for the matrix to be able to convert to sparse
 sparse_array_threshold: float = 0.9                  #fraction of non-zeros for the array to be able to convert to sparse
 name_limit = 50                                      #the character limit of qubits and gates
-logging_level = logging.DEBUG                        #chooses the detail for logging, use DEBUG for everything, INFO to avoid degubbing logs and CRITICAL to turn off
+logging_level = logging.INFO                        #chooses the detail for logging, use DEBUG for everything, INFO to avoid degubbing logs and CRITICAL to turn off
 set_printoptions(precision=p_prec, suppress=True, floatmode="fixed")
 set_printoptions(linewidth=linewid)
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
@@ -53,13 +53,14 @@ def log_all_methods(cls):
 
 def startup_printout():
     print("#" * linewid)
-    print(f"Welcome to Quancirc, this program is mostly a collection of all of my current interests. Some of the highlights include:")
-    print(f"Quantum Circuit: Can simulate a quantum circuit with Clifford + T Gates")
-    print(f"Algorithm section, currently have a Grover's search algorithm that uses the simulator and utilises FWHT")
-    print(f"Cryptographic protocols such as BB84")
-    print(f"Currently working on symbolic qubits, to allow for symbolic calculations")
-    print(f"I hope you enjoy!")
-    print(f"By Roo Dunnill")
+    print(f"Welcome to Quancirc, this program is mostly a collection of all of my current interests. Some of the highlights include:".center(linewid, '^'))
+    print(f"Quantum Circuit: Can simulate a quantum circuit with Clifford + T Gates".center(linewid, '-'))
+    print(f"Algorithm section, currently have a Grover's search algorithm that uses the simulator and utilises FWHT".center(linewid, '-'))
+    print(f"Cryptographic protocols such as BB84".center(linewid, '-'))
+    print(f"Currently working on symbolic qubits, to allow for symbolic calculations".center(linewid, '-'))
+    print(f"If you want examples of how to use, there are a few files within the src.examples folder that can give an overview of some of the functions".center(linewid, "-"))
+    print(f"I hope you enjoy!".center(linewid, '-'))
+    print(f"By Roo Dunnill".center(linewid, '-'))
     print("\n")
 
 def prog_end():    #made it to make the code at the end of the program a little neater

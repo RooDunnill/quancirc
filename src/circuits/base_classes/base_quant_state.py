@@ -1,19 +1,20 @@
 import logging
 import sympy as sp
 import copy
+from abc import ABC
 from .base_class_utilities.base_class_errors import BaseQuantumStateError, BaseStatePreparationError
 from ..circuit_config import *
 from ..circuit_utilities.sparse_funcs import *
 from .base_class_utilities.validation_funcs import base_quant_state_validation
 
-__all__ = ["BaseQubit"]
+__all__ = ["BaseQuantState"]
 
 premade_qubit_ids = ["|0>", "|1>", "|+>", "|->", "|i>", "|-i>"]
 
-def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", kwargs: dict=None) -> dict:
+def combine_qubit_attr(self: "BaseQuantState", other: "BaseQuantState", kwargs: dict=None) -> dict:
         """Allows the returned objects to still return name and info too"""
         kwargs = {} if kwargs==None else kwargs
-        if isinstance(self, BaseQubit) and isinstance(other, BaseQubit):
+        if isinstance(self, BaseQuantState) and isinstance(other, BaseQuantState):
             if hasattr(self, "display_mode") and hasattr(other, "display_mode"):
                 if self.display_mode == "both" or other.display_mode == "both":
                     kwargs["display_mode"] = "both"
@@ -37,7 +38,7 @@ def combine_qubit_attr(self: "BaseQubit", other: "BaseQubit", kwargs: dict=None)
         logging.debug(f"Carrying over kwargs: {kwargs}")
         return kwargs
 
-def copy_qubit_attr(self: "BaseQubit", kwargs: dict=None) -> dict:
+def copy_qubit_attr(self: "BaseQuantState", kwargs: dict=None) -> dict:
     kwargs = {} if kwargs==None else kwargs
     if "id" not in kwargs and hasattr(self, "id") and self.id not in premade_qubit_ids:
         kwargs["id"] = self.id
@@ -52,17 +53,17 @@ def copy_qubit_attr(self: "BaseQubit", kwargs: dict=None) -> dict:
 
 
 @log_all_methods
-class BaseQubit:
+class BaseQuantState(ABC):
     qubit_counter = 0
     all_immutable_attr = ["class_type"]
 
     def __init__(self, **kwargs):
-        logging.debug(f"Creating a BaseQubit instance with kwargs {kwargs}")
+        logging.debug(f"Creating a BaseQuantState instance with kwargs {kwargs}")
         self.id = kwargs.get("id", None)
         if self.id is None:
-            logging.debug(f"Creating a new qubit with ID {BaseQubit.qubit_counter}")
-            self.id = BaseQubit.qubit_counter
-            BaseQubit.qubit_counter += 1
+            logging.debug(f"Creating a new qubit with ID {BaseQuantState.qubit_counter}")
+            self.id = BaseQuantState.qubit_counter
+            BaseQuantState.qubit_counter += 1
         self.history = kwargs.get("history", [])
         self.skip_val = kwargs.get("skip_val", False)
         self.display_mode = kwargs.get("display_mode", "density")
@@ -84,7 +85,7 @@ class BaseQubit:
         for entry in self.history:
             logging.info(f"- {entry}")
 
-    def __str__(self: "BaseQubit") -> str:
+    def __str__(self: "BaseQuantState") -> str:
         rho = dense_mat(self.rho) if self.class_type == "qubit" else self.build_pure_rho()
         rho_str = np.array2string(rho, precision=p_prec, separator=', ', suppress_small=True)
         if self.display_mode == "density":
@@ -98,7 +99,7 @@ class BaseQubit:
         elif self.display_mode == "both":
             return f"Q{self.id}:\nState:\n{state_str}\nRho:\n{rho_str}"
         
-    def __setattr__(self: "BaseQubit", name: str, value) -> None:
+    def __setattr__(self: "BaseQuantState", name: str, value) -> None:
         if name == "immutable":
             object.__setattr__(self, name, True)
         if not hasattr(self, "_initialised"): 
@@ -143,7 +144,7 @@ class BaseQubit:
         elif isinstance(self.state, np.ndarray):
             return np.einsum("i,j", np.conj(self.state), self.state, optimize=True)
         
-    def set_display_mode(self: "BaseQubit", mode: str) -> None:
+    def set_display_mode(self: "BaseQuantState", mode: str) -> None:
         """Sets the display mode between the three options, returns type None"""
         if mode not in ["vector", "density", "both"]:
             raise BaseQuantumStateError(f"The display mode must be set in 'vector', 'density' or 'both'")
@@ -152,16 +153,16 @@ class BaseQubit:
             raise BaseQuantumStateError(f"Mixed and Non-Unitary states can only be displayed as density matrices")
         self.display_mode = mode
         
-    def __repr__(self: "BaseQubit") -> str:
+    def __repr__(self: "BaseQuantState") -> str:
         return self.__str__()
 
-    def __copy__(self: "BaseQubit") -> None:
+    def __copy__(self: "BaseQuantState") -> None:
         raise BaseQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem")
     
-    def __deepcopy__(self: "BaseQubit") -> None:
+    def __deepcopy__(self: "BaseQuantState") -> None:
         raise BaseQuantumStateError(f"Qubits cannot be copied as decreed by the No-Cloning Theorem, its twice the sin to try to double copy them")
     
-    def __mul__(self: "BaseQubit", other: int | float) -> "BaseQubit":
+    def __mul__(self: "BaseQuantState", other: int | float) -> "BaseQuantState":
         if isinstance(other, (int, float)):
             new_rho = self.rho * other
             kwargs = {"rho": new_rho, "skip_val": True}
@@ -170,17 +171,17 @@ class BaseQubit:
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
-    def __rmul__(self: "BaseQubit", other: int | float) -> "BaseQubit":
+    def __rmul__(self: "BaseQuantState", other: int | float) -> "BaseQuantState":
         return self.__mul__(other)
     
-    def __imul__(self: "BaseQubit", other: float) -> "BaseQubit":
+    def __imul__(self: "BaseQuantState", other: float) -> "BaseQuantState":
         self.log_history(f"Multipled by {other}")
         if isinstance(other, (int, float)):
             self.rho *= other
             return self
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
     
-    def __truediv__(self: "BaseQubit", other: int | float) -> "BaseQubit":
+    def __truediv__(self: "BaseQuantState", other: int | float) -> "BaseQuantState":
         if isinstance(other, (int, float)):
             new_rho = self.rho / other
             kwargs = {"rho": new_rho, "skip_val": True}
@@ -189,14 +190,14 @@ class BaseQubit:
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
 
-    def __itruediv__(self: "BaseQubit", other: float) -> "BaseQubit":
+    def __itruediv__(self: "BaseQuantState", other: float) -> "BaseQuantState":
         self.log_history(f"Divided by {other}")
         if isinstance(other, (int, float)):
             self.rho /= other
             return self
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
     
-    def __sub__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+    def __sub__(self: "BaseQuantState", other: "BaseQuantState") -> "BaseQuantState":
         """Subtraction of two Qubit rho matrices, returns a Qubit object"""
         if isinstance(other, self.__class__):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
@@ -207,7 +208,7 @@ class BaseQubit:
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Qubits of the same types")
     
-    def __isub__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+    def __isub__(self: "BaseQuantState", other: "BaseQuantState") -> "BaseQuantState":
         self.log_history(f"Subtracted by State {other.id}")
         logging.debug(f"Iteratively subtracting rho matrices")
         if isinstance(other, self.__class__):
@@ -217,7 +218,7 @@ class BaseQubit:
             return self
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Qubits of the same types")
     
-    def __add__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+    def __add__(self: "BaseQuantState", other: "BaseQuantState") -> "BaseQuantState":
         """Addition of two Qubit rho matrices, returns a Qubit object"""
         if isinstance(other, self.__class__):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
@@ -228,7 +229,7 @@ class BaseQubit:
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Qubits of the same types")
     
-    def __iadd__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+    def __iadd__(self: "BaseQuantState", other: "BaseQuantState") -> "BaseQuantState":
         self.log_history(f"Added to State {other.id}")
         if isinstance(other, self.__class__):
             if hasattr(self, "immutable") and self.immutable:
@@ -237,7 +238,7 @@ class BaseQubit:
             return self
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Qubits of the same types")
     
-    def __matmul__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":     
+    def __matmul__(self: "BaseQuantState", other: "BaseQuantState") -> "BaseQuantState":     
         """Matrix multiplication between two Qubit objects, returns a Qubit object"""
         if isinstance(other, self.__class__):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
@@ -251,8 +252,8 @@ class BaseQubit:
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Qubits of the same types")
 
-    def __imatmul__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
-        self.log_history(f"Matrix Multiplied with State {other.id}")
+    def __imatmul__(self: "BaseQuantState", other: "BaseQuantState") -> "BaseQuantState":
+
         if isinstance(other, self.__class__):
             if hasattr(self, "immutable") and self.immutable:
                 raise BaseQuantumStateError(f"This operation is not valid for an immutable object")
@@ -260,7 +261,7 @@ class BaseQubit:
             return self
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Qubits of the same types")
     
-    def __mod__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+    def __mod__(self: "BaseQuantState", other: "BaseQuantState") -> "BaseQuantState":
         """Tensor product among two Qubit objects, returns a Qubit object"""
         if isinstance(other, self.__class__):
             rho_1, rho_2 = auto_choose(self.rho, other.rho, tensor=True)
@@ -277,7 +278,7 @@ class BaseQubit:
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Qubits of the same types")
 
-    def __imod__(self: "BaseQubit", other: "BaseQubit") -> "BaseQubit":
+    def __imod__(self: "BaseQuantState", other: "BaseQuantState") -> "BaseQuantState":
         self.log_history(f"Tensored with State {other.id}")
         if isinstance(other, self.__class__):
             if hasattr(self, "immutable") and self.immutable:
@@ -286,7 +287,7 @@ class BaseQubit:
             return self
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Qubits of the same types")
 
-    def debug(self: "BaseQubit", title=True) -> None:
+    def debug(self: "BaseQuantState", title=True) -> None:
         """Prints out lots of information on the Qubits core properties primarily for debug purposes, returns type None"""
         logging.info(f"\n")
         if title:
@@ -303,5 +304,6 @@ class BaseQubit:
         logging.info(f"state_type: {self.state_type}")
         logging.info(f"All attributes and variables of the Qubit object:")
         logging.info(vars(self))
+        logging.info(f"Qubit History: {self.print_history()}")
         if title:
             logging.info("-" * linewid)

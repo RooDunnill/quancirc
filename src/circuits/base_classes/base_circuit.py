@@ -1,10 +1,11 @@
 from ..circuit_config import *
 from .base_class_utilities.base_class_errors import BaseQuantumCircuitError
-from .base_qubit import *
+from .base_quant_state import *
 from .base_gate import *
+from abc import ABC
 
 @log_all_methods
-class BaseCircuit:
+class BaseCircuit(ABC):
     def __init__(self, **kwargs):
         self.name = kwargs.get("name", "Quantum Circuit")
 
@@ -18,5 +19,5 @@ class BaseCircuit:
     def print_state(self, index=0, qubit=None) -> None:
         print(self.qubit_array[index][qubit]) if qubit else print(self.qubit_array[index])
 
-    def return_state(self, index=0, qubit=None) -> BaseQubit:
+    def return_state(self, index=0, qubit=None) -> BaseQuantState:
         return self.qubit_array[index][qubit] if qubit else  self.qubit_array[index]
