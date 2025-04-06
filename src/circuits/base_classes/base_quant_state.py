@@ -9,9 +9,8 @@ from .base_class_utilities.validation_funcs import base_quant_state_validation
 
 __all__ = ["BaseQuantState"]
 
-premade_qubit_ids = ["|0>", "|1>", "|+>", "|->", "|i>", "|-i>"]
 
-def combine_qubit_attr(self: "BaseQuantState", other: "BaseQuantState", kwargs: dict=None) -> dict:
+def combine_quant_state_attr(self: "BaseQuantState", other: "BaseQuantState", kwargs: dict=None) -> dict:
         """Allows the returned objects to still return name and info too"""
         kwargs = {} if kwargs==None else kwargs
         if isinstance(self, BaseQuantState) and isinstance(other, BaseQuantState):
@@ -27,20 +26,20 @@ def combine_qubit_attr(self: "BaseQuantState", other: "BaseQuantState", kwargs: 
             kwargs["skip_val"] = True
         elif hasattr(other, "skip_val") and other.skip_val == True:
             kwargs["skip_val"] = True
-        if hasattr(self, "id") and self.id not in premade_qubit_ids:
+        if hasattr(self, "id") and self.id and isinstance(self.id, int):
             if hasattr(self, "history"):
                 kwargs["history"] = copy.deepcopy(self.history)
             kwargs["id"] = copy.deepcopy(self.id)
-        if self.class_type=="gate" and hasattr(other, "id") and other.id not in premade_qubit_ids:
+        if self.class_type=="gate" and hasattr(other, "id") and isinstance(other.id, int):
             if hasattr(other, "history"):
                 kwargs["history"] = copy.deepcopy(other.history)
             kwargs["id"] = copy.deepcopy(other.id)
         logging.debug(f"Carrying over kwargs: {kwargs}")
         return kwargs
 
-def copy_qubit_attr(self: "BaseQuantState", kwargs: dict=None) -> dict:
+def copy_quant_state_attr(self: "BaseQuantState", kwargs: dict=None) -> dict:
     kwargs = {} if kwargs==None else kwargs
-    if "id" not in kwargs and hasattr(self, "id") and self.id not in premade_qubit_ids:
+    if "id" not in kwargs and hasattr(self, "id") and isinstance(self.id, int):
         kwargs["id"] = self.id
         if "history" not in kwargs and hasattr(self, "history"):
             kwargs["history"] = self.history
@@ -74,9 +73,8 @@ class BaseQuantState(ABC):
 
 
     def log_history(self, message):
-        if isinstance(message, str):
-            if self.id not in premade_qubit_ids:
-                self.history.append(message)
+        if isinstance(message, str) and isinstance(self.id, int):
+            self.history.append(message)
         else:
             raise BaseQuantumStateError(f"message cannot be of type {type(message)}, expected type str")
         
@@ -166,7 +164,7 @@ class BaseQuantState(ABC):
         if isinstance(other, (int, float)):
             new_rho = self.rho * other
             kwargs = {"rho": new_rho, "skip_val": True}
-            kwargs.update(copy_qubit_attr(self, kwargs))
+            kwargs.update(copy_quant_state_attr(self, kwargs))
             kwargs["history"].append(f"Multipled by {other}") if "history" in kwargs else None
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
@@ -185,7 +183,7 @@ class BaseQuantState(ABC):
         if isinstance(other, (int, float)):
             new_rho = self.rho / other
             kwargs = {"rho": new_rho, "skip_val": True}
-            kwargs.update(copy_qubit_attr(self, kwargs))
+            kwargs.update(copy_quant_state_attr(self, kwargs))
             kwargs["history"].append(f"Divided by {other}") if "history" in kwargs else None
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"The variable with which you are multiplying the Qubit by cannot be of type {type(other)}, expected type int or type float")
@@ -203,7 +201,7 @@ class BaseQuantState(ABC):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
             new_rho = rho_1 - rho_2
             kwargs = {"rho": new_rho, "skip_val": True}                #CAREFUL skip val here
-            kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs.update(combine_quant_state_attr(self, other, kwargs))
             kwargs["history"].append(f"Subtracted by State {other.id}") if "history" in kwargs else None
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Qubits of the same types")
@@ -224,7 +222,7 @@ class BaseQuantState(ABC):
             rho_1, rho_2 = auto_choose(self.rho, other.rho)
             new_rho = rho_1 + rho_2
             kwargs = {"rho": new_rho, "skip_val": True}
-            kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs.update(combine_quant_state_attr(self, other, kwargs))
             kwargs["history"].append(f"Added to State {other.id}") if "history" in kwargs else None
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Qubits of the same types")
@@ -247,7 +245,7 @@ class BaseQuantState(ABC):
             else:
                 new_rho = np.dot(rho_1, rho_2)
             kwargs = {"rho": new_rho, "skip_val": True}             #not guarenteed to be hermitian
-            kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs.update(combine_quant_state_attr(self, other, kwargs))
             kwargs["history"].append(f"Matrix multipled with State {other.id}") if "history" in kwargs else None
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Qubits of the same types")
@@ -273,7 +271,7 @@ class BaseQuantState(ABC):
                 kwargs = {"rho": new_rho, "history": [f"{self.id} tensored with {other.id}"]}
             else:
                 kwargs = {"rho": new_rho}
-            kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs.update(combine_quant_state_attr(self, other, kwargs))
             kwargs["history"].append(f"Tensored with state {other.id}") if "history" in kwargs and self.history != [] else None
             return self.__class__(**kwargs)
         raise BaseQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Qubits of the same types")

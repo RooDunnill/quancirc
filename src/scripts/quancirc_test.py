@@ -276,3 +276,10 @@ test_2.measure_states(index=1)
 test_qub = Qubit.q0(n=4)
 print(test_qub[0:3])
 test_qub.debug()
+test_qubit = q0 % q1
+test_qubit_2 = qm % qp % q0
+test_qubit = test_qubit % qm
+test_qubit = test_qubit * 2
+test_qubit[0] * 2
+test_qubit = test_qubit @ test_qubit_2
+test_qubit.print_history()

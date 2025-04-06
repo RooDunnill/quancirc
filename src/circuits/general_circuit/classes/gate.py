@@ -2,7 +2,7 @@ import numpy as np
 from ...base_classes.base_gate import *
 from ..utilities.circuit_errors import GateError
 from ..static_methods.gate_methods import *
-from ...base_classes.base_quant_state import combine_qubit_attr
+from ...base_classes.base_quant_state import combine_quant_state_attr
 from ...circuit_config import *
 from ..utilities.validation_funcs import gate_validation
 from ...circuit_utilities.sparse_funcs import *
@@ -98,7 +98,7 @@ class Gate(BaseGate):
             else:
                 new_rho = np.dot(np.dot(mat_1, rho_2), np.conj(mat_1.T))
             kwargs = {"rho": new_rho}
-            kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs.update(combine_quant_state_attr(self, other, kwargs))
             if "history" in kwargs:
                 kwargs["history"].append(f"Applied {self.name} Gate")
             return other.__class__(**kwargs)
@@ -112,7 +112,7 @@ class Gate(BaseGate):
                 vec_2 = dense_mat(other.state)
                 new_vec = np.dot(mat_1, vec_2)
             kwargs = {"state":new_vec}
-            kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs.update(combine_quant_state_attr(self, other, kwargs))
             return other.__class__(**kwargs)
         raise GateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
 

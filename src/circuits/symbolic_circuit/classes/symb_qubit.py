@@ -1,6 +1,6 @@
 import numpy as np
 from ...base_classes.base_quant_state import *
-from ...base_classes.base_quant_state import combine_qubit_attr, copy_qubit_attr
+from ...base_classes.base_quant_state import combine_quant_state_attr, copy_quant_state_attr
 from ..utilities.circuit_errors import SymbQuantumStateError, SymbStatePreparationError
 from ...circuit_config import *
 import sympy as sp
@@ -39,7 +39,7 @@ class SymbQubit(BaseQuantState):
         if isinstance(other, SymbQubit):
             new_rho = self.rho * other.rho
             kwargs = {"rho": new_rho}
-            kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs.update(combine_quant_state_attr(self, other, kwargs))
             kwargs["history"].append(f"Matrix multipled with State {other.id}") if "history" in kwargs else None
             return SymbQubit(**kwargs)
         raise SymbQuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected type SymbQubit")
@@ -49,7 +49,7 @@ class SymbQubit(BaseQuantState):
         if isinstance(other, SymbQubit):
             new_rho = sp.kronecker_product(self.rho, other.rho)
             kwargs = {"rho": new_rho}
-            kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs.update(combine_quant_state_attr(self, other, kwargs))
             kwargs["history"].append(f"Tensored with state {other.id}") if "history" in kwargs and self.history != [] else None
             return SymbQubit(**kwargs)
         raise SymbQuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")

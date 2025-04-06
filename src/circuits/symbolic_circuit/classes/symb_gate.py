@@ -1,6 +1,6 @@
 import numpy as np
 from ...base_classes.base_gate import *
-from ...base_classes.base_quant_state import combine_qubit_attr
+from ...base_classes.base_quant_state import combine_quant_state_attr
 from ..utilities.circuit_errors import SymbGateError
 from ...circuit_config import *
 import sympy as sp
@@ -38,7 +38,7 @@ class SymbGate(BaseGate):
         elif other.class_type == "symbqubit":
             new_rho = self.matrix * other.rho * sp.conjugate(self.matrix.T)
             kwargs = {"rho": new_rho}
-            kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs.update(combine_quant_state_attr(self, other, kwargs))
             if "history" in kwargs:
                 kwargs["history"].append(f"Applied {self.name} Gate")
             return other.__class__(**kwargs)

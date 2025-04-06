@@ -8,7 +8,7 @@ from ..utilities.circuit_errors import QuantumStateError, StatePreparationError
 from ..static_methods.qubit_methods import *
 from ...circuit_config import *
 from ..utilities.validation_funcs import qubit_validation, rho_validation
-from ...base_classes.base_quant_state import copy_qubit_attr, combine_qubit_attr
+from ...base_classes.base_quant_state import copy_quant_state_attr, combine_quant_state_attr
 
 __all__ = ["Qubit", "q0", "q1", "qp", "qm", "qpi", "qmi"]
 
@@ -63,7 +63,7 @@ class Qubit(BaseQuantState):
             new_rho = np.dot(self.rho, other.matrix)
             new_rho = np.round(new_rho, decimals=10)
             kwargs = {"rho": new_rho, "skip_val": True}            #CAREFUL skip val here
-            kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs.update(combine_quant_state_attr(self, other, kwargs))
             return Qubit(**kwargs)
         raise QuantumStateError(f"Objects cannot have types: {type(self)} and {type(other)}, expected Gate, Qubit or np.ndarray")
 
@@ -74,7 +74,7 @@ class Qubit(BaseQuantState):
             other.rho = dense_mat(other.rho)
             new_rho = np.block([[self.rho, np.zeros_like(other.rho)], [np.zeros_like(self.rho), other.rho]])
             kwargs = {"rho": new_rho, "skip_val": True}
-            kwargs.update(combine_qubit_attr(self, other, kwargs))
+            kwargs.update(combine_quant_state_attr(self, other, kwargs))
             kwargs["history"].append(f"Direct summed with State {other.id}") if "history" in kwargs else None
             return Qubit(**kwargs)
         raise QuantumStateError(f"The classes do not match or the array is not defined. They are of types {type(self)} and {type(other)}")
@@ -143,7 +143,7 @@ class Qubit(BaseQuantState):
             new_rho = np.trace(rho.reshape(dim_a, dim_b * dim_c, dim_a, dim_b * dim_c), axis1=0, axis2=2)
             new_rho = np.trace(new_rho.reshape(dim_b, dim_c, dim_b, dim_c), axis1=1, axis2=3)
         kwargs = {"rho": new_rho, "id": None, "history": [f"Traced out Qubit of {self.id}"]}
-        kwargs.update(copy_qubit_attr(self, kwargs))
+        kwargs.update(copy_quant_state_attr(self, kwargs))
         return Qubit(**kwargs)
 
     def isolate_qubit(self: "Qubit", qubit_index: int | list, con=False) -> Qubit | tuple[Qubit, Qubit, Qubit]:
