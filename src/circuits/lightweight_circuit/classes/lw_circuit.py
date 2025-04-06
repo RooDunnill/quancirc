@@ -13,7 +13,7 @@ from ..circuit_special_gates.fwht import *
 
 __all__ = ["LwCircuit"]
 
-class LwCircuit(BaseCircuit):
+class LwCircuit:
     """A circuit build out of 1D arrays that can only handle pure states, howver is optimised to be overlla faster than the base circuit"""
     def __init__(self, **kwargs):
         object.__setattr__(self, 'class_type', 'lwcircuit')

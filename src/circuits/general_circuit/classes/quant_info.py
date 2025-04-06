@@ -1,4 +1,5 @@
 import numpy as np
+import logging
 from ...circuit_config import *
 from ..utilities.circuit_errors import QuantInfoError
 from .qubit import Qubit
@@ -24,62 +25,62 @@ class QuantInfo:
 
     @staticmethod
     def qubit_info(qub: Qubit, title=True) -> str:
-        print("-" * linewid)
-        print(f"Qubit {qub.name} OVERVIEW") if qub.name else print(f"Qubit Overview")
-        print(f"Purity of qubit: {QuantInfo.purity(qub):.{p_prec}f}")
-        print(f"Linear Entropy of qubit: {QuantInfo.linear_entropy(qub):.{p_prec}f}")
-        print(f"Von Neumann entropy of qubit: {QuantInfo.vn_entropy(qub):.{p_prec}f}")
-        print(f"Shannon Entropy of qubit: {QuantInfo.shannon_entropy(qub):.{p_prec}f}")
+        logging.info("-" * linewid)
+        logging.info(f"Qubit {qub.name} OVERVIEW") if qub.name else logging.info(f"Qubit Overview")
+        logging.info(f"Purity of qubit: {QuantInfo.purity(qub):.{p_prec}f}")
+        logging.info(f"Linear Entropy of qubit: {QuantInfo.linear_entropy(qub):.{p_prec}f}")
+        logging.info(f"Von Neumann entropy of qubit: {QuantInfo.vn_entropy(qub):.{p_prec}f}")
+        logging.info(f"Shannon Entropy of qubit: {QuantInfo.shannon_entropy(qub):.{p_prec}f}")
         if qub.dim < 5:
-            print(f"Rho matrix of qubit:\n{qub.rho}")
-        print("-" * linewid)
-        print("\n")
+            logging.info(f"Rho matrix of qubit:\n{qub.rho}")
+        logging.info("-" * linewid)
+        logging.info("\n")
 
     @staticmethod
     def state_info(state: Qubit, title=True) -> str:
         if title:
-            print("-" * linewid)
-            print(f"QUANTUM INFORMATION OVERVIEW")
-        print(f"Purity of state: {QuantInfo.purity(state):.{p_prec}f}")
-        print(f"Linear Entropy of state: {QuantInfo.linear_entropy(state):.{p_prec}f}")
-        print(f"Von Neumann Entropy of the whole state: {QuantInfo.vn_entropy(state):.{p_prec}f}")
-        print(f"Shannon Entropy of the whole state: {QuantInfo.shannon_entropy(state):.{p_prec}f}")
-        print(f"Information on the states individual qubits:")
-        print("-" * int(linewid/2))
+            logging.info("-" * linewid)
+            logging.info(f"QUANTUM INFORMATION OVERVIEW")
+        logging.info(f"Purity of state: {QuantInfo.purity(state):.{p_prec}f}")
+        logging.info(f"Linear Entropy of state: {QuantInfo.linear_entropy(state):.{p_prec}f}")
+        logging.info(f"Von Neumann Entropy of the whole state: {QuantInfo.vn_entropy(state):.{p_prec}f}")
+        logging.info(f"Shannon Entropy of the whole state: {QuantInfo.shannon_entropy(state):.{p_prec}f}")
+        logging.info(f"Information on the states individual qubits:")
+        logging.info("-" * int(linewid/2))
         for i in range(state.n):
-            print(f"Qubit {i}:")
-            print("-" * int(linewid/4))
-            print(f"Purity of qubit {i}: {QuantInfo.purity(state[i]):.{p_prec}f}")
-            print(f"Linear Entropy of qubit {i}: {QuantInfo.linear_entropy(state[i]):.{p_prec}f}")
-            print(f"Von Neumann entropy of qubit {i}: {QuantInfo.vn_entropy(state[i]):.{p_prec}f}")
-            print(f"Shannon Entropy of qubit: {QuantInfo.shannon_entropy(state[i]):.{p_prec}f}")
+            logging.info(f"Qubit {i}:")
+            logging.info("-" * int(linewid/4))
+            logging.info(f"Purity of qubit {i}: {QuantInfo.purity(state[i]):.{p_prec}f}")
+            logging.info(f"Linear Entropy of qubit {i}: {QuantInfo.linear_entropy(state[i]):.{p_prec}f}")
+            logging.info(f"Von Neumann entropy of qubit {i}: {QuantInfo.vn_entropy(state[i]):.{p_prec}f}")
+            logging.info(f"Shannon Entropy of qubit: {QuantInfo.shannon_entropy(state[i]):.{p_prec}f}")
         if title:
-            print("-" * linewid)
+            logging.info("-" * linewid)
 
     @staticmethod
     def two_state_info(state_1: Qubit, state_2: Qubit) -> str:
-        print("-" * linewid)
-        print(f"QUANTUM INFORMATION OF TWO STATES OVERVIEW")
-        print(f"\nIndividual Info for {state_1.name}:") if state_1.name else print(f"\nIndividual Info for State 1:")
-        print("-" * int(linewid/2))
+        logging.info("-" * linewid)
+        logging.info(f"QUANTUM INFORMATION OF TWO STATES OVERVIEW")
+        logging.info(f"\nIndividual Info for {state_1.name}:") if state_1.name else logging.info(f"\nIndividual Info for State 1:")
+        logging.info("-" * int(linewid/2))
         QuantInfo.state_info(state_1, title=False)
-        print(f"\nIndividual Info for {state_2.name}:") if state_2.name else print(f"\nIndividual Info for State 2:")
-        print("-" * int(linewid/2))
+        logging.info(f"\nIndividual Info for {state_2.name}:") if state_2.name else logging.info(f"\nIndividual Info for State 2:")
+        logging.info("-" * int(linewid/2))
         QuantInfo.state_info(state_2, title=False)
         if state_1.name and state_2.name:
-            print(f"\nInfo for the states {state_1.name} and {state_2.name} together:")
+            logging.info(f"\nInfo for the states {state_1.name} and {state_2.name} together:")
         else:
-            print(f"\nInfo for State 1 and State 2 together:")
-        print("-" * int(linewid/2))
-        print(f"Fidelity: {QuantInfo.fidelity(state_1, state_2):.{p_prec}f}")
-        print(f"Trace Distance: {QuantInfo.trace_distance(state_1, state_2):.{p_prec}f}")
+            logging.info(f"\nInfo for State 1 and State 2 together:")
+        logging.info("-" * int(linewid/2))
+        logging.info(f"Fidelity: {QuantInfo.fidelity(state_1, state_2):.{p_prec}f}")
+        logging.info(f"Trace Distance: {QuantInfo.trace_distance(state_1, state_2):.{p_prec}f}")
         lower, upper = QuantInfo.trace_distance_bound(state_1, state_2)
-        print(f"Trace Distance Bound: {lower:.{p_prec}f} =< Trace Distance =< {upper:.{p_prec}f}")
-        print(f"Quantum Conditional Entropy: {QuantInfo.quantum_conditional_entropy(state_1, state_2):.{p_prec}f}")
-        print(f"Quantum Mutual Information: {QuantInfo.quantum_mutual_info(state_1, state_2):.{p_prec}f}")
-        print(f"Quantum Relative Entropy: {QuantInfo.quantum_relative_entropy(state_1, state_2):.{p_prec}f}")
-        print(f"Quantum Discord: {QuantInfo.quantum_discord(state_1, state_2):.{p_prec}f}")
-        print("-" * linewid)
+        logging.info(f"Trace Distance Bound: {lower:.{p_prec}f} =< Trace Distance =< {upper:.{p_prec}f}")
+        logging.info(f"Quantum Conditional Entropy: {QuantInfo.quantum_conditional_entropy(state_1, state_2):.{p_prec}f}")
+        logging.info(f"Quantum Mutual Information: {QuantInfo.quantum_mutual_info(state_1, state_2):.{p_prec}f}")
+        logging.info(f"Quantum Relative Entropy: {QuantInfo.quantum_relative_entropy(state_1, state_2):.{p_prec}f}")
+        logging.info(f"Quantum Discord: {QuantInfo.quantum_discord(state_1, state_2):.{p_prec}f}")
+        logging.info("-" * linewid)
 
 
     @staticmethod
