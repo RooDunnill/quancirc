@@ -19,11 +19,9 @@ phi_now  = np.zeros(Nx, dtype=np.float32)
 phi_next = np.zeros(Nx, dtype=np.float32)
 
 
-lamb = -10.0
-mu=1000.0
-c = 1.0                
-mass = 1.8          #GeV
-T_max = 20.0
+c = 1.0              
+mass = 0.5          #GeV
+T_max = 10.0
 dt = 0.5 * dx / c       # CFL condition and GeV-1
 steps = int(T_max / dt)
 frame_stride = 25
@@ -31,12 +29,12 @@ frame_stride = 25
 C2 = (c * dt / dx) ** 2
 
 config = {
-    "phi3": False,
-    "phi4": False,
+    "phi3": True,
+    "phi4": True,
     "double_well": False,
     "higgs": False,
-    "lamb": 10.0,
-    "mu": 1.0,
+    "lamb": 0.0001,
+    "mu": 0.001,
     "vev": 100.0
 }
 
@@ -52,10 +50,10 @@ def dV_dphi(phi, cfg):
         total += cfg["lamb"] * phi * (phi**2 - cfg["vev"]**2)
     return total
 
-n_packets = 10
+n_packets = 20
 packet_lifetime = 1
-packet_sigma = 0.3
-packet_amp = 200.0
+packet_sigma = 0.1
+packet_amp = 50.0
 
 packets = [{"t0": 0, "x0": 0.5 * L, "omega": 11 * np.pi}]
 for _ in range(n_packets):

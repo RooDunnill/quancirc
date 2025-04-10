@@ -4,12 +4,13 @@ how quantum computers (atleast the ones we strive for, ie have all the gates) ru
 algorithms efficiently on the circuit, and also to create quantum cryptography protocols such as BB84 or QCF.
 
 
-Installation Process:
-first from outside the program, run pip install -e quancirc
-then to run any of the scripts use:
-python -m quancirc.src.scripts."script_name"
+Installation Process:  
+first from outside the program, run pip install -e quancirc  
+then to run any of the scripts use:  
+python -m quancirc.src.scripts."script_name"  
 
-Honestly my code changes too much atm to give a detailed indepth guide to each segment so heres a brief overview of the whole program:
+
+Honestly my code changes too much atm to give a detailed indepth guide to each segment so heres a brief overview of the whole program:  
 General Circuit: Allows for general manipulations of Qubits, has a circuit and multi state processes on that circuit, ie can run two circuits simultaneously, need to update this to allow for quant info comparisons of various circuits
 Lightweight Circuit: This is a pure state only, stripped down version designed originally for fast grover search simulation and honeslty thats all I use it for now, is quite outdated but has niche uses
 Symbolic Circuit: I created the start of this when I was looking into plotting the cheating probabilities of a few QCF protocols, will hopefully flesh it out more during the summer when I work more on my diss and need some analysis tools
